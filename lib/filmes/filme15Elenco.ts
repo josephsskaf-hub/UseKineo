@@ -12,6 +12,7 @@
 //      prompt final ganha a ordem "a única pessoa do quadro é o personagem principal").
 // Peças puras (o extrator e o casador de cenas entram por parâmetro): testáveis sem rede. Só roda no filme de 15 s com a folha.
 import type { FichaDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
+import { presencaDe, type PresencaDosPlanos } from '@/lib/cinematic/quemAparece2511' // KINEO-QUEM-APARECE-2511
 
 export const FILME15_ELENCO_MAX = 2
 
@@ -206,6 +207,8 @@ export function protagonistaEmTodaCena(args: {
   mostraGente?: (visual: string) => boolean
   /** KINEO-PROTAGONISTA-SEEDANCE-0111 (rodada 16) — o detector de PESSOA no visual (a rota passa visualMostraPessoa de lib/cinematic/personagemAjuste); vale quando o protagonista é bicho/criatura. */
   mostraPessoa?: (visual: string) => boolean
+  /** KINEO-QUEM-APARECE-2511 — a leitura de quem aparece em cada plano; o plano em que ela diz que o protagonista NÃO está fica como foi descrito. Ausente = o de sempre. */
+  presenca?: PresencaDosPlanos | null
 }): { visuals: string[]; forcadas: number[] } {
   const protagonista = args.elenco.find((f) => f.protagonista) ?? args.elenco[0]
   const visuals = args.visuals.map((v) => String(v ?? ''))
@@ -218,6 +221,7 @@ export function protagonistaEmTodaCena(args: {
   // KINEO-PROTAGONISTA-SEEDANCE-0111 — o bicho entra junto pelo nome (a folha dele entra na cena) e a pessoa fica.
   const mostraPessoa = protagonista.tipo !== 'humano' ? args.mostraPessoa : undefined // KINEO-PROTAGONISTA-SEEDANCE-0111
   const saida = visuals.map((v, i) => {
+    if (presencaDe(args.presenca, i, protagonista.nome) === false) return v // KINEO-QUEM-APARECE-2511: o roteiro pede o plano sem ele
     if (args.porNome === true && args.elenco.some((f) => cenaCitaPeloNome(v, f))) return v // KINEO-PROTAGONISTA-SEEDANCE-0111
     if (mostraGente && mostraGente(v)) return v // KINEO-PROTAGONISTA-SEEDANCE-0111
     if (cenaCitaElenco(glosaDePessoas(v), args.elenco)) return v

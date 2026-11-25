@@ -22,6 +22,7 @@
 //   · corrigirFalsosAmigos: história em PT/ES/FR/IT com "geleia/gelatina/jalea/gelée" e sem água-viva → "jellyfish" no prompt vira // KINEO-ELENCO-EPOCA-2710
 //     criatura de gelatina. Tabela pequena, só casos conhecidos. // KINEO-ELENCO-EPOCA-2710
 // Sem nome, sem época e sem falso amigo: os prompts voltam byte a byte. Guardião: scripts/test-elenco-epoca-2710.mjs. // KINEO-ELENCO-EPOCA-2710
+import { presencaDe as presencaDaPessoa2511, type PresencaDosPlanos } from '@/lib/cinematic/quemAparece2511' // KINEO-QUEM-APARECE-2511
 import { sanitizeRealPeople } from '@/lib/hollywood/realPeople' // KINEO-QUALIDADE-TODOS-MOTORES-2910 — pure sanitization, including Ads client. // KINEO-ELENCO-EPOCA-2710 — pessoa real famosa nunca vira "named character" (sem semelhança)
 import { figuraFiel, descricaoFielDoSer, nomesPersonificados, descricaoDoSerPersonificado } from '@/lib/cinematic/seresFieis' // KINEO-JUIZ-REFAZ-2810 — anatomia fiel por espécie + figuras conhecidas: o mascote ("big round friendly eyes and a short tail") morreu aqui
 import { semRotulosDeSecao, PALAVRAS_DE_SECAO, pessoasPossessivas, falaCitaPessoa, cenaMostraPessoa } from '@/lib/cinematic/pessoasDaNarracao' // KINEO-ELENCO-MARCADOR-2910
@@ -767,6 +768,8 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
   historiaReal?: { anoPorExtenso?: boolean; nomeadoNoElenco?: boolean; nomesNoElenco?: readonly string[] } | null // KINEO-HISTORIA-REAL-1411 · v2: nomesNoElenco, os nomes da gente nomeada do autor
   /** KINEO-PROTAGONISTA-SEEDANCE-0111 — o elenco semântico aplicado na rota (nomes lidos como personagem + o protagonista); null/ausente = comportamento de sempre. */
   elencoSemantico?: { nomes: ReadonlyArray<string>; protagonista: string } | null
+  /** KINEO-QUEM-APARECE-2511 — a leitura de quem aparece: quem ela leu não entra no plano em que ela diz que a pessoa não está. Ausente = o de sempre. */
+  presenca?: PresencaDosPlanos | null
   /** KINEO-ORIGEM-DO-ELENCO-0311 — de onde é quem está em cena (lib/cinematic/origemDoElenco, por injeção: esta camada segue sem rede); null/ausente = byte a byte o de antes. */
   origemDoElenco?: {
     descricao: (p: { nome: string; genero: 'man' | 'woman' | null; tipo: string; descricao: string }, povoDaTabela: string | null) => string | null
@@ -826,6 +829,7 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
       // protagonista ausente de TODO prompt: entra em todas as cenas-alvo; coadjuvante: nas cenas-alvo em que não está // KINEO-ELENCO-EPOCA-2710
       if (!p.nomeado) for (const i of fichaNasCenasComGente) presente[i] = false // KINEO-PROTAGONISTA-DOC-0311 — já desenhado como "a man": a ficha entra assim mesmo (jaPresente já foi lido acima)
       for (const i of alvo) if (!presente[i] && porCena[i].length < ELENCO_EPOCA_MAX_POR_CENA) { // KINEO-ELENCO-MARCADOR-2910
+        if (presencaDaPessoa2511(args.presenca, i, p.nome) === false) continue // KINEO-QUEM-APARECE-2511: o plano que o roteiro pede sem a pessoa não a recebe
         if (marcadaSemGente1411(prompts[i])) continue // KINEO-QUEM-ESTA-NA-CENA-1411 v2 — cena marcada sem gente não recebe ninguém
         const objeto = p.possessivo ? pessoasPossessivas(args.falas[i]).find((dono) => dono.nucleo === p.possessivo!.nucleo)?.objeto : null // KINEO-ELENCO-MARCADOR-2910
         porCena[i].push(`${p.descricao}${objeto ? ` ${objeto}` : ''}`); inseridas.push(i) // KINEO-ELENCO-MARCADOR-2910

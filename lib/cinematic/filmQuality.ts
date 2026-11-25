@@ -1,4 +1,5 @@
 // KINEO-QUALIDADE-TODOS-MOTORES-2910 — one engine-independent film contract, no provider calls.
+import type { PresencaDosPlanos } from '@/lib/cinematic/quemAparece2511' // KINEO-QUEM-APARECE-2511
 import { aplicarElencoEEpoca, type ModoVisualDoElenco } from '@/lib/cinematic/elencoEpoca'
 import { mesmoPersonagem } from '@/lib/cinematic/elencoEpoca' // KINEO-CITADO-NAO-AGE-0311
 import { generoDoNome } from '@/lib/cinematic/elencoEpoca' // KINEO-ELENCO-PROVA-DE-GENTE-1211 — a tabela de primeiros nomes vai à folha por injeção
@@ -266,6 +267,7 @@ export const FINAL_DIFERENTE_DA_ABERTURA = 'final moment of the story, a differe
 export const FICHA_DO_AUTOR_MANDA_1411: 'off' | 'all' = 'all'
 
 export function prepararQualidadeDoFilme(args: {
+  presenca?: PresencaDosPlanos | null // KINEO-QUEM-APARECE-2511 — ausente = o de sempre
   prompts: ReadonlyArray<string>; falas: ReadonlyArray<string>; contextoOriginal: string
   contextoFiltro: string | null | undefined; modo: ModoVisualDoElenco; tagFaceless: boolean
   style: StyleAnchor; elenco?: ReadonlyArray<FichaDePersonagem>; preservarElenco?: boolean
@@ -297,7 +299,7 @@ export function prepararQualidadeDoFilme(args: {
   // KINEO-QUALIDADE-TODOS-MOTORES-2910 — reserve room before elencoEpoca's 2500-char insertion gate.
   const withRoom = args.modo === 'presenter' || args.tagFaceless ? varied : varied.map(p => compactarTextoDoFilme(p, 1800, 650))
   const cast = aplicarElencoEEpoca({ ...args, prompts: withRoom, ...(FICHA_DO_AUTOR_MANDA_1411 === 'all' ? { fichasDoAutor: elenco.filter((f) => f.origem === 'autor' && f.tipo === 'humano' && String(f.canonica ?? '').trim()).map((f) => ({ nome: f.nome, canonica: f.canonica })) } : {}) }) // KINEO-FICHA-DO-AUTOR-MANDA-1411 — a aparência escrita pelo autor manda sobre a sorteada da camada de época
-  const cenas = cenasDoElenco(cast.prompts, args.falas, elenco)
+  const cenas = cenasDoElenco(cast.prompts, args.falas, elenco, false, args.presenca ?? null) // KINEO-QUEM-APARECE-2511
   const prompts = cast.prompts.map((prompt, i) => {
     let p = prompt
     // KINEO-QUALIDADE-TODOS-MOTORES-2910 — an incomplete old snapshot authorizes a role/name, never a newly invented design.

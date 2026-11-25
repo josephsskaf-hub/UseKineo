@@ -78,8 +78,10 @@ export function cabeNoTetoDoPlano(texto: string, teto = KLING4_TETO_DO_PLANO): s
 // KINEO-REFERENCIA-UNICA-PUBLIC-2411: + descricao (o protagonista como o autor/pedido o descreveu, lida da canônica do elenco) e metades (por plano: true =
 // metade de cena fundida, posta pelo plano por seção da rota; ausente ou de outro tamanho = todo plano é a cena inteira, como antes).
 export type Kling4ReferenciaUnica = { imageUrl: string; frase: string; nomes: readonly string[]; descricao?: string; metades?: readonly boolean[]
+  /** KINEO-QUEM-APARECE-2511 — por plano: true/false pela leitura de quem aparece; null = a regra de hoje. Outro tamanho que o dos planos = ignorado. */
+  presenca?: ReadonlyArray<boolean | null>
   /** KINEO-DUAS-REFERENCIAS-2411 — o 2º personagem com folha (@Image2), só quando a rota o põe (interruptor próprio, só a casa). Ausente = uma referência, byte a byte. */
-  segundo?: { imageUrl: string; frase: string; nomes: readonly string[]; descricao?: string } }
+  segundo?: { imageUrl: string; frase: string; nomes: readonly string[]; descricao?: string; presenca?: ReadonlyArray<boolean | null> /* KINEO-QUEM-APARECE-2511 */ } }
 const escapaRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 // KINEO-REFERENCIA-UNICA-PUBLIC-2411 [prova paga 24/11, docs/canais/2026-11-24/prova-2; volta da revisora, docs/revisoes-2311/CEO-REFERENCIA-UNICA-FINAL-2411.md]
 // A decisão era o NOME em qualquer lugar do texto do plano. Ele vinha (a) da ficha que o código põe ("Identity: Louis Le Prince, …") e que a METADE de cena
@@ -168,12 +170,13 @@ export function buildKling4ReferenciaUnicaInput(shots: readonly { prompt: string
   if (!/^https:\/\/[^\s]+$/i.test(ref.imageUrl) || !ref.frase.trim() || duration !== 15 || !shots.length || shots.length > 6 ||
     shots.some((s) => !Number.isInteger(s.duration) || s.duration < 1 || !s.prompt.trim())) return null
   const metades = Array.isArray(ref.metades) && ref.metades.length === shots.length ? ref.metades : shots.map(() => false) // de outro tamanho = a cena inteira (como antes)
-  const comPersonagem = shots.map((s, i) => planoMostraOPersonagem(s.prompt, ref.nomes, { descricao: ref.descricao, metade: metades[i] === true }))
+  const lida = (p: ReadonlyArray<boolean | null> | undefined, i: number): boolean | null => (Array.isArray(p) && p.length === shots.length && typeof p[i] === 'boolean' ? p[i] as boolean : null) // KINEO-QUEM-APARECE-2511
+  const comPersonagem = shots.map((s, i) => lida(ref.presenca, i) ?? planoMostraOPersonagem(s.prompt, ref.nomes, { descricao: ref.descricao, metade: metades[i] === true }))
   if (!comPersonagem.some(Boolean)) return null
   const frase = ' ' + ref.frase.trim()
   // KINEO-DUAS-REFERENCIAS-2411 — o 2º personagem: a mesma regra de presença da volta 2 (na dúvida fica; ausência provada sai), sem a ordem do protagonista
   const seg = ref.segundo && /^https:\/\/[^\s]+$/i.test(ref.segundo.imageUrl) && ref.segundo.imageUrl !== ref.imageUrl && /@Image2\b/.test(ref.segundo.frase) && /@Image1\b/.test(ref.frase) ? ref.segundo : null
-  const comSegundo = shots.map((s, i) => !!seg && planoMostraOPersonagem(s.prompt, seg.nomes, { descricao: seg.descricao, metade: metades[i] === true, protagonista: false }))
+  const comSegundo = shots.map((s, i) => !!seg && (lida(seg.presenca, i) ?? planoMostraOPersonagem(s.prompt, seg.nomes, { descricao: seg.descricao, metade: metades[i] === true, protagonista: false }))) // KINEO-QUEM-APARECE-2511
   const frasesDo = (i: number): string => (comPersonagem[i] ? frase : '') + (comSegundo[i] && seg ? ' ' + seg.frase.trim() : '')
   // KINEO-REFERENCIA-UNICA-PUBLIC-2411 — plano sem o personagem de onde a ficha dele saiu: o texto que ele teria sem a referência (o caminho de hoje).
   // Fica FORA do input, como planosComFrase: os juízes leem este texto (o mesmo do juiz de antes, sem 2ª leitura paga) e o claim conta os índices.
