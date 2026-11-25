@@ -81,6 +81,7 @@ const S25_I2V_MODEL = 'fal-ai/seedance-2.5/image-to-video'
 const S25_T2V_MODEL = 'fal-ai/seedance-2.5/text-to-video'
 const ALLOWED_MODELS = new Set([
   KLING4_REFERENCE_MODEL,
+  'google/gemini-omni-flash/v1.2/reference-to-video', // KINEO-GEMINI-NA-ESTEIRA-2511 (o filme grátis com foto, só a casa)
   KLING4_T2V_MODEL,
   KLING4_I2V_MODEL,
   H3_T2V_MODEL,

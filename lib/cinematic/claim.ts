@@ -999,6 +999,71 @@ export async function gravarImagensDaReserva(args: {
   const candidate = withSignature(args.secret, { ...current, response: nextResponse, responseHash: cinematicValueHash(nextResponse) })
   return updateClaim({ db: args.db, secret: args.secret, previous: current, next: candidate })
 }
+// ═══ KINEO-GEMINI-NA-ESTEIRA-2511 — a queda do Gemini para o Kling 4 reference, em duas trocas atômicas do claim assinado ═══
+// (1) iniciar: UM servidor ganha a vez (token) e grava o motivo e o erro da fal; (2) trocar: depois do recibo do Kling 4, o claim passa a apontar para ele
+// (id, modelo, a entrada EXATA guardada no nascimento, o relógio do Kling 4 de novo), e daí vale a lógica de hoje. Sem recibo (recusado, incerto ou o
+// servidor que morreu): 'sem_kling4', e o filme vai à reserva de hoje (startKling4TrialFallback aceita a origem Gemini). Nada aqui cobra crédito.
+const GEMINI_OMNI_REF_MODEL = 'google/gemini-omni-flash/v1.2/reference-to-video' // = lib/cinematic/geminiNaEsteira2511 (sem import: esta camada não depende do módulo)
+type QuedaDoGemini2511 = { estado: 'iniciada' | 'feita' | 'sem_kling4'; token: string; desde: string; motivo: string; erro: string | null; kling4_request_id?: string; sem_kling4?: string }
+function geminiDoClaim2511(current: CinematicClaim, geminiRequestId: string): Record<string, unknown> | null {
+  const response = current.response
+  const marker = response?.kling4_trial as Record<string, unknown> | undefined
+  if ((current.status !== 'done' && current.status !== 'settled') || current.quality !== 'cinematic_ai' || response?.duration !== 15 || response.aspect !== '9:16' ||
+      !marker || marker.version !== 'kling4_trial_2810' || marker.engine_used !== 'kling4' || marker.motor_do_clipe !== 'gemini_omni_flash' ||
+      current.falRequestIds.length !== 1 || current.falRequestIds[0] !== geminiRequestId || marker.original_request_id !== geminiRequestId ||
+      current.falModels[0] !== GEMINI_OMNI_REF_MODEL || current.authorizedCompletedUrls.some(Boolean)) return null
+  return marker
+}
+export async function iniciarQuedaDoGemini2511(args: { db: SupabaseClient; secret: string; userId: string; generationId: string; geminiRequestId: string; token: string; motivo: 'recusa' | 'prazo'; erro: string | null; agoraIso: string }): Promise<CinematicClaimMutation> {
+  const loaded = await loadVerifiedCinematicClaim(args)
+  if (!loaded.ok || !loaded.claim) return { ok: false, error: loaded.ok ? 'claim not found' : loaded.error }
+  const current = loaded.claim
+  const marker = geminiDoClaim2511(current, args.geminiRequestId)
+  if (!marker) return { ok: false, error: 'not a Gemini trial', conflict: true }
+  if (marker.gemini_queda) return { ok: true, claim: current } // outro servidor já começou: quem chama lê o token
+  const reserva = marker.kling4_reserva as { model?: unknown; input?: unknown } | undefined
+  if (!reserva || reserva.model !== 'kling/v4/reference-to-video' || !reserva.input || typeof reserva.input !== 'object') return { ok: false, error: 'kling4 reserve missing' }
+  const queda: QuedaDoGemini2511 = { estado: 'iniciada', token: args.token, desde: args.agoraIso, motivo: args.motivo, erro: args.erro ? String(args.erro).slice(0, 300) : null }
+  const nextResponse = { ...current.response, kling4_trial: { ...marker, gemini_queda: queda } }
+  const candidate = withSignature(args.secret, { ...current, response: nextResponse, responseHash: cinematicValueHash(nextResponse) })
+  return updateClaim({ db: args.db, secret: args.secret, previous: current, next: candidate })
+}
+export async function trocarGeminiPorKling4_2511(args: { db: SupabaseClient; secret: string; userId: string; generationId: string; geminiRequestId: string; token: string; kling4RequestId: string; agoraIso: string }): Promise<CinematicClaimMutation> {
+  if (!validRequestId(args.kling4RequestId) || !args.kling4RequestId) return { ok: false, error: 'invalid kling4 receipt' }
+  const loaded = await loadVerifiedCinematicClaim(args)
+  if (!loaded.ok || !loaded.claim) return { ok: false, error: loaded.ok ? 'claim not found' : loaded.error }
+  const current = loaded.claim
+  const marker = geminiDoClaim2511(current, args.geminiRequestId)
+  const queda = marker?.gemini_queda as QuedaDoGemini2511 | undefined
+  if (!marker || !queda || queda.estado !== 'iniciada' || queda.token !== args.token) return { ok: false, error: 'not the fallback owner', conflict: true }
+  const reserva = marker.kling4_reserva as { model: string; input: Record<string, unknown> }
+  const { motor_do_clipe: _m, ...semMotor } = marker
+  const nextResponse = normalizeResponse({ ...current.response, fal_request_ids: [args.kling4RequestId], fal_model: reserva.model,
+    ...(Array.isArray(current.response?.fal_models) ? { fal_models: [reserva.model] } : {}), scene_fal_inputs: [reserva.input],
+    submission_uncertain: false, terminal_failed_jobs: [],
+    kling4_trial: { ...semMotor, motor_do_clipe: 'kling4', reserva_de: 'gemini_omni_flash', gemini_request_id: args.geminiRequestId,
+      original_request_id: args.kling4RequestId, submitted_at: args.agoraIso, gemini_queda: { ...queda, estado: 'feita', kling4_request_id: args.kling4RequestId } } })
+  if (!nextResponse) return { ok: false, error: 'invalid fallback response' }
+  const candidate = withSignature(args.secret, { ...current, falRequestIds: [args.kling4RequestId], falModels: [reserva.model], authorizedCompletedUrls: [null],
+    response: nextResponse, responseHash: cinematicValueHash(nextResponse) })
+  if (!validResponseBinding(candidate)) return { ok: false, error: 'invalid fallback binding' }
+  return updateClaim({ db: args.db, secret: args.secret, previous: current, next: candidate })
+}
+/** Sem o Kling 4 (envio recusado, incerto ou o dono da vez sumido além de GEMINI_QUEDA_ORFA_MS): marca e deixa a reserva de hoje seguir. */
+export async function semKling4NaQuedaDoGemini2511(args: { db: SupabaseClient; secret: string; userId: string; generationId: string; geminiRequestId: string; porque: string }): Promise<CinematicClaimMutation> {
+  const loaded = await loadVerifiedCinematicClaim(args)
+  if (!loaded.ok || !loaded.claim) return { ok: false, error: loaded.ok ? 'claim not found' : loaded.error }
+  const current = loaded.claim
+  const marker = geminiDoClaim2511(current, args.geminiRequestId)
+  const queda = marker?.gemini_queda as QuedaDoGemini2511 | undefined
+  if (!marker || !queda) return { ok: false, error: 'no Gemini fallback', conflict: true }
+  if (queda.estado === 'sem_kling4') return { ok: true, claim: current }
+  if (queda.estado !== 'iniciada') return { ok: false, error: 'fallback already switched', conflict: true }
+  const nextResponse = { ...current.response, kling4_trial: { ...marker, gemini_queda: { ...queda, estado: 'sem_kling4', sem_kling4: String(args.porque).slice(0, 120) } } }
+  const candidate = withSignature(args.secret, { ...current, response: nextResponse, responseHash: cinematicValueHash(nextResponse) })
+  return updateClaim({ db: args.db, secret: args.secret, previous: current, next: candidate })
+}
+
 export async function startKling4TrialFallback(args: {
   db: SupabaseClient; secret: string; userId: string; generationId: string; originalRequestId: string
   reason: 'provider_failed' | 'timeout'
@@ -1017,7 +1082,7 @@ export async function startKling4TrialFallback(args: {
   }
   if (marker.engine_used === 'seedance15_fallback' || (marker.engine_used === 'kling4' && marker.fallback_started === true)) return { ok: true, claim: current }
   if (marker.engine_used !== 'kling4' || current.falRequestIds.length !== 1 || current.falRequestIds[0] !== args.originalRequestId ||
-      !['kling/v4/text-to-video','kling/v4/image-to-video','kling/v4/reference-to-video'].includes(current.falModels[0]) || current.authorizedCompletedUrls.some(Boolean)) {
+      !['kling/v4/text-to-video','kling/v4/image-to-video','kling/v4/reference-to-video', GEMINI_OMNI_REF_MODEL /* KINEO-GEMINI-NA-ESTEIRA-2511 */].includes(current.falModels[0]) || current.authorizedCompletedUrls.some(Boolean)) {
     return { ok: false, error: 'original source changed or already authorized', conflict: true }
   }
   // KINEO-RESERVA-COM-IMAGEM-2011 — a reserva com imagem é decidida AQUI, na mesma CAS que começa a reserva: quem chegar depois lê as cenas assinadas
@@ -1045,7 +1110,7 @@ export async function switchKling4TrialToSeedanceFallback(args: {
     return sameArray(current.falRequestIds, args.requestIds) ? { ok: true, claim: current } : { ok: false, error: 'fallback already frozen', conflict: true }
   }
   if (marker.engine_used !== 'kling4' || marker.fallback_started !== true || current.falRequestIds.length !== 1 || current.falRequestIds[0] !== args.originalRequestId ||
-      !['kling/v4/text-to-video','kling/v4/image-to-video','kling/v4/reference-to-video'].includes(current.falModels[0]) || current.authorizedCompletedUrls.some(Boolean)) {
+      !['kling/v4/text-to-video','kling/v4/image-to-video','kling/v4/reference-to-video', GEMINI_OMNI_REF_MODEL /* KINEO-GEMINI-NA-ESTEIRA-2511 */].includes(current.falModels[0]) || current.authorizedCompletedUrls.some(Boolean)) {
     return { ok: false, error: 'original source changed or already authorized', conflict: true }
   }
   const fallback = marker.fallback_response as Record<string, unknown> | undefined

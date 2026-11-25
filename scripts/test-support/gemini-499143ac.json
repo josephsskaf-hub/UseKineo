@@ -1,0 +1,44 @@
+{
+ "nota": "KINEO-GEMINI-NA-ESTEIRA-2511 — o filme 499143ac (da casa): a entrada do Kling 4 reference lida do claim d275e2f1 (scene_fal_inputs[0]) e o pedido do Gemini que levou NOTA 10 do dono (docs/filme-nota-9/teste-motores-2511/pedidos/499143ac-gemini.json, request 01a212ed).",
+ "nomes": [
+  "Elias Ward",
+  "Mara Quinn"
+ ],
+ "kling4_input": {
+  "duration": 15,
+  "image_urls": [
+   "https://v3b.fal.media/files/b/0ab3d531/hceF35nALFgYRRrVm7J7A.jpg",
+   "https://v3b.fal.media/files/b/0ab3d531/7zjTYzXVR-RBbOMjCKCpB.jpg"
+  ],
+  "resolution": "720p",
+  "aspect_ratio": "9:16",
+  "multi_prompt": [
+   {
+    "prompt": "Photoreal film. Identity: Elias Ward, kept the lighthouse alone for thirty years, exactly as the author wrote; appearance anchors: 60-70, gray, facial hair: gray beard, light skin. Elias Ward, a gray-bearded lighthouse keeper in a navy coat, climbs a spiral staircase at night during a storm. no readable text, letters, numbers, labels or signage anywhere in the frame Keep the face and outfit of @Image1. Mouth closed, no speaking.",
+    "duration": 3
+   },
+   {
+    "prompt": "Photoreal film. Identity: Mara Quinn, exactly as the author wrote: \"young red-haired radio operator in a green sweater\". Mara Quinn, a young red-haired woman in a green sweater, listens intently to a faint call on the radio. no readable text, letters, numbers, labels or signage Keep the face and outfit of @Image2. Mouth closed, no speaking.",
+    "duration": 4
+   },
+   {
+    "prompt": "Photoreal film. Identity: Elias Ward, kept the lighthouse alone for thirty years, exactly as the author wrote; appearance anchors: 60-70, gray, facial hair: gray beard, light skin. Elias Ward turns a massive lighthouse lamp, its beam slicing through the stormy night toward the sea. no readable text, letters, numbers, labels or signage anywhere in the frame Keep the face and outfit of @Image1. Mouth closed, no speaking.",
+    "duration": 3
+   },
+   {
+    "prompt": "Photoreal film. Wide shot. Identity: Elias Ward, kept the lighthouse alone for thirty years, exactly as the author wrote; appearance anchors: 60-70, gray, facial hair: gray beard, light skin. Elias and Mara watch a small fishing boat safely reaching the harbor as dawn light breaks over the horizon. no readable text, letters, numbers, labels or signage anywhere in the frame Keep the face and outfit of @Image1. Mouth closed, no speaking.",
+    "duration": 5
+   }
+  ]
+ },
+ "gemini_input_nota_10": {
+  "prompt": "15-second vertical 9:16 film, 4 shots with hard cuts. REFERENCES: <IMAGE_REF_0> is Elias Ward and <IMAGE_REF_1> is Mara Quinn; each keeps the same look in every shot where they appear.\n0-3 s (shot 1, hard cut): Photoreal film. Identity: Elias Ward, kept the lighthouse alone for thirty years, exactly as the author wrote; appearance anchors: 60-70, gray, facial hair: gray beard, light skin. Elias Ward, a gray-bearded lighthouse keeper in a navy coat, climbs a spiral staircase at night during a storm. no readable text, letters, numbers, labels or signage anywhere in the frame Keep the face and outfit of <IMAGE_REF_0>. Mouth closed, no speaking.\n3-7 s (shot 2, hard cut): Photoreal film. Identity: Mara Quinn, exactly as the author wrote: \"young red-haired radio operator in a green sweater\". Mara Quinn, a young red-haired woman in a green sweater, listens intently to a faint call on the radio. no readable text, letters, numbers, labels or signage Keep the face and outfit of <IMAGE_REF_1>. Mouth closed, no speaking.\n7-10 s (shot 3, hard cut): Photoreal film. Identity: Elias Ward, kept the lighthouse alone for thirty years, exactly as the author wrote; appearance anchors: 60-70, gray, facial hair: gray beard, light skin. Elias Ward turns a massive lighthouse lamp, its beam slicing through the stormy night toward the sea. no readable text, letters, numbers, labels or signage anywhere in the frame Keep the face and outfit of <IMAGE_REF_0>. Mouth closed, no speaking.\n10-15 s (shot 4, hard cut): Photoreal film. Wide shot. Identity: Elias Ward, kept the lighthouse alone for thirty years, exactly as the author wrote; appearance anchors: 60-70, gray, facial hair: gray beard, light skin. Elias and Mara watch a small fishing boat safely reaching the harbor as dawn light breaks over the horizon. no readable text, letters, numbers, labels or signage anywhere in the frame Keep the face and outfit of <IMAGE_REF_0>. Mouth closed, no speaking.",
+  "image_urls": [
+   "https://v3b.fal.media/files/b/0ab3d531/hceF35nALFgYRRrVm7J7A.jpg",
+   "https://v3b.fal.media/files/b/0ab3d531/7zjTYzXVR-RBbOMjCKCpB.jpg"
+  ],
+  "duration": 15,
+  "resolution": "720p",
+  "aspect_ratio": "9:16"
+ }
+}

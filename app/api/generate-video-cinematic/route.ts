@@ -36,6 +36,7 @@ import { kling4GratisDentroDoTeto } from '@/lib/kling4GratisTetoServer' // KINEO
 import { medirFalaDoKling4Trial, type FalaK4 } from '@/lib/kling4TrialScript' // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "2 c"]
 import { fixedCharacterEnabled, fixedCharacterReference, referenceRehearsal } from '@/lib/cinematic/kling4PersonagemFixo'
 import { KLING4_REFERENCE_MODEL, type Kling4CharacterReference } from '@/lib/kling4Trial'
+import { GEMINI_NA_ESTEIRA_2511, GEMINI_NA_ESTEIRA_2511_VERSAO, GEMINI_ENVIO_EVENTO, GEMINI_OMNI_REF_MODEL, GEMINI_OMNI_REF_USD_PER_S_720P, GeminiRecusadoNoEnvio, geminiDoKling4, geminiNaEsteiraLigado, submitGeminiTrialVideo, type EntradaDoGemini } from '@/lib/cinematic/geminiNaEsteira2511' // KINEO-GEMINI-NA-ESTEIRA-2511
 import { ELENCO_E_FIGURINO_2411, FIGURINO_DO_PEDIDO_2411, elencoEFigurinoLigado, elencoComNomeCompleto, aceitaPapelSemPista, fichaComDescricaoDoPedido, relatoDoElenco2411, medidaDaLeitura2411, medidaDaRegra2411, type MedidaDaLeitura2411, ELENCO_E_FIGURINO_2411_VERSAO } from '@/lib/cinematic/elencoEFigurino2411' // KINEO-ELENCO-E-FIGURINO-2411
 import { FOLHA_DA_REFERENCIA_2411, folhaDaReferenciaLigada, folhaServeAReferencia2411, retratoDaReferencia2411 } from '@/lib/cinematic/folhaDaReferencia2411' // KINEO-FOLHA-DA-REFERENCIA-2411
 import { LEITOR_DO_ELENCO_2411, LEITOR_DO_ELENCO_2411_VERSAO, elencoDoLeitor2411 } from '@/lib/cinematic/elencoEFigurino2411' // KINEO-LEITOR-DO-ELENCO-2411
@@ -8610,10 +8611,34 @@ async function manipularPost(req: NextRequest) {
     // KINEO-K4-DURACAO-PELA-VOZ-1311 — a voz MEDIDA (o mp3 que a montagem vai usar) decide onde cada plano corta; só com o interruptor (lib/kling4Trial.ts).
     if (kling4Fala?.cabe && typeof kling4Fala.seconds === 'number' && duracaoPelaVozLigada(KLING4_DURACAO_PELA_VOZ, isInternalEmail(user.email))) kling4Timing.pelaVoz = { segundosDaVoz: kling4Fala.seconds }
     if (kling4Fala && !kling4Fala.cabe) console.warn(`[cinematic] KINEO-K4-NARRACAO-CABE-0111 fala medida ${kling4Fala.seconds ?? '?'}s (teto ${kling4Fala.maxSeconds}s, ${kling4Fala.reason}) → Seedance 15 s, não Kling 4`) // KINEO-K4-NARRACAO-CABE-0111
+    // KINEO-GEMINI-NA-ESTEIRA-2511 [CEO 25/11 11:05] — só a casa exata e só com a referência admitida: o pedido do Kling 4 já montado vira o do Gemini (um texto só,
+    // os planos byte a byte); a entrada EXATA do Kling 4 fica guardada no claim para a queda. 4xx no envio = o Kling 4 na hora, com a mesma entrada; 5xx ou prazo
+    // = ambíguo, sem reenviar (como o Kling 4 hoje). Cliente e 'off': nenhum pedido ao Gemini, nada muda.
+    const gemini2511: { entrada: EntradaDoGemini | null; kling4: { model: string; input: Record<string, unknown> } | null; recusaNoEnvio: number | null } = { entrada: null, kling4: null, recusaNoEnvio: null }
+    const tentarGemini2511 = async () => {
+      if (!geminiNaEsteiraLigado(GEMINI_NA_ESTEIRA_2511, user.email)) return null
+      const e = kling4PorSecao({ prompts: kling4Prompts, approvedStills: kling4ApprovedStills, timing: kling4Timing })
+      const wire = buildKling4TrialInput(e.prompts, e.approvedStills, e.timing)
+      if (wire.model !== KLING4_REFERENCE_MODEL) return null
+      const ru = e.timing?.referenciaUnica
+      const entrada = geminiDoKling4(wire.input, [ru?.nomes?.[0], ru?.segundo?.nomes?.[0]])
+      if (!entrada) return null
+      try {
+        const job = await submitGeminiTrialVideo(entrada, { apiKey: process.env.FAL_KEY ?? '', onPost: () => { kling4Posts++; ctxDespacho().totalPosts++ } })
+        gemini2511.entrada = entrada; gemini2511.kling4 = { model: wire.model, input: wire.input }
+        void writeServerEvent({ name: GEMINI_ENVIO_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, request_id: job.requestId, aceito: true, fotos: entrada.image_urls.length, planos: (wire.input.multi_prompt as unknown[]).length, caracteres: entrada.prompt.length } }).catch(() => false)
+        return job
+      } catch (err) {
+        if (!(err instanceof GeminiRecusadoNoEnvio)) throw err
+        gemini2511.recusaNoEnvio = err.http
+        void writeServerEvent({ name: GEMINI_ENVIO_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, aceito: false, http: err.http } }).catch(() => false)
+        return null
+      }
+    }
     if (kling4TrialCandidate && scenes.length === 3 && scenes.every(s => [6, 7, 8].includes(s.clipSeconds ?? 6)) && kling4Fala?.cabe) { // KINEO-K4-NARRACAO-CABE-0111: + fala medida ≤ 15,5 s
       kling4Trial = await orchestrateKling4Trial({
         reserve: () => reserveKling4Trial(cinematicAdmin, { jobId: generationId, userId: user.id, country: paisDoRequest(req.headers), clipSeconds: kling4Timing.clipSeconds }), // KINEO-K4-TETO-FILME-LONGO-1711 — a reserva é o preço do clipe já medido (sem clipSeconds = 15 s = 2355, hoje)
-        submit: async () => { await aplicarSujeitoNoKling4(); return submitKling4TrialVideo(kling4PorSecao({ // KINEO-K4-SUJEITO-0111 v5 — o sujeito entra depois da reserva aprovada, antes do POST pago · KINEO-K4-PLANO-POR-SECAO-1111: kling4PorSecao
+        submit: async () => { await aplicarSujeitoNoKling4(); { const viaGemini2511 = await tentarGemini2511(); if (viaGemini2511) return viaGemini2511 } /* KINEO-GEMINI-NA-ESTEIRA-2511 */ return submitKling4TrialVideo(kling4PorSecao({ // KINEO-K4-SUJEITO-0111 v5 — o sujeito entra depois da reserva aprovada, antes do POST pago · KINEO-K4-PLANO-POR-SECAO-1111: kling4PorSecao
           prompts: kling4Prompts, approvedStills: kling4ApprovedStills, timing: kling4Timing,
         }), { apiKey: process.env.FAL_KEY ?? '', onPost: () => { kling4Posts++; ctxDespacho().totalPosts++ } }) },
       })
@@ -8912,6 +8937,9 @@ async function manipularPost(req: NextRequest) {
         response.k4_reference_plan = { story: [pedidoDoCliente, prompt].filter(Boolean).join('\n'), quality: qualitySnapshot,
           shots: e.prompts.map((p, i) => ({ prompt: p, duration: shots[i].duration })) }
       }
+      if (kling4Trial.job && kling4Trial.job.model === GEMINI_OMNI_REF_MODEL && gemini2511.entrada && gemini2511.kling4) Object.assign(response.kling4_trial as Record<string, unknown>, { motor_do_clipe: 'gemini_omni_flash', gemini_versao: GEMINI_NA_ESTEIRA_2511_VERSAO,
+        kling4_reserva: gemini2511.kling4, gemini_est_usd: Math.round(15 * GEMINI_OMNI_REF_USD_PER_S_720P * 10000) / 10000, gemini_caracteres: gemini2511.entrada.prompt.length, gemini_fotos: gemini2511.entrada.image_urls.length }) // KINEO-GEMINI-NA-ESTEIRA-2511
+      if (gemini2511.recusaNoEnvio !== null) (response.kling4_trial as Record<string, unknown>).gemini_queda = { estado: 'no_envio', motivo: 'recusa_no_envio', erro: `http_${gemini2511.recusaNoEnvio}` } // KINEO-GEMINI-NA-ESTEIRA-2511: o Kling 4 foi na hora
       if (kling4Encaixe.r) (response.kling4_trial as Record<string, unknown>).narration_refit = kling4Encaixe.r.rastro // KINEO-K4-SEMPRE-0511 — quanto foi encurtada
       if (kling4Trial.job) (response.kling4_trial as Record<string, unknown>).fallback_scenes = classicScenePrompts.map((prompt, i) => ({ prompt, duration: scenes[i].clipSeconds ?? 6, ...(kling4ApprovedStills[i] ? { image_url: kling4ApprovedStills[i] } : {}) })) // KINEO-RESERVA-H3-0611 — a imagem aprovada viaja assinada para a reserva
       if (kling4Trial.job) {
@@ -8943,6 +8971,7 @@ async function manipularPost(req: NextRequest) {
           ...((() => { const e = kling4EnvioDoFilme(); const w = buildKling4TrialInput(e.prompts, e.approvedStills, e.timing); const ru = relatoReferenciaUnica(e.timing, w); const sem = ru ? null : relatoClienteSemReferencia2411(kling4Timing, w); return ru ? { kling4_referencia_unica: ru } : sem ? { kling4_referencia_unica_cliente: sem } : {} })()), // KINEO-REFERENCIA-UNICA-2411 — para medir (desligado = nenhum campo novo) · KINEO-REFERENCIA-UNICA-HUMANO-2411: cliente sem a referência = só o código do motivo
           clip_seconds: [kling4TrialClipTotal(kling4Timing.clipSeconds)], clip_word_starts: [0], // KINEO-K4-GRATIS-20S-1711 — [15] como sempre sem o caminho de até 20 s
         })
+        if (kling4Trial.job.model === GEMINI_OMNI_REF_MODEL && gemini2511.entrada) response.scene_fal_inputs = [gemini2511.entrada] // KINEO-GEMINI-NA-ESTEIRA-2511: o que foi à fal
       }
     }
     // The signed claim records the ACTUAL per-scene model (usedModels). When

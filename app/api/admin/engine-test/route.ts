@@ -265,7 +265,9 @@ async function probeGet(req: NextRequest) {
     const st = (await fal.queue.status(model, { requestId })) as { status?: string }
     if (st.status !== 'COMPLETED') return NextResponse.json({ status: st.status ?? 'UNKNOWN', video_url: null })
     const res = (await fal.queue.result(model, { requestId })) as { data?: { video?: { url?: string } } }
-    return NextResponse.json({ status: 'COMPLETED', model, video_url: res.data?.video?.url ?? null })
+    // KINEO-GEMINI-NA-ESTEIRA-2511 [CEO 25/11] — o resultado INTEIRO volta junto (só administrador, de graça: reler um pedido feito não gera nada), para ver se o
+    // fornecedor traz o uso de tokens (o Gemini cobra tokens de entrada e de saída além do vídeo e a ficha não diz se o resultado os mostra)
+    return NextResponse.json({ status: 'COMPLETED', model, video_url: res.data?.video?.url ?? null, resultado: res.data ?? null })
   } catch (e) {
     return NextResponse.json({ status: 'failed', error: falDetail(e).slice(0, 300) })
   }

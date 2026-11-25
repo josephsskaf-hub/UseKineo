@@ -4,6 +4,7 @@ import { KLING4_T2V_MODEL, KLING4_I2V_MODEL, KLING4_REFERENCE_MODEL, KLING4_TRIA
 import { kling4TrialEngineFromClaim, kling4TrialVideoUrlFromClaim } from '@/lib/kling4TrialClaim'
 import { ensureKling4TrialFallback } from '@/lib/kling4TrialFallback'
 import { K4_ESPERA_QUEM_RODA_1911, decisaoNoPrazoDoKling4 } from '@/lib/kling4TrialReserva1911' // KINEO-RESERVA-GRATIS-1911 (c)
+import { avancarGemini2511, filmeNoGemini2511, type DepsDoGemini } from '@/lib/cinematic/geminiNaEsteiraAsync2511' // KINEO-GEMINI-NA-ESTEIRA-2511
 
 export const KLING4_TRIAL_FALLBACK_AFTER_MS = KLING4_TRIAL_TIMEOUT_MS
 type Identity = { db: SupabaseClient; secret: string; userId: string; generationId: string; claim: CinematicClaim }
@@ -17,6 +18,9 @@ export type Kling4TrialAdvance = {
 /** Call only with a verified owner claim. A former Kling ID authorizes only its signed fallback generation. */
 export function kling4TrialPollIdsMatch(ids: readonly (string | null)[], claim: CinematicClaim): boolean {
   if (ids.length === claim.falRequestIds.length && ids.every((id, i) => id === claim.falRequestIds[i])) return true
+  { const m = claim.response?.kling4_trial as Record<string, unknown> | undefined // KINEO-GEMINI-NA-ESTEIRA-2511: depois da queda, o id antigo do Gemini ainda acha o filme (o navegador recebe o claim novo em `replacement`)
+    if (m && m.reserva_de === 'gemini_omni_flash' && typeof m.gemini_request_id === 'string' && m.gemini_request_id.length > 0 && ids.length === 1 && ids[0] === m.gemini_request_id &&
+        kling4TrialEngineFromClaim(claim.response) !== null) return true }
   if (kling4TrialEngineFromClaim(claim.response) !== 'seedance15_fallback') return false
   const marker = claim.response!.kling4_trial as Record<string, unknown>
   return marker.fallback_finalized === true && ids.length === 1 && typeof marker.original_request_id === 'string' &&
@@ -31,6 +35,7 @@ export async function advanceKling4TrialStatus(
     fallback?: typeof ensureKling4TrialFallback
     /** KINEO-RESERVA-GRATIS-1911 (c) — só para o guardião: força o interruptor K4_ESPERA_QUEM_RODA_1911. */
     esperaQuemRoda?: boolean
+    gemini?: DepsDoGemini // KINEO-GEMINI-NA-ESTEIRA-2511 — só para o guardião
   } = {},
 ): Promise<Kling4TrialAdvance> {
   const engine = kling4TrialEngineFromClaim(args.claim.response)
@@ -46,6 +51,7 @@ export async function advanceKling4TrialStatus(
     return { kind: current.falRequestIds.some(Boolean) ? 'ordinary' : 'fallback_empty', claim: current }
   }
   if (engine !== 'kling4') return { kind: 'ordinary', claim: args.claim }
+  if (filmeNoGemini2511(args.claim)) return avancarGemini2511(args, { fallback: deps.fallback, ...(deps.gemini ?? {}) }) // KINEO-GEMINI-NA-ESTEIRA-2511: o Gemini; a queda leva ao Kling 4 e daí à lógica abaixo
   const claim = args.claim
   if (claim.falRequestIds.length !== 1 || !claim.falRequestIds[0] ||
       ![KLING4_T2V_MODEL, KLING4_I2V_MODEL, KLING4_REFERENCE_MODEL].includes(claim.falModels[0])) return { kind: 'pending', claim }

@@ -220,7 +220,8 @@ test('evento não gravado depois de a fila aceitar: devolve o request_id com avi
 test('GET da sonda pronto: status e URL do vídeo', async () => {
   const h = harness(ROUTE)
   const r = await h.get(`engine=probe&endpoint=${encodeURIComponent(GEM)}&request_id=${REQ_ID}`)
-  assert.deepEqual(r, { status: 200, body: { status: 'COMPLETED', model: GEM, video_url: 'https://v3.fal.media/files/out.mp4' } })
+  // KINEO-GEMINI-NA-ESTEIRA-2511: o resultado inteiro volta junto (para ver se a fal traz o uso de tokens)
+  assert.deepEqual(r, { status: 200, body: { status: 'COMPLETED', model: GEM, video_url: 'https://v3.fal.media/files/out.mp4', resultado: { video: { url: 'https://v3.fal.media/files/out.mp4' } } } })
 })
 test('GET da sonda na fila: status sem URL', async () => {
   const h = harness(ROUTE, { fal: fakeFal({ status: 'IN_QUEUE' }) })
