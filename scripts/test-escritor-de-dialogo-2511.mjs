@@ -7,6 +7,8 @@
 //       (nem chama) e no roteiro que saiu; bicho, robô, dragão e desenho sem idade seguem falando;
 //   3d. volta 5: a régua POSITIVA do cliente (chave própria, nasce 'off'): papel copiado da ideia, nome só da ideia, humano só com adulto provado no trecho
 //       dele, não humano da lista fechada e sem filhote, só inglês, número de menor na ideia = narrado; a casa segue com a v4;
+//   3e. volta 6 (CEO 25/11): humano fala só pelo PAPEL; pessoa única e nome completo de gente = narrado; título+nome e hífen = nome próprio;
+//       filhote de bicho FALA; qualquer palavra não humana no papel = não humano; mais ofícios de adulto; o ensaio mede o rótulo no elenco;
 //   4. o formato (cada seção "SEÇÃO: [Pexels: cue]" + linhas `Nome: fala`) e o que o parser de hoje faz com ele (4 seções, o nome fica na fala);
 //   5. o TRECHO REAL do /api/generate-script, executado: casa + 'characters' + filme curto + inglês + ideia = o roteiro falado e os dois rastros; qualquer
 //      outra combinação (cliente, 'narrator', ausente, outra língua, 35 s, texto com marcadores) não chama nada e cai no caminho de hoje; régua furada
@@ -106,7 +108,7 @@ async function suite(change) {
   assert.equal(script, ROTEIRO_BOM, 'o formato exato')
   // o conferidor do ensaio (a régua escrita antes, no formato do leitor do 3bbf48a0) aprova o que o escritor monta, item a item
   { const { conferirEnsaio } = await import('./ensaio-escritor-de-dialogo-2511.mjs'), c = conferirEnsaio(script, ['Elias Ward', 'Mara Quinn'])
-    for (const [k, v] of Object.entries(c)) if (!['falantes', 'palavras', 'historia_do_pedido', 'fala_longa'].includes(k)) assert.equal(v, true, 'o conferidor: ' + k)
+    for (const [k, v] of Object.entries(c)) if (!['falantes', 'palavras', 'historia_do_pedido', 'fala_longa', 'rotulo_na_ideia'].includes(k)) assert.equal(v, true, 'o conferidor: ' + k)
     // volta 4: a conta da fala_longa do leitor (T4 é do 3bbf48a0). O BOM tem seções de 6, 7, 7 e 7: nenhuma passa de 8 (3,75 s), três passam de 6 (3 s)
     igual(c.fala_longa, { a_3_75s: 0, a_3s: 3 }, 'a conta da fala_longa')
     const { TETO_DO_LEITOR } = await import('./ensaio-escritor-de-dialogo-2511.mjs')
@@ -202,8 +204,9 @@ async function suite(change) {
   igual(['Ana, 16, argues with her mom', 'A young man of 17 asks', 'Sweet sixteen party', 'after 20 years', 'he is 18 now', 'at 5:30 pm', 'a 10% discount', 'two old friends'].map(E.idadeDeMenorNaIdeia2511), [true, true, true, false, false, false, false, false], 'número de menor')
   // quem fala, lido só no trecho DELE
   for (const [ideia, papel, esp] of [['A lighthouse keeper and a radio operator', 'radio operator', 'adulto'], ['Two fishermen argue about a storm', 'fishermen', 'adulto'], ['Two astronauts lose contact', 'astronauts', 'adulto'], ['A taxi driver meets a passenger', 'taxi driver', 'adulto'],
-    ['A taxi driver meets a passenger', 'passenger', 'sem_adulto'], ['A doctor helps a patient', 'patient', 'sem_adulto'], ['The nurse and patient talk', 'patient', 'sem_adulto'], ['A 40-year-old mechanic fixes a truck', 'mechanic', 'adulto'], ['A young man asks for the keys', 'man', 'menor'],
-    ['A tiny explorer looks at the stars', 'explorer', 'menor'], ['A freshman and a senior argue', 'freshman', 'sem_adulto'], ['A grumpy cactus and a sunflower', 'cactus', 'nao_humano'], ['Two penguins plan a party', 'penguins', 'nao_humano'], ['A kitten and an owl share a branch', 'kitten', 'menor'],
+    ['A taxi driver meets a passenger', 'passenger', 'adulto'], ['A doctor helps a patient', 'patient', 'sem_adulto'], ['The nurse and patient talk', 'patient', 'sem_adulto'], ['A 40-year-old mechanic fixes a truck', 'mechanic', 'adulto'], ['A young man asks for the keys', 'man', 'menor'],
+    ['A tiny explorer looks at the stars', 'explorer', 'menor'], ['A freshman and a senior argue', 'freshman', 'sem_adulto'], ['A grumpy cactus and a sunflower', 'cactus', 'nao_humano'], ['Two penguins plan a party', 'penguins', 'nao_humano'], ['A kitten and an owl share a branch', 'kitten', 'nao_humano'], ['A scientist and her robot assistant', 'robot assistant', 'nao_humano'], ['A young fox and her mother', 'young fox', 'nao_humano'], ['A small bear asks his grandpa', 'small bear', 'nao_humano'],
+    ['Iron-Man fixes a car with a mechanic', 'iron-man', 'sem_adulto'], ['A seven year old fox and a bear', 'fox', 'menor'], ['A pilot and a flight attendant', 'flight attendant', 'adulto'], ['A captain and her first mate', 'first mate', 'adulto'], ['A mechanic and a customer', 'customer', 'adulto'],
     ['A tiny dragon named Ember', 'dragon', 'nao_humano'], ['A robot and a cat on the moon', 'robot', 'nao_humano'], ['A mom and a dad plan a surprise', 'mom', 'adulto'], ['A pilot flies home', 'captain', 'sem_adulto'], ['A girl and her dog play', 'girl', 'menor']])
     assert.equal(E.quemFala2511(ideia, papel), esp, `quem fala: ${papel} em "${ideia}"`)
   // os 10 casos do ensaio: com os DOIS personagens que a ideia descreve, 7 de 10 falam; se só o 1º fala, 9 de 10 (o f3 cai pelo "daughter")
@@ -212,16 +215,16 @@ async function suite(change) {
       d1: [P5('dragon', 'Ember'), P5('owl')], d2: [P5('robot'), P5('cat')], d3: [P5('cactus'), P5('sunflower')], d4: [P5('penguins'), P5('walrus')], d5: [P5('snowman'), P5('camel')] }
     const dois = [], um = []
     for (const c of C) { if ((await roda5(c.corpo.topic, DOIS[c.id])).fala) dois.push(c.id); if ((await roda5(c.corpo.topic, [DOIS[c.id][0]])).fala) um.push(c.id) }
-    igual([dois, um], [['f1', 'f2', 'd1', 'd2', 'd3', 'd4', 'd5'], ['f1', 'f2', 'f4', 'f5', 'd1', 'd2', 'd3', 'd4', 'd5']], 'os 10 casos com a régua positiva (≥ 6 de 10)') }
+    igual([dois, um], [['f1', 'f2', 'f5', 'd1', 'd2', 'd3', 'd4', 'd5'], ['f1', 'f2', 'f4', 'f5', 'd1', 'd2', 'd3', 'd4', 'd5']], 'os 10 casos com a régua positiva (volta 6: o passageiro é adulto)') }
   // os ataques da revisora 52b12696: famoso não fala (sem papel na ideia, ou nome que a ideia não tem), criança não fala
   for (const [ideia, f, motivo] of [['Obamma and a waiter argue about tips', [P5('obamma', 'Obamma')], 'sem_adulto'], ['Lady Gaga rehearses with a nervous pianist', [P5('lady gaga', 'Lady Gaga')], 'papel'], ['Lady Gaga rehearses with a nervous pianist', [P5('lady gaga')], 'papel'], ['The Tesla CEO pitches a rocket to an investor', [P5('ceo')], 'papel'], ['Swift and her drummer fight backstage', [P5('swift', 'Swift')], 'sem_adulto'],
-    ['The Tesla CEO pitches a rocket to an investor', [P5('investor')], 'sem_adulto'], ['Rainha Elizabeth conversa com o mordomo', [P5('mordomo')], 'lingua'], ['Elon Musk argues with a robot', [P5('robot')], 'figura']])
+    ['The Tesla CEO pitches a rocket to an investor', [P5('investor')], null], ['Rainha Elizabeth conversa com o mordomo', [P5('mordomo')], 'lingua'], ['Elon Musk argues with a robot', [P5('robot')], 'figura']])
     igual((await roda5(ideia, f)).motivo, motivo, 'famoso não fala: ' + ideia)
   for (const nome of ['Keanu', 'Zuck', 'Bey', 'Sherlock', 'Elsa', 'Barack']) igual((await roda5('Two fishermen argue about the last boat off the island', [P5('fishermen', nome)])).motivo, 'nome_inventado', 'o modelo não escolhe nome: ' + nome)
   for (const [ideia, f, motivo] of [['A tiny explorer and her grandpa talk about the stars', [P5('explorer'), P5('grandpa')], 'menor'], ['Lily, missing her front teeth, asks grandma for a cookie', [P5('lily', 'Lily')], 'sem_adulto'],
     ['A young man of 17 asks his father for the car keys', [P5('father')], 'menor'], ['Ana, 16, argues with her mom about a party', [P5('mom')], 'menor'], ['A bambina and her nonno feed the pigeons', [P5('bambina'), P5('nonno')], 'menor' /* [Div. filmes, volta 2 das duas pessoas] a 2ª trava passou a ler 'bambina': continua narrado, o motivo ficou exato (era sem_adulto) */],
     ['Ek ladki aur uski dadi baat karti hain', [P5('dadi')], 'lingua'], ['Bir çocuk ve annesi parkta konuşuyor', [P5('annesi')], 'lingua'], ['A freshman and a senior argue in the hallway', [P5('freshman'), P5('senior')], 'sem_adulto'],
-    ['Sweet sixteen: Bea and her aunt plan the party', [P5('aunt')], 'menor'], ['A little pirate and a parrot find a map', [P5('pirate'), P5('parrot')], 'menor'], ['A young puppy and an old cat argue over a sunny spot', [P5('puppy'), P5('cat')], 'menor'],
+    ['Sweet sixteen: Bea and her aunt plan the party', [P5('aunt')], 'menor'], ['A little pirate and a parrot find a map', [P5('pirate'), P5('parrot')], 'menor'], ['A seven-year-old fox asks a bear for help', [P5('fox'), P5('bear')], 'menor'],
     ['Tom is 9 and his dad fixes the bike', [P5('dad')], 'menor' /* [Div. filmes, volta 2 das duas pessoas] o número solto que só idadeDeMenorNaIdeia2511 lê (a 2ª trava agora lê "Ana, 16,") */]])
     igual((await roda5(ideia, f)).motivo, motivo, 'criança não fala: ' + ideia)
   igual((await roda5('A mother and her neighbor walk on the beach', [P5('mother'), P5('neighbor')], ['Mom, look at the big wave!', 'What is it, my love?', 'My tooth fell out right now!', 'What a big day.'])).motivo, 'sem_adulto', 'o vizinho sem idade não fala')
@@ -237,6 +240,48 @@ async function suite(change) {
   igual((await roda5('Hope and Grace run a diner', [P5('hope', 'Hope')], null, null)).motivo, 'sem_adulto', 'régua nula = a do cliente')
   igual((await roda5('A ship in a storm', [P5('ship')], null, 'cliente')).corpo?.response_format?.json_schema?.name, 'dialogo_do_filme_cliente', 'o cliente usa o esquema dele')
   { const casa = await E.escreverDialogo2511({ ideia: 'Hope and Grace run a diner', segundos: 15, chamar: async () => JSON.stringify(BOM()) }); igual([!!casa.script, casa.relato.regua], [true, 'casa'], 'a casa segue com a v4') }
+  // ── 5c. volta 6 (CEO 25/11, revisora 392f0a52): os furos F1–F4 e as 20 ideias comuns da revisora ───────────────────────────────────────────
+  // F1 · famoso com papel de adulto e o nome completo colado ao papel = narrado (nome_de_gente), ou a régua de figura da casa
+  for (const [ideia, f] of [['the actor Leonardo Di Caprio orders coffee from a waiter', [P5('actor', 'Leonardo Di Caprio'), P5('waiter')]], ['the ceo Jensen Hwang shows a new chip to an engineer', [P5('ceo', 'Jensen Hwang'), P5('engineer')]],
+    ['the senator Bernie Sanders debates a teacher on the radio', [P5('senator', 'Bernie Sanders'), P5('teacher')]], ['the pastor Martin Luther King gives a speech to a reporter', [P5('pastor', 'Martin Luther King'), P5('reporter')]],
+    ['the senator Bernie Sanders debates a teacher on the radio', [P5('senator'), P5('teacher')]], ['Leonardo Di Caprio, the actor, orders coffee from a waiter', [P5('actor'), P5('waiter')]], ['a pastor named Martin Luther King gives a speech to a reporter', [P5('pastor'), P5('reporter')]]])
+    assert.ok(!(await roda5(ideia, f)).fala, 'F1 no narrado: ' + ideia + ' ' + JSON.stringify(f))
+  igual((await roda5('the senator Bernie Sanders debates a teacher on the radio', [P5('senator'), P5('teacher')])).motivo, 'nome_de_gente', 'F1: o nome completo colado ao papel')
+  igual((await roda5('Leonardo Di Caprio, the actor, orders coffee from a waiter', [P5('actor'), P5('waiter')])).motivo, 'nome_de_gente', 'F1: o nome completo antes do papel')
+  // F2 · pessoa única: o cargo de uma pessoa só, o chefe "de" algo, o papel com "of the …"; o epíteto solto é limite declarado (fala)
+  for (const [ideia, f] of [['the president of the united states gives a speech to a reporter', [P5('president'), P5('reporter')]], ['the tesla boss tests a new rocket with an engineer', [P5('tesla boss'), P5('engineer')]],
+    ['the man of steel saves a pilot from a falling plane', [P5('man of steel'), P5('pilot')]], ['the pope blesses a fisherman on the beach', [P5('pope'), P5('fisherman')]], ['the captain of the guard gives orders to a soldier', [P5('captain'), P5('soldier')]],
+    ['the owner of the hotel argues with a guest', [P5('owner'), P5('waiter')]], ['a tech ceo shows a robot to an engineer', [P5('ceo'), P5('engineer')]], ['the queen talks to a gardener', [P5('queen'), P5('gardener')]]])
+    igual((await roda5(ideia, f)).motivo, 'pessoa_unica', 'F2 pessoa única: ' + ideia)
+  for (const [ideia, f] of [['the iron lady argues with a miner in the rain', [P5('iron lady'), P5('miner')]], ['the boss sings an old song to a bartender', [P5('boss'), P5('bartender')]], ['a shop owner and a customer argue about a price', [P5('shop owner'), P5('customer')]]])
+    igual((await roda5(ideia, f)).fala, !ideia.startsWith('a shop'), 'F2 limite declarado (epíteto solto fala; o dono de loja com qualificador cai): ' + ideia)
+  // F4 · título com nome no começo da frase e o hífen
+  for (const [ideia, f] of [['Senator Sanders debates a teacher on the radio', [P5('senator'), P5('teacher')]], ['Iron-Man fixes an old car with a mechanic', [P5('iron-man'), P5('mechanic')]], ['Nurse Rosa helps an old farmer', [P5('nurse'), P5('farmer')]]])
+    igual((await roda5(ideia, f)).motivo, 'papel', 'F4 no narrado: ' + ideia)
+  igual((await roda5('Nurses help an old farmer at night', [P5('nurses'), P5('farmer')])).fala, true, 'maiúscula de começo de frase sem nome depois fala')
+  // humano só pelo PAPEL (o nome da ideia sai do rótulo e da marca); o não humano guarda o nome
+  { const r = await roda5('A sailor named Atlas meets a captain named Luna on the pier', [P5('sailor', 'Atlas'), P5('captain', 'Luna')])
+    igual([r.fala, r.script?.includes('\nSailor: '), r.script?.includes('\nCaptain: '), r.script?.includes('Atlas'), r.script?.includes('Luna')], [true, true, true, false, false], 'humano só pelo papel: ' + r.script?.slice(0, 120)) }
+  { const r = await roda5('A tiny dragon named Ember learns to fly with a wise owl', [P5('dragon', 'Ember'), P5('owl')]); igual([r.fala, r.script?.includes('\nEmber: ')], [true, true], 'o não humano guarda o nome') }
+  // F3 · decisão da CEO: o filhote e o bicho pequeno FALAM; a criança e a idade de 1 a 17 não
+  for (const [ideia, f] of [['a young fox and her mother talk in the forest', [P5('young fox'), P5('mother')]], ['a small bear asks his grandpa about winter', [P5('small bear'), P5('grandpa')]], ['a puppy runs a bakery with a baker', [P5('puppy'), P5('baker')]], ['A young puppy and an old cat argue over a sunny spot', [P5('puppy'), P5('cat')]]])
+    igual((await roda5(ideia, f)).fala, true, 'filhote de bicho fala: ' + ideia)
+  // as 20 ideias comuns da revisora: com os DOIS personagens, ≥ 17 (são 20)
+  { const COMUNS = [['A baker and a delivery driver race to save a wedding cake', [P5('baker'), P5('delivery driver')]], ['Two firefighters rescue a cat from a burning barn', [P5('firefighters'), P5('cat')]], ['A nurse and a doctor share coffee at the end of a night shift', [P5('nurse'), P5('doctor')]],
+      ['A fisherman argues with a seagull over his lunch', [P5('fisherman'), P5('seagull')]], ['A robot vacuum and a cat fight over the living room', [P5('robot vacuum'), P5('cat')]], ['An old farmer teaches his dog to herd sheep', [P5('old farmer'), P5('dog')]],
+      ['A taxi driver and a passenger get stuck in traffic', [P5('taxi driver'), P5('passenger')]], ['A chef and a waiter rush to finish dinner for a critic', [P5('chef'), P5('waiter')]], ['A lighthouse keeper and a radio operator guide a boat home', [P5('lighthouse keeper'), P5('radio operator')]],
+      ['Two astronauts fix a broken antenna outside the station', [P5('astronauts')]], ['A grumpy owl and a cheerful squirrel prepare for winter', [P5('grumpy owl'), P5('cheerful squirrel')]], ['A mechanic and a customer argue about a strange engine noise', [P5('mechanic'), P5('customer')]],
+      ['A librarian catches a ghost reading after closing time', [P5('librarian'), P5('ghost')]], ['A mother and father plan a surprise party', [P5('mother'), P5('father')]], ['A teacher and a janitor find a secret room in the school', [P5('teacher'), P5('janitor')]],
+      ['A pilot and a flight attendant calm a nervous plane', [P5('pilot'), P5('flight attendant')]], ['A detective questions a suspicious parrot', [P5('detective'), P5('suspicious parrot')]], ['A pirate captain named Rosa and her first mate hunt for treasure', [P5('pirate captain', 'Rosa'), P5('first mate')]],
+      ['A scientist and her robot assistant test a time machine', [P5('scientist'), P5('robot assistant')]], ['A soldier writes home to his wife from the front', [P5('soldier'), P5('wife')]]]
+    const caem = []; for (const [ideia, f] of COMUNS) { const r = await roda5(ideia, f); if (!r.fala) caem.push(ideia + ' → ' + r.motivo) }
+    igual(caem, [], 'as 20 comuns falam com os dois (meta ≥ 17)')
+    const pirata = await roda5(COMUNS[17][0], COMUNS[17][1]); assert.ok(pirata.script?.includes('[Pexels: pirate captain') && !pirata.script?.includes('Rosa'), 'o nome de gente sai também da marca: ' + pirata.script?.slice(0, 120)) }
+  // o conferidor do ensaio: o rótulo de papel bate com o elenco e com a ideia
+  { const { conferirEnsaio } = await import('./ensaio-escritor-de-dialogo-2511.mjs')
+    const s = (await roda5('A lighthouse keeper and a radio operator guide a boat home', [P5('lighthouse keeper'), P5('radio operator')])).script
+    const c = conferirEnsaio(s, ['the lighthouse keeper', 'a radio operator'], 'A lighthouse keeper and a radio operator guide a boat home')
+    igual([c.falantes_no_elenco, c.rotulo_na_ideia, conferirEnsaio(s, ['Elias', 'Mara'], 'Elias and Mara').falantes_no_elenco, conferirEnsaio(s, null, 'Elias and Mara').rotulo_na_ideia], [true, true, false, false], 'falantes_no_elenco e rotulo_na_ideia') }
   const RESP_CLIENTE = resp5([P5('lighthouse keeper'), P5('radio operator')])
 
   // ── 6. o trecho REAL do /api/generate-script, executado ───────────────────────────────────────────────────────────────────────────────
@@ -319,12 +364,27 @@ const mutants = [
   [MOD, " || (regua === 'cliente' && idadeDeMenorNaIdeia2511(args.ideia))", ''],
   [MOD, '? achaPapel(ideia, papel) : null', "? { ini: 0, fim: 0 } : null"],
   [MOD, 'if (nome && (!temNomeExato(ideia, nome) ||', 'if (nome && (false ||'],
-  [MOD, "if (quem === 'menor' || quem === 'sem_adulto') return { motivo: quem }", "if (quem === 'menor') return { motivo: quem }"],
+  [MOD, "    if (quem === 'sem_adulto') return { motivo: quem }", '    void 0'],
   [MOD, "  if (PEQUENO.test(trecho)) return 'menor'", '  void 0'],
-  [MOD, ' || FILHOTE.test(trecho) ||', ' ||'],
-  [MOD, '  if (NAO_HUMANO.has(singular(', '  if (false && NAO_HUMANO.has(singular('],
-  [MOD, '[trecho, noSingular].some(', '[trecho].some('],
-  [MOD, ' || ADULTO_DE_OFICIO.test(t))', ')'],
+  [MOD, 'papel.split(/\\s+/).some((w) => NAO_HUMANO.has(singular(w)))', "NAO_HUMANO.has(singular(papel.split(' ').pop() ?? ''))"], // v6: robot assistant
+  [MOD, '  if (papel.split(', '  if (false && papel.split('],
+  [MOD, "if (quem !== 'nao_humano') {", 'if (false) {'],
+  [MOD, '  if (PESSOA_UNICA.test(papel) || ', '  if ('],
+  [MOD, ' || /\\sof\\s/i.test(papel) ||', ' ||'],
+  [MOD, ' || /^\\s+of\\s+the\\s/i.test(depois)) return true', ') return true'],
+  [MOD, 'papel.trim().split(/\\s+/).length > 1) return true', 'false) return true'],
+  [MOD, "      if (nomeCompletoNoPapel2511(ideia, onde)) return { motivo: 'nome_de_gente' }", '      void 0'],
+  [MOD, 'depois = ideia.slice(a.fim), antes = ideia.slice(0, a.ini)', "depois = ideia.slice(a.fim), antes = ''"],
+  [MOD, "const rotulo = quem === 'nao_humano' && nome ? nome : tituloDoPapel(papel)", 'const rotulo = nome || tituloDoPapel(papel)'],
+  [MOD, '    const cue = semNome.reduce(', '    const cue = [].reduce('],
+  [MOD, '  return /^\\s+\\p{Lu}/u.test(ideia.slice(a.fim))', '  return false'],
+  [MOD, '  if (/[\\s-]\\p{Lu}/u.test(t)) return true', '  if (/\\s\\p{Lu}/u.test(t)) return true'],
+  [MOD, "trecho.replace(/(\\p{L})-(?=\\p{L})/gu, '$1')", 'trecho'],
+  [MOD, "'passenger|customer|", "'customer|"],
+  [MOD, "('puppy kitten", "('kitten"],
+  [MOD, '[semHifen, noSingular].some(ehAdulto)', '[semHifen].some(ehAdulto)'],
+  [MOD, ' || ADULTO_DE_OFICIO.test(t)\n', '\n'],
+  [MOD, " || !ehAdulto(ultima))) return 'nao_humano'", ")) return 'nao_humano'"], // v6: robot assistant
   [MOD, '    if (DETERMINANTE.has(w.toLowerCase())) break\n', ''],
   [MOD, ' || PARA_TRAS.has(w.toLowerCase())) break', ') break'],
   [MOD, '  const c = conferirDialogo2511(bruto, papeis)', '  const c = conferirDialogo2511(raw, papeis)'],
@@ -334,7 +394,7 @@ const mutants = [
   [MOD, "regua === 'cliente' ? FORMATO_DO_CLIENTE_2511 : FORMATO_DO_DIALOGO_2511", 'FORMATO_DO_DIALOGO_2511'],
   [MOD, "  if (/[^\\x00-\\x7F‘’“”…–—]/u.test(t)) return false\n", ''],
   [MOD, "required: ['role', 'name']", "required: ['role']"],
-  [MOD, 'if (textoDizMenor2511(trecho) || ', 'if ('],
+  [MOD, " || textoDizMenor2511(trecho)) return 'menor'", ") return 'menor'"],
   [ROTA, 'regua: reguaDoDialogo2511(user.email, body.dialogue_rule), ', ''],
   [MOD, "  if (falantes.length === 2 && (temNome(falantes[0], falantes[1]) || temNome(falantes[1], falantes[0]))) return { motivo: 'nome' }", ''],
   [MOD, '    if (!MOTIVOS_DE_TAMANHO_2511.includes(', '    if (true || !MOTIVOS_DE_TAMANHO_2511.includes('],
@@ -390,7 +450,7 @@ const mutants = [
   [MOD, 'prazo >= MENOR_PRAZO_DO_DIALOGO_2511_MS ?', 'prazo > 0 ?'],
   [MOD, '  if (figuraNoDialogo2511(args.ideia)) return', '  if (false) return'],
   [MOD, '  if (menorNoDialogo2511(args.ideia) ||', '  if (false ||'],
-  [MOD, "  if (figuraNoDialogo2511(args.ideia, script)) return", '  if (false) return'],
+  [MOD, '    if (figuraNoDialogo2511(args.ideia, papeis', '    if (false && figuraNoDialogo2511(args.ideia, papeis'],
   [MOD, "  if (menorNoDialogo2511(args.ideia, script)) return", '  if (false) return'],
   [MOD, '  if (mentionsRealPerson(texto) || figuraNaReferencia2511({}, texto)) return true', '  if (figuraNaReferencia2511({}, texto)) return true'],
   [MOD, '  if (mentionsRealPerson(texto) || figuraNaReferencia2511({}, texto)) return true', '  if (mentionsRealPerson(texto)) return true'],
@@ -406,4 +466,4 @@ for (const m of mutants) {
   await assert.rejects(suite(m), (err) => err instanceof assert.AssertionError, 'SOBREVIVEU: ' + m[1].slice(0, 120))
   mortos++
 }
-console.log(`PASS KINEO-ESCRITOR-DE-DIALOGO-2511: chave 'internal' (a casa exata); voice_mode só 'characters' exato; pedido sem exemplo, ideia só como dado, json_schema estrito; régua no código (4 seções, 1–2 falantes de nome próprio e nunca narrador, 1–2 falas por seção, ≤ 8 palavras somadas por seção, quem fala foi declarado, 25–35 palavras no filme, quem fala na marca, fala termina em pontuação); volta 4: o diálogo com prazo curto (até 12 s, guarda os 35 s do narrado no maxDuration 60; sem tempo = nem chama) e o script_written com pessoa_inventada, family, voice e words_per_second; volta 5: o cliente só pela régua POSITIVA (chave própria off; papel da ideia, nome só da ideia, adulto provado DELE ou não humano sem filhote, só inglês), a casa com a v4; famoso, pessoa real, marca e obra (a régua da admissão) e criança ou adolescente = o narrado de hoje, na ideia (nem chama) e no roteiro que saiu, bicho e desenho sem idade seguem falando; formato SEÇÃO: [Pexels: cue] + linhas Nome: fala (o parser de hoje lê 4 seções e o nome fica na fala); o trecho real do /api/generate-script: casa + characters + filme curto + inglês + ideia = o roteiro falado e os dois rastros (sem a fala), cliente/narrator/ausente/outra língua/35 s/texto com marcadores = nenhuma chamada, régua furada ou falha = o narrado de hoje com rastro; a rota só ganha linhas; ${mortos}/${mutants.length} mutantes mortos.`)
+console.log(`PASS KINEO-ESCRITOR-DE-DIALOGO-2511: chave 'internal' (a casa exata); voice_mode só 'characters' exato; pedido sem exemplo, ideia só como dado, json_schema estrito; régua no código (4 seções, 1–2 falantes de nome próprio e nunca narrador, 1–2 falas por seção, ≤ 8 palavras somadas por seção, quem fala foi declarado, 25–35 palavras no filme, quem fala na marca, fala termina em pontuação); volta 4: o diálogo com prazo curto (até 12 s, guarda os 35 s do narrado no maxDuration 60; sem tempo = nem chama) e o script_written com pessoa_inventada, family, voice e words_per_second; volta 6: humano só pelo papel, pessoa única e nome completo = narrado, filhote de bicho fala, F1–F4 da revisora no narrado e 20 de 20 comuns; volta 5: o cliente só pela régua POSITIVA (chave própria off; papel da ideia, nome só da ideia, adulto provado DELE ou não humano sem filhote, só inglês), a casa com a v4; famoso, pessoa real, marca e obra (a régua da admissão) e criança ou adolescente = o narrado de hoje, na ideia (nem chama) e no roteiro que saiu, bicho e desenho sem idade seguem falando; formato SEÇÃO: [Pexels: cue] + linhas Nome: fala (o parser de hoje lê 4 seções e o nome fica na fala); o trecho real do /api/generate-script: casa + characters + filme curto + inglês + ideia = o roteiro falado e os dois rastros (sem a fala), cliente/narrator/ausente/outra língua/35 s/texto com marcadores = nenhuma chamada, régua furada ou falha = o narrado de hoje com rastro; a rota só ganha linhas; ${mortos}/${mutants.length} mutantes mortos.`)

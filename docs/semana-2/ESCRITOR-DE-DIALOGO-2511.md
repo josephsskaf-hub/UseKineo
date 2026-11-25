@@ -148,6 +148,49 @@ Os motivos foram curto ×7, falante_fora_da_marca ×2, nome ×1 e menor ×1 (o f
   - Hoje o escritor fica em 25, porque o portão do servidor pede 29 contando os nomes.
   - Se o portão baixar, é uma linha (`PALAVRAS_DO_FILME.min`).
 
+## Volta 6 (25/11): as decisões da CEO sobre a régua do cliente
+A revisora 392f0a52 liberou a v5 para a casa (`CLIENTE_FALA_NO_ROTEIRO` segue `'off'`). Esta volta mexe só na régua do cliente.
+
+1. **Humano fala só pelo PAPEL.** O nome próprio sai do rótulo e da marca `[Pexels]`, onde vira o papel da ideia ("Rosa in the scene" vira "pirate captain in the scene"). O nome como rótulo fica só para o não humano: o cão Rex, o dragão Ember.
+   - Fecha "Bernie Sanders", "Martin Luther King", "Di Caprio" e "Hwang" sem lista.
+   - **Nome completo colado ao papel** = narrado, motivo `nome_de_gente`. Vale tanto "the senator Bernie Sanders" e "a pastor named Martin Luther King" quanto "Leonardo Di Caprio, the actor".
+   - Nome de uma palavra ("Elias", "Rosa") não conta; esse personagem fala pelo papel.
+2. **Papel de PESSOA ÚNICA = narrado,** motivo `pessoa_unica`. Entram:
+   - president, pope, king, queen, prime minister, chancellor, emperor e semelhantes;
+   - ceo, boss, founder, owner ou chairman com "of" depois;
+   - ceo ou founder com qualquer qualificador;
+   - o chefe com qualificador dentro do papel ("tesla boss");
+   - todo papel com "of the …" ("the captain of the guard").
+   - **Limite declarado desta abertura:** o epíteto solto passa ("iron lady", "the boss"). A lista não fecha epíteto.
+3. **F4, título e hífen.**
+   - No começo da frase, maiúscula seguida de outra maiúscula é nome ("Senator Sanders", "Nurse Rosa"), e o papel não vale.
+   - O hífen não separa a palavra: "Iron-Man" não é "man".
+4. **Filhote de bicho ou criatura FALA** (decisão da CEO: o dragãozinho e a raposinha são o produto do desenho).
+   - "young", "small" e "little" diante de não humano não barram, e puppy, kitten, cub e os outros filhotes são não humanos.
+   - Continua barrando: gente pequena ou jovem, palavra de criança e qualquer idade de 1 a 17 escrita, também no bicho ("a seven-year-old fox").
+   - "baby" e "kid" na ideia ainda vão ao narrado, pela régua de menor da casa ("baby dragon" é limite).
+5. **Fechar menos.**
+   - **Papel com qualquer palavra não humana é não humano** ("robot assistant"), a não ser que a última palavra seja papel de gente: "radio operator" e "bus driver" são gente. Palavra de criança vem antes: "school bus kid" é menor.
+   - Novos na lista de ofícios de adulto: passenger, customer, client, attendant, mate, steward, receptionist, coach, investor, butler e semelhantes.
+   - "rock" saiu da lista de não humanos, porque "the rock" é epíteto.
+6. **O conferidor do ensaio mede o rótulo de quem fala.**
+   - `falantes_no_elenco` (com o elenco do dry-run) bate o rótulo com o personagem como frase inteira ("Radio Operator" em "the radio operator").
+   - `rotulo_na_ideia` (sem o elenco) mede se o rótulo está escrito na ideia.
+   - O ensaio imprime a linha `FALANTES_NO_ELENCO`.
+   - **Sem o rótulo no elenco, o servidor do filme manda narrado.**
+
+### Medido (offline, no escritor real; o modelo "obediente" da revisora)
+- **F1** (famoso com papel de adulto): **0 de 15**.
+- **Ataques:**
+  - famosos da 52b12696: 0 de 16;
+  - nomes escolhidos pelo modelo: 0 de 8;
+  - crianças: 0 de 14;
+  - título no começo da frase: 0 de 3.
+- **F2:** 2 de 7 falam, "iron lady" e "the boss", o limite declarado.
+- **F3:** os filhotes e bichos pequenos falam, por decisão: young fox, young wolf, small bear, puppy e little robot.
+- **As 20 ideias comuns da revisora:** **20 de 20 com os dois personagens** (meta ≥ 17).
+- **Os 10 casos do ensaio:** 8 de 10 com os dois; o passageiro do f5 agora fala. Com só o 1º, 9 de 10.
+
 ## O risco do caminho do servidor (conferido, executado)
 O roteiro de diálogo passa intacto pelo que o caminho da ideia solta faz depois do escritor (`lib/meta95/ideiaNoEscritor.ts`):
 - `roteiroSemMetaTexto` (l. 224) não remove nenhuma linha `Nome: fala`;

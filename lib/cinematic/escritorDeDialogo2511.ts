@@ -106,18 +106,18 @@ export function ideiaEmIngles2511(ideia: string): boolean {
 /** Idade de menor que a régua da casa não lê: número solto de 1 a 17 ("Ana, 16", "a young man of 17") e as idades de adolescente por extenso. */
 const IDADE_DE_MENOR_SOLTA = /(?<![\p{L}\p{N}.,:$£€])(?:1[0-7]|[1-9])(?![\p{N}%]|[.,:]\d|\s*(?:am|pm|a\.m|p\.m)\b)|(?<![\p{L}])(?:thirteen|fourteen|fifteen|sixteen|seventeen)(?![\p{L}])/iu
 export const idadeDeMenorNaIdeia2511 = (ideia: string): boolean => IDADE_DE_MENOR_SOLTA.test(String(ideia ?? ''))
-/** Filhote e "pequeno" de bicho: o bicho filhote não fala (a criança humanizada). */
-const FILHOTE = /(?<![\p{L}])(?:pupp(?:y|ies)|kittens?|kitty|cubs?|foals?|ducklings?|chicks?|piglets?|calf|calves|fawns?|joeys?|hatchlings?|younglings?|whelps?|lambs?|bab(?:y|ies)|little\s+ones?)(?![\p{L}])/iu
 /** "Pequeno" ou "jovem" no trecho de GENTE: na dúvida, criança (no bicho não vale: o dragão pequeno fala). */
 const PEQUENO = /(?<![\p{L}])(?:little|tiny|small|young|younger|youngest|kiddo|wee)(?![\p{L}])/iu
 /** Ofícios e papéis de adulto que a lista da casa não tem (lista fechada, a direção POSITIVA): o papel diz adulto. */
-const ADULTO_DE_OFICIO = /(?<![\p{L}\p{N}-])(?:driver|baker|operator|cashier|waiter|waitress|bartender|barista|clerk|guard|janitor|plumber|electrician|builder|tailor|butcher|grocer|shopkeeper|merchant|vendor|librarian|postman|mailman|courier|manager|boss|employee|coworker|colleague|landlord|landlady|veteran|cop|policeman|policewoman|mom|mum|dad|grandad|granddad|granny|stepmother|stepfather|bride|groom|spouse|ranger|hunter|president|minister|general|admiral|ambassador|pastor|rabbi|imam|actor|actress|old|elderly|retired|grown-?up)(?![\p{L}\p{N}-])/iu
+const ADULTO_DE_OFICIO = new RegExp('(?<![\\p{L}\\p{N}-])(?:driver|baker|operator|cashier|waiter|waitress|bartender|barista|clerk|guard|janitor|plumber|electrician|builder|tailor|butcher|grocer|shopkeeper|merchant|vendor|librarian|postman|mailman|courier|manager|boss|employee|coworker|colleague|landlord|landlady|veteran|cop|policeman|policewoman|mom|mum|dad|grandad|granddad|granny|stepmother|stepfather|bride|groom|spouse|ranger|hunter|president|minister|general|admiral|ambassador|pastor|rabbi|imam|actor|actress|old|elderly|retired|grown-?up|' +
+  // volta 6 (CEO 25/11): passageiro, cliente, comissário, imediato e semelhantes de adulto
+  'passenger|customer|client|patron|attendant|mate|steward|stewardess|deckhand|crewman|receptionist|secretary|paramedic|dentist|pharmacist|accountant|programmer|architect|photographer|editor|director|producer|coach|referee|umpire|trainer|instructor|caretaker|housekeeper|maid|butler|chauffeur|valet|dispatcher|investor|broker|deputy|warden|jailer|bodyguard|bouncer|doorman|porter|nanny|midwife|vet|veterinarian)(?![\\p{L}\\p{N}-])', 'iu')
 /** O falante que não é gente (núcleo do papel no singular): bicho, criatura, máquina, planta, comida, objeto e natureza. Lista fechada. */
-const NAO_HUMANO = new Set(('cat dog fox owl bear wolf rabbit bunny hare mouse rat bird parrot crow raven eagle hawk falcon pigeon dove duck goose swan chicken hen rooster cow bull ox horse pony donkey mule goat sheep ram pig hog boar camel llama alpaca elephant lion lioness tiger leopard cheetah panther jaguar cougar puma lynx giraffe zebra hippo hippopotamus rhino rhinoceros monkey gorilla ape chimp chimpanzee orangutan baboon sloth koala kangaroo wallaby panda raccoon squirrel chipmunk hedgehog badger otter beaver deer stag moose elk reindeer bat frog toad turtle tortoise snake serpent lizard gecko iguana chameleon crocodile alligator dinosaur fish goldfish shark whale dolphin octopus squid crab lobster shrimp jellyfish starfish seal walrus penguin snail slug ant bee bumblebee wasp butterfly moth spider beetle ladybug caterpillar worm grasshopper cricket firefly dragonfly mosquito flamingo peacock pelican seagull gull toucan ostrich emu vulture woodpecker hummingbird robin sparrow canary turkey yak bison buffalo hamster gerbil ferret mole skunk porcupine armadillo platypus lemur meerkat hyena coyote jackal mongoose weasel stoat ' +
+const NAO_HUMANO = new Set(('puppy kitten kitty cub foal duckling chick piglet calf fawn joey hatchling lamb cat dog fox owl bear wolf rabbit bunny hare mouse rat bird parrot crow raven eagle hawk falcon pigeon dove duck goose swan chicken hen rooster cow bull ox horse pony donkey mule goat sheep ram pig hog boar camel llama alpaca elephant lion lioness tiger leopard cheetah panther jaguar cougar puma lynx giraffe zebra hippo hippopotamus rhino rhinoceros monkey gorilla ape chimp chimpanzee orangutan baboon sloth koala kangaroo wallaby panda raccoon squirrel chipmunk hedgehog badger otter beaver deer stag moose elk reindeer bat frog toad turtle tortoise snake serpent lizard gecko iguana chameleon crocodile alligator dinosaur fish goldfish shark whale dolphin octopus squid crab lobster shrimp jellyfish starfish seal walrus penguin snail slug ant bee bumblebee wasp butterfly moth spider beetle ladybug caterpillar worm grasshopper cricket firefly dragonfly mosquito flamingo peacock pelican seagull gull toucan ostrich emu vulture woodpecker hummingbird robin sparrow canary turkey yak bison buffalo hamster gerbil ferret mole skunk porcupine armadillo platypus lemur meerkat hyena coyote jackal mongoose weasel stoat ' +
   'dragon unicorn griffin gryphon phoenix troll goblin ogre ghost monster alien yeti kraken golem sphinx ' +
   'robot droid computer car truck train locomotive plane airplane jet rocket spaceship ship boat submarine tractor bus bike bicycle scooter drone toaster kettle teapot cup mug lamp clock phone telephone radio television fridge refrigerator oven microwave vacuum chair table sofa couch bed pillow book pencil pen crayon sock shoe boot hat umbrella key door window mirror candle balloon ball kite ' +
   'cactus sunflower flower rose daisy tulip tree oak pine mushroom leaf seed carrot potato tomato apple banana lemon pear cookie cupcake cake donut doughnut pizza taco egg cheese bread loaf sandwich ' +
-  'moon sun star planet comet cloud raindrop snowflake snowman volcano mountain river ocean wave wind rock stone pebble').split(' '))
+  'moon sun star planet comet cloud raindrop snowflake snowman volcano mountain river ocean wave wind stone pebble').split(' '))
 const singular = (w: string): string => {
   const x = w.toLowerCase(), irregular: Record<string, string> = { mice: 'mouse', geese: 'goose', cacti: 'cactus', oxen: 'ox', wolves: 'wolf', leaves: 'leaf', loaves: 'loaf', octopi: 'octopus', calves: 'calf', men: 'man', women: 'woman' }
   if (irregular[x]) return irregular[x]
@@ -141,7 +141,31 @@ function achaPapel(ideia: string, papel: string): { ini: number; fim: number } |
  *  Papel é substantivo comum; nome próprio não vira papel (senão o rótulo do papel traria o famoso de volta). */
 function papelEhNomeProprio(ideia: string, a: { ini: number; fim: number }): boolean {
   const t = ideia.slice(a.ini, a.fim), antes = ideia.slice(0, a.ini).trimEnd()
-  return /\s\p{Lu}/u.test(t) || (/^\p{Lu}/u.test(t) && antes !== '' && !/[.!?:"“]$/u.test(antes))
+  if (/[\s-]\p{Lu}/u.test(t)) return true // "Lady Gaga", "Iron-Man" (o hífen não separa a palavra)
+  if (!/^\p{Lu}/u.test(t)) return false
+  if (antes !== '' && !/[.!?:"“]$/u.test(antes)) return true
+  return /^\s+\p{Lu}/u.test(ideia.slice(a.fim)) // volta 6 (F4): no começo da frase, maiúscula seguida de outra maiúscula é nome ("Senator Sanders")
+}
+/** Volta 6 (CEO 25/11, F2): papel de PESSOA ÚNICA vai ao narrado: o cargo que só uma pessoa tem, o chefe "de" algo (ceo, founder, boss, owner, chairman
+ *  com "of" depois, ou ceo e founder com qualquer qualificador, ou o chefe com qualificador no próprio papel: "tesla boss") e o papel com "of the …".
+ *  Limite declarado: o epíteto solto ("iron lady", "the boss") passa. */
+const PESSOA_UNICA = /(?<![\p{L}])(?:president|pope|king|queen|prime\s+minister|chancellor|emperor|empress|pharaoh|tsar|czar|sultan|monarch|dictator|premier)(?![\p{L}])/iu
+const CHEFE = /(?<![\p{L}])(?:ceo|boss|founder|owner|chairman|chairwoman|chairperson)(?![\p{L}])/iu
+export function pessoaUnica2511(ideia: string, papel: string, trecho: string, a: { fim: number }): boolean {
+  const depois = ideia.slice(a.fim)
+  if (PESSOA_UNICA.test(papel) || /\sof\s/i.test(papel) || /^\s+of\s+the\s/i.test(depois)) return true
+  if (!CHEFE.test(papel)) return false
+  if (/^\s+of\s/i.test(depois) || papel.trim().split(/\s+/).length > 1) return true
+  const antes = trecho.split(/\s+/).slice(0, -1).filter((w) => !/^(?:a|an|the|this|that|her|his|their|its|my|your|our)$/i.test(w))
+  return /(?<![\p{L}])(?:ceo|founder)(?![\p{L}])/iu.test(papel) && antes.length > 0
+}
+/** Volta 6 (CEO 25/11, F1): humano com NOME COMPLETO colado ao papel na ideia ("the senator Bernie Sanders", "Leonardo Di Caprio, the actor", "a
+ *  pastor named Martin Luther King") vai ao narrado: o nome completo de gente é quem a ideia aponta. Nome de uma palavra só ("Elias") não conta, e o
+ *  humano fala sempre pelo PAPEL, nunca pelo nome. */
+export function nomeCompletoNoPapel2511(ideia: string, a: { ini: number; fim: number }): boolean {
+  const N = "\\p{Lu}[\\p{L}'’-]+", depois = ideia.slice(a.fim), antes = ideia.slice(0, a.ini)
+  return new RegExp(`^\\s*,?\\s*(?:(?:named|called)\\s+)?${N}(?:\\s+${N})+`, 'u').test(depois) ||
+    new RegExp(`${N}(?:\\s+${N})+\\s*,\\s*(?:(?:the|a|an)\\s+)?(?:[\\p{L}-]+\\s+){0,2}$`, 'u').test(antes)
 }
 /** O trecho DELE na ideia: o papel e até 3 palavras antes, parando em pontuação ou conector e incluindo o determinante, que fecha o trecho. */
 export function trechoDoFalante2511(ideia: string, papel: string): string | null {
@@ -162,16 +186,21 @@ export type QuemFala2511 = 'adulto' | 'nao_humano' | 'menor' | 'sem_adulto'
 export function quemFala2511(ideia: string, papel: string): QuemFala2511 {
   const trecho = trechoDoFalante2511(ideia, papel)
   if (trecho === null) return 'sem_adulto'
-  if (textoDizMenor2511(trecho) || FILHOTE.test(trecho) || idadeDeMenorNaIdeia2511(trecho)) return 'menor'
-  if (NAO_HUMANO.has(singular(papel.split(' ').pop() ?? ''))) return 'nao_humano'
+  if (idadeDeMenorNaIdeia2511(trecho) || textoDizMenor2511(trecho)) return 'menor' // idade de 1 a 17 escrita, ou palavra de criança: gente ou bicho
+  const semHifen = trecho.replace(/(\p{L})-(?=\p{L})/gu, '$1') // volta 6 (F4): "Iron-Man" não é "man"
+  const noSingular = semHifen.replace(/(\p{L}+)$/u, (w) => w.replace(/men$/i, 'man').replace(/ies$/i, 'y').replace(/(?<=[^s])s$/i, '')) // "fishermen", "astronauts"
+  const ehAdulto = (t: string): boolean => adultoProvado2511({ nome: t }) || ADULTO_DE_OFICIO.test(t)
+  // volta 6 (CEO 25/11): QUALQUER palavra não humana no papel = não humano ("robot assistant"), a não ser que a última palavra seja papel de gente
+  // ("radio operator", "bus driver" são gente); o filhote de bicho e o bicho pequeno FALAM (o dragãozinho e a raposinha são o produto do desenho)
+  const ultima = noSingular.split(/\s+/).pop() ?? ''
+  if (papel.split(/\s+/).some((w) => NAO_HUMANO.has(singular(w))) && (NAO_HUMANO.has(singular(papel.split(/\s+/).pop() ?? '')) || !ehAdulto(ultima))) return 'nao_humano'
   if (PEQUENO.test(trecho)) return 'menor' // gente pequena ou jovem: na dúvida, criança
-  const noSingular = trecho.replace(/(\p{L}+)$/u, (w) => w.replace(/men$/i, 'man').replace(/ies$/i, 'y').replace(/(?<=[^s])s$/i, '')) // "fishermen", "astronauts"
-  if ([trecho, noSingular].some((t) => adultoProvado2511({ nome: t }) || ADULTO_DE_OFICIO.test(t))) return 'adulto'
+  if ([semHifen, noSingular].some(ehAdulto)) return 'adulto'
   return 'sem_adulto'
 }
 const tituloDoPapel = (papel: string): string => papel.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 const temNomeExato = (ideia: string, nome: string): boolean => new RegExp(`(?<![\\p{L}\\p{N}])${nome.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`, 'u').test(ideia)
-export type MotivoDoCliente2511 = 'json' | 'formato' | 'papel' | 'nome_inventado' | 'sem_adulto' | 'menor'
+export type MotivoDoCliente2511 = 'json' | 'formato' | 'papel' | 'nome_inventado' | 'sem_adulto' | 'menor' | 'pessoa_unica' | 'nome_de_gente'
 /** Lê os falantes do cliente ({ role, name }) contra a ideia e devolve o JSON no formato do conferidor de sempre (o rótulo de cada falante é o nome da
  *  ideia ou o papel com maiúscula), mais os rótulos que vieram de papel (o conferidor não os trata como título). Qualquer falante fora = { motivo }. */
 export function falantesDoCliente2511(raw: string, ideia: string): { raw: string; papeis: string[] } | { motivo: MotivoDoCliente2511 } {
@@ -179,7 +208,7 @@ export function falantesDoCliente2511(raw: string, ideia: string): { raw: string
   try { o = JSON.parse(raw) } catch { return { motivo: 'json' } }
   const r = o && typeof o === 'object' && !Array.isArray(o) ? (o as Record<string, unknown>) : null
   if (!r || !Array.isArray(r.speakers) || !Array.isArray(r.shots)) return { motivo: 'formato' }
-  const rotulos: string[] = [], papeis: string[] = [], mapa = new Map<string, string>()
+  const rotulos: string[] = [], papeis: string[] = [], mapa = new Map<string, string>(), semNome: Array<[string, string]> = []
   for (const s of r.speakers) {
     const x = s && typeof s === 'object' && !Array.isArray(s) ? (s as Record<string, unknown>) : null
     if (!x) return { motivo: 'formato' }
@@ -188,16 +217,24 @@ export function falantesDoCliente2511(raw: string, ideia: string): { raw: string
     if (!onde || papelEhNomeProprio(ideia, onde)) return { motivo: 'papel' }
     if (nome && (!temNomeExato(ideia, nome) || !/^\p{Lu}[\p{L}'’-]*(?: \p{Lu}[\p{L}'’-]*){0,2}$/u.test(nome))) return { motivo: 'nome_inventado' }
     const quem = quemFala2511(ideia, papel)
-    if (quem === 'menor' || quem === 'sem_adulto') return { motivo: quem }
-    const rotulo = nome || tituloDoPapel(papel)
+    if (quem === 'menor') return { motivo: quem }
+    if (quem !== 'nao_humano') { // volta 6: gente (adulto ou não)
+      if (pessoaUnica2511(ideia, papel, trechoDoFalante2511(ideia, papel) ?? papel, onde)) return { motivo: 'pessoa_unica' }
+      if (nomeCompletoNoPapel2511(ideia, onde)) return { motivo: 'nome_de_gente' }
+    }
+    if (quem === 'sem_adulto') return { motivo: quem }
+    // volta 6 (CEO 25/11): HUMANO fala só pelo PAPEL, nunca pelo nome próprio; o nome como rótulo só para o não humano (o cão Rex, o dragão Ember)
+    const rotulo = quem === 'nao_humano' && nome ? nome : tituloDoPapel(papel)
     rotulos.push(rotulo)
-    if (!nome) papeis.push(rotulo)
+    if (rotulo !== nome) papeis.push(rotulo)
+    if (nome && rotulo !== nome) semNome.push([nome, papel]) // o nome de gente sai também da marca: vira o papel da ideia
     for (const k of [papel, rotulo.toLowerCase(), nome.toLowerCase()]) if (k) mapa.set(k, rotulo)
   }
   const shots = r.shots.map((sh) => {
     const y = sh && typeof sh === 'object' && !Array.isArray(sh) ? (sh as Record<string, unknown>) : null
     if (!y || !Array.isArray(y.lines)) return sh
-    return { ...y, lines: y.lines.map((l) => {
+    const cue = semNome.reduce((c, [n, p]) => c.replace(new RegExp(`(?<![\\p{L}\\p{N}])${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`, 'gu'), p), typeof y.cue === 'string' ? y.cue : '')
+    return { ...y, cue, lines: y.lines.map((l) => {
       const z = l && typeof l === 'object' && !Array.isArray(l) ? (l as Record<string, unknown>) : null
       return z ? { ...z, speaker: mapa.get(semArtigo(limpa(z.speaker, 60)).toLowerCase()) ?? z.speaker } : l }) }
   })
@@ -371,7 +408,8 @@ export async function escreverDialogo2511(args: { ideia: string; segundos: numbe
     const c = conferirDialogo2511(bruto, papeis)
     if ('motivo' in c) return { motivo: c.motivo }
     const script = roteiroDoDialogo2511(c.dialogo)
-    if (figuraNoDialogo2511(args.ideia, script)) return { motivo: 'figura' } // T1: o nome que ele escolheu ou o que a fala cita
+    // volta 6: o rótulo que veio do PAPEL volta à caixa baixa da ideia antes da régua de figura ("Pirate Captain" com maiúscula a régua lê como nome)
+    if (figuraNoDialogo2511(args.ideia, papeis.reduce((s, p) => s.split(p).join(p.toLowerCase()), script))) return { motivo: 'figura' } // T1: o nome que ele escolheu ou o que a fala cita
     if (menorNoDialogo2511(args.ideia, script)) return { motivo: 'menor' } // T2: o roteiro que saiu diz menor
     return { script, dialogo: c.dialogo, marcas: c.marcas }
   }
