@@ -90,6 +90,20 @@ export const HOME_THREE_CARDS_CSS = `
 @media (prefers-reduced-motion:reduce){.k3c-card,.k3c-media video,.k3c-arrow{transition:none}.k3c-card:hover .k3c-media video{transform:none}}
 `
 
+const FOCUSED_HOME_CARDS_CSS = `
+.klp .k3c[data-home-focused] .wrap{max-width:840px}
+.k3c-grid[data-k3c-cols="2"]{grid-template-columns:repeat(2,minmax(0,1fr));max-width:none}
+@media (max-width:760px){
+.k3c-grid[data-k3c-cols="2"]{display:grid;margin:0;padding:0;overflow:visible}
+.k3c-grid[data-k3c-cols="2"] .k3c-card{aspect-ratio:3/5!important;min-height:226px;max-width:none!important}
+.k3c-grid[data-k3c-cols="2"] .k3c-body{gap:5px;padding:12px!important}
+.k3c-grid[data-k3c-cols="2"] .k3c-title{font-size:clamp(1rem,4.3vw,1.4rem)!important;overflow-wrap:anywhere}
+.klp .k3c-grid[data-k3c-cols="2"] .k3c-cta{margin-top:4px!important;padding:7px 9px!important;font-size:12px!important;white-space:normal}
+}
+`
+
+const FOCUSED_HOME_CARDS = ['films', 'kids_cartoon'] as const
+
 // KINEO-CARDS-GIRO-2410 — all cards share the event-driven double buffer.
 function CardMedia({ card, language }: { card: HomeCardId; language: string }) {
   return <HomeCardCycleMedia card={card} language={language} playlist={HOME_CARD_TRAILERS_0411[card]} /> // KINEO-CARDS-TRAILER-0411 — Filmes mostra só o trailer; Produto e UGC seguem iguais
@@ -99,29 +113,31 @@ import HomePortasCelular from '@/components/home/HomePortasCelular' // KINEO-CEL
 
 // KINEO-ENTRADAS-TELA-NOVA-1011 — entradaNova: só a HOME passa true (para quem está LOGADO, o card Films e a caixa do celular abrem a aba Film da tela nova; visitante = o de hoje); as páginas
 // de SEO (components/seo/PaginaClara.tsx) não passam e ficam byte a byte no destino antigo. Os cards de anúncio levam dado (?entry=) e não mudam.
-export default function HomeThreeCards({ signedIn, kidsCard = false, entradaNova = false }: { signedIn: boolean; kidsCard?: boolean; entradaNova?: boolean }) { // KINEO-BEBE-QUE-FALA-2010 — + kidsCard (o 4º card); era: export default function HomeThreeCards({ signedIn }: { signedIn: boolean }) {
+export default function HomeThreeCards({ signedIn, kidsCard = false, entradaNova = false, focusedShowcase = false }: { signedIn: boolean; kidsCard?: boolean; entradaNova?: boolean; focusedShowcase?: boolean }) { // KINEO-BEBE-QUE-FALA-2010 — + kidsCard (o 4º card); era: export default function HomeThreeCards({ signedIn }: { signedIn: boolean }) {
   const copy = useUiCopy()
   const language = useInterfaceLanguage()
   const [chatgptArrival, setChatgptArrival] = useState(false) // KINEO-PAGINAS-IA-CLARAS-2110 — SSR e primeira hidratação usam a mesma ordem.
   useEffect(() => { // KINEO-PAGINAS-IA-CLARAS-2110 — regra compartilhada pela home e pelas páginas de entrada; sem persistir origem.
     setChatgptArrival(vemDoChatgpt(new URLSearchParams(window.location.search).get('utm_source'), document.referrer))
   }, []) // KINEO-PAGINAS-IA-CLARAS-2110
-  const cardOrder: readonly (HomeCardId | 'kids_cartoon')[] = kidsCard // KINEO-PAGINAS-IA-CLARAS-2110
+  const fullCardOrder: readonly (HomeCardId | 'kids_cartoon')[] = kidsCard // KINEO-PAGINAS-IA-CLARAS-2110
     ? chatgptArrival ? ['kids_cartoon', ...HOME_CARD_ORDER] : [...HOME_CARD_ORDER, 'kids_cartoon'] // KINEO-PAGINAS-IA-CLARAS-2110
     : HOME_CARD_ORDER // KINEO-PAGINAS-IA-CLARAS-2110 — interruptor desligado mantém os três cards de sempre.
+  const cardOrder = focusedShowcase ? FOCUSED_HOME_CARDS : fullCardOrder
   // keepalive do trackEvent entrega o POST mesmo com a página saindo pelo link (mesmo padrão das portas).
   const track = (card: HomeCardId, position: number) => { void trackEvent(HOME_CARD_EVENT, { ...homeCardClickMetadata(card, signedIn), position }) } // KINEO-PAGINAS-IA-CLARAS-2110 — posição real, inclusive quando o Cartoon vem primeiro.
   const elegibilidade = useAdsEligibility(signedIn) // KINEO-ADS-SIMPLES-2810 — null até responder (ou sem sessão): o rótulo de antes
   const adsCta = (card: HomeCardId) => homeCardBotao(card, language, ADS_SAMPLE_LIVE && (elegibilidade === null || adsDoorSaysFree(signedIn, elegibilidade.state))) // KINEO-HOME-CARDS-BOTOES-2010 — um botão diferente por card (fundador 20/10) // KINEO-ADS-SIMPLES-2810 — porta honesta: "grátis" só para visitante ou amostra aberta; era: homeCardAdsCta(card, language, ADS_SAMPLE_LIVE)
   return (
-    <section className="k3c" aria-label={copy('Choose what to make')} data-home-3-cards="1">
+    <section className="k3c" aria-label={copy('Choose what to make')} data-home-3-cards="1" data-home-focused={focusedShowcase || undefined}>
       <style dangerouslySetInnerHTML={{ __html: HOME_THREE_CARDS_CSS }} />
       <style dangerouslySetInnerHTML={{ __html: HOME_CARDS_AJUSTE_CSS }} />{/* KINEO-BEBE-QUE-FALA-2010 — enquadramento dos cards de hoje (letreiro do vídeo nunca cortado na borda; UGC mais claro), sempre */}
-      {kidsCard ? <style dangerouslySetInnerHTML={{ __html: HOME_KIDS_CARD_CSS + HOME_CARD_MENOR_CSS }} /> : null}{/* KINEO-BEBE-QUE-FALA-2010 — desligado: nem o <style> nasce */}
+      {focusedShowcase ? <style dangerouslySetInnerHTML={{ __html: FOCUSED_HOME_CARDS_CSS }} /> : null}
+      {kidsCard && !focusedShowcase ? <style dangerouslySetInnerHTML={{ __html: HOME_KIDS_CARD_CSS + HOME_CARD_MENOR_CSS }} /> : null}{/* KINEO-BEBE-QUE-FALA-2010 — desligado: nem o <style> nasce */}
       <style dangerouslySetInnerHTML={{ __html: HOME_CARD_CYCLE_CSS }} />{/* KINEO-CARDS-GIRO-2410 */}
       <div className="wrap">
-        <div className="k3c-head"><p className="k3c-kicker"><UiLabel>Choose what to make</UiLabel></p><Link className="k3c-more" href={language === 'pt' ? UGC_PILLAR_PT_PATH : UGC_PILLAR_PATH} data-home-ugc-guide="1"><UiLabel>How AI UGC ads work</UiLabel> →</Link></div>{/* KINEO-PAGINAS-UGC-2010 */}
-        <div className="k3c-grid" data-k3c-cols={kidsCard ? '4' : undefined}>{/* KINEO-BEBE-QUE-FALA-2010 — undefined = o atributo nem é emitido (home de hoje); era: <div className="k3c-grid"> */}
+        <div className="k3c-head"><p className="k3c-kicker"><UiLabel>Choose what to make</UiLabel></p>{!focusedShowcase && <Link className="k3c-more" href={language === 'pt' ? UGC_PILLAR_PT_PATH : UGC_PILLAR_PATH} data-home-ugc-guide="1"><UiLabel>How AI UGC ads work</UiLabel> →</Link>}</div>{/* KINEO-PAGINAS-UGC-2010 */}
+        <div className="k3c-grid" data-k3c-cols={focusedShowcase ? '2' : kidsCard ? '4' : undefined}>{/* KINEO-BEBE-QUE-FALA-2010 — undefined = o atributo nem é emitido (home de hoje); era: <div className="k3c-grid"> */}
           {cardOrder.map((card, index) => card === 'kids_cartoon' ? ( // KINEO-PAGINAS-IA-CLARAS-2110 — ordem DOM e teclado seguem a ordem visual; chaves estáveis.
             <HomeKidsCard key={card} signedIn={signedIn} position={index + 1} entradaNova={entradaNova} /> // KINEO-PAGINAS-IA-CLARAS-2110
           ) : (
@@ -139,7 +155,7 @@ export default function HomeThreeCards({ signedIn, kidsCard = false, entradaNova
           ))}
         </div>
       </div>
-      <HomePortasCelular signedIn={signedIn} entradaNova={entradaNova} />{/* KINEO-CELULAR-A-0611 · KINEO-ENTRADAS-TELA-NOVA-1011 */}
+      <HomePortasCelular signedIn={signedIn} entradaNova={entradaNova} focusedShowcase={focusedShowcase} />{/* KINEO-CELULAR-A-0611 · KINEO-ENTRADAS-TELA-NOVA-1011 */}
     </section>
   )
 }

@@ -58,13 +58,21 @@ function useCaixaFora(): boolean {
   return fora
 }
 
+const FOCUSED_DOORS_CSS = `
+@media(max-width:767px){
+.kpc-portas[data-focused]{grid-template-columns:repeat(2,minmax(0,1fr))}
+.kpc-portas[data-focused] .kpc-porta span{aspect-ratio:2.45}
+}
+`
+
 const PORTAS: ReadonlyArray<{ card: HomeCardId; rotulo: string; img: string }> = [
   { card: 'films', rotulo: 'Film', img: '/posters/hero-seedance.webp' },
   { card: 'product_ads', rotulo: 'Product ads', img: '/home-images/perfume-splash.webp' },
   { card: 'ugc_ads', rotulo: 'UGC ads', img: '/posters/ugc-porta.webp' },
 ]
 
-export default function HomePortasCelular({ signedIn, entradaNova = false }: { signedIn: boolean; entradaNova?: boolean }) {
+export default function HomePortasCelular({ signedIn, entradaNova = false, focusedShowcase = false }: { signedIn: boolean; entradaNova?: boolean; focusedShowcase?: boolean }) {
+  const portas = focusedShowcase ? PORTAS.filter(({ card }) => card === 'films') : PORTAS
   const ideia = ideiaDaPagina(usePathname()) // KINEO-CAIXA-COM-IDEIA-0611
   // KINEO-ENTRADAS-TELA-NOVA-1011 — só na home (entradaNova): a porta Film e a caixa abrem a aba Film para quem está LOGADO; o visitante segue no destino de hoje (KINEO-ENTRADAS-SO-LOGADO-1011).
   // KINEO-ENTRADAS-CARTOES-1011 [fundador 10/11: "Make my ad", "Make my UGC ad" e "Make my cartoon" abriram a tela ANTIGA] — as portas de anúncio
@@ -75,14 +83,15 @@ export default function HomePortasCelular({ signedIn, entradaNova = false }: { s
   return (
     <section className="kpc" aria-label="What to make" data-kineo="home-portas-celular">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
-      <div className="kpc-portas">
-        {PORTAS.map((p, i) => (
+      {focusedShowcase ? <style dangerouslySetInnerHTML={{ __html: FOCUSED_DOORS_CSS }} /> : null}
+      <div className="kpc-portas" data-focused={focusedShowcase || undefined}>
+        {portas.map((p, i) => (
           <Link key={p.card} className="kpc-porta" href={entrada(homeCardHref(p.card, signedIn))} onClick={() => { void trackEvent(HOME_CARD_EVENT, { ...homeCardClickMetadata(p.card, signedIn), position: i + 1, surface: 'phone_door' }) }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <span><img src={p.img} alt="" loading="lazy" /></span><UiLabel>{p.rotulo}</UiLabel>
           </Link>
         ))}
-        <Link className="kpc-porta" href={entrada(homeKidsCardHref(signedIn))} onClick={() => { void trackEvent(HOME_CARD_EVENT, { card: 'kids_cartoon', position: 4, surface: 'phone_door' }) }}>
+        <Link className="kpc-porta" href={entrada(homeKidsCardHref(signedIn))} onClick={() => { void trackEvent(HOME_CARD_EVENT, { card: 'kids_cartoon', position: portas.length + 1, surface: 'phone_door' }) }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <span><img src="/kids-cartoon/leo.webp" alt="" loading="lazy" /></span><UiLabel>Cartoon</UiLabel>
         </Link>

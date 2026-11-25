@@ -115,6 +115,8 @@ import CaixaDePresente0511 from '@/components/CaixaDePresente0511' // KINEO-HOME
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
 
+const HOME_FOCUSED_SHOWCASE_2511 = false
+
 type Props = {
   initialUser?: { id: string } | null
   initialEmail?: string | null
@@ -990,7 +992,7 @@ export default function KineoLanding({
           clips_first do A/B a faixa de Clipes continua vindo antes dos filmes. */}
       {/* KINEO-HOME-3-CARDS-1910 — fundador 19/10 ("pode ser as 3"): Filmes · Anúncios de Produto · Anúncios UGC; os 2 de anúncio
           KINEO-HOME-3-CARDS-1910 — levam ao 1º anúncio grátis no formato do card. Interruptor fechado = só a casa vê; o resto segue com as 2 portas. */}
-      {showThreeCards ? <HomeThreeCards signedIn={isSignedIn} kidsCard={showKidsCard} entradaNova /> : ( // KINEO-HOME-3-CARDS-1910 · KINEO-BEBE-QUE-FALA-2010 — + kidsCard (false = o componente de sempre)
+      {showThreeCards ? <HomeThreeCards signedIn={isSignedIn} kidsCard={showKidsCard} entradaNova focusedShowcase={HOME_FOCUSED_SHOWCASE_2511} /> : ( // KINEO-HOME-3-CARDS-1910 · KINEO-BEBE-QUE-FALA-2010 — + kidsCard (false = o componente de sempre)
       <HomeTwoDoors signedIn={isSignedIn} filmOffer={filmDoorOffer} adsOffer={adsDoorOffer} />
       ) /* KINEO-HOME-3-CARDS-1910 */}
       {!HOME_MOSAIC_LIVE && showClips && <HomeClipsStrip signedIn={isSignedIn} />}{/* KINEO-HOME-MOSAICO-2910 — com a vitrine contínua ligada, os clipes entram nela */}{/* KINEO-HOME-REMODELA-2010 — fundador 20/10 "dobrar o número de clips": 8 clipes, nos DOIS braços do A/B, logo depois dos cards do topo */}
