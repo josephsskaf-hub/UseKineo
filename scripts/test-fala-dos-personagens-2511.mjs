@@ -206,6 +206,12 @@ async function suite(change) {
   igual(B.seloDoFilmeGratis2511(mkSelo({ fala_2511: { versao: 'v', modo: 'narrado', motivo: 'lingua' } }), atual)?.voz_motivo, 'lingua', 'D narrado com o motivo')
 
   // ── E. o compose route e o claim (texto) ──
+  // [revisora 52b12696, A] o faceless15 do filme falado: sem o F1 (que refazia a legenda com o Whisper da TTS que não toca) e sem o F3 (música e efeitos por cima)
+  { const LINHA = "    if (typeof falaMontada2511 !== 'undefined' && falaMontada2511) faceless15.fases = faceless15.fases.filter(f => f !== 'f1' && f !== 'f3')\n"
+    const iL = compose.indexOf(LINHA), iR = compose.indexOf('    const faceless15 = resolverFaceless15('), iA = compose.indexOf('    const faceless15Relato = aplicarFaceless15(source, faceless15, ')
+    assert.ok(iR > 0 && iL > iR && iA > iL, 'A no falado o F1 e o F3 saem ANTES de aplicar o faceless15')
+    const fases = (falado) => Function('faceless15', 'falaMontada2511', LINHA + 'return faceless15.fases')({ fases: ['f1', 'f2', 'f3'] }, falado)
+    igual([fases(true), fases(false)], [['f2'], ['f1', 'f2', 'f3']], 'A falado: sem F1 e sem F3; narrado: as fases de hoje') }
   assert.ok(compose.includes("const falaMontada2511 = typeof montagemFalada2511 === 'function' && montagemFalada2511(marcadorDaFala2511, cinematicBirthClaim?.falModels?.[0]) && composeClipUrls.filter("), 'E o compose: falado só pelo claim e pelo modelo que entregou')
   assert.ok(compose.includes('transcribeClipWithTimestampsAndDuration(composeClipUrls.find('), 'E o Whisper do ÁUDIO DO CLIPE')
   assert.ok(compose.includes("try { await gravarConferenciaDaFala2511({ db: composeAdmin, secret: serviceRoleKey, userId: authenticatedUserId, generationId, conferencia }) } catch { /* gravar nunca derruba o filme */ }"), 'E a conferência grava no claim e nunca derruba')
@@ -264,6 +270,8 @@ async function suite(change) {
 
 await suite(null)
 const mutantes = [
+  [COMPOSE, "faceless15.fases = faceless15.fases.filter(f => f !== 'f1' && f !== 'f3')", "faceless15.fases = faceless15.fases.filter(f => f !== 'f3')"], // [A] o F1 volta a refazer a legenda pela TTS
+  [COMPOSE, "faceless15.fases = faceless15.fases.filter(f => f !== 'f1' && f !== 'f3')", "faceless15.fases = faceless15.fases.filter(f => f !== 'f1')"], // [A] o F3 volta a pôr música e efeitos
   [PISO, 'export const PALAVRAS_MIN_NO_FILME_FALADO_2511 = 12', 'export const PALAVRAS_MIN_NO_FILME_FALADO_2511 = 25'],
   [PISO, '      if (NAO_E_FALANTE.test(nome)) return null\n', ''],
   [PISO, '  if (!linhas || nomes.size > 2) return null', '  if (!linhas) return null'],

@@ -3628,6 +3628,9 @@ export async function POST(req: NextRequest) {
     }
     const faceless15 = resolverFaceless15({ interna: isInternalEmail(user.email), pedido: (body as { formatFlags?: unknown; format_flags?: unknown }).formatFlags ?? (body as { format_flags?: unknown }).format_flags, quality, duration, aspect: aspectRequested, avatar: avatarMode, studioAds: isServiceFinish && body.narration_source === 'tts' }) // KINEO-FILMES-F1-F4-1910 — só Seedance 1.5 de 15 s em 9:16; fase pública (FACELESS15_PUBLIC) ou pedida por conta interna (formatFlags); cliente que manda o campo é ignorado
     if (composeInputs.kling4TrialEngine === 'kling4') faceless15.fases = faceless15.fases.filter(f => f !== 'f4' && f !== 'cta')
+    // KINEO-FALA-DOS-PERSONAGENS-2511 [revisora 52b12696, A] o filme FALADO: o F1 refazia a legenda com o Whisper da narração TTS (que não toca) e o F3 punha música
+    // e efeitos sonoros por cima da fala do motor. Os dois saem: a legenda fica a do builder, feita com as palavras do motor, no tempo da fala; nada por cima.
+    if (typeof falaMontada2511 !== 'undefined' && falaMontada2511) faceless15.fases = faceless15.fases.filter(f => f !== 'f1' && f !== 'f3')
     const idiomaDeSentido = faceless15.formato
       ? await idiomaDaLegendaDeSentido(language, contaDaCasaExata(user.email), isServiceFinish ? async () => {
           const { data, error } = await composeAdmin.auth.admin.getUserById(authenticatedUserId)
