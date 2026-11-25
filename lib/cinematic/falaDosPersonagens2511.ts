@@ -17,11 +17,12 @@ export const FALA_DOS_PERSONAGENS_2511: ModoFalaDosPersonagens2511 = 'internal'
 export const falaDosPersonagensLigada = (modo: ModoFalaDosPersonagens2511, email: string | null | undefined): boolean =>
   modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))
 
-/** O que o corpo do pedido escolheu: voz 'personagens' = o modo falado; qualquer outra coisa (ou nada) = o narrador de sempre. */
+/** [CEO 25/11, contrato combinado com o GPT] o corpo do pedido: voice_mode 'characters' = o modo falado; 'narrator', qualquer outra coisa ou nada = o narrador de
+ *  sempre (o pedido de hoje, byte a byte). Não depende de script_mode: o roteiro do cliente ou o do nosso escritor, com linhas "Nome: fala", vale igual. */
 export type VozDoFilme2511 = 'narrador' | 'personagens'
 export function vozPedida2511(body: unknown): VozDoFilme2511 {
-  const v = body && typeof body === 'object' ? (body as { voz?: unknown }).voz : undefined
-  return v === 'personagens' ? 'personagens' : 'narrador'
+  const v = body && typeof body === 'object' ? (body as { voice_mode?: unknown }).voice_mode : undefined
+  return v === 'characters' ? 'personagens' : 'narrador'
 }
 
 export type MotivoNarrado2511 =
@@ -29,7 +30,7 @@ export type MotivoNarrado2511 =
   | 'planos_desencontrados' | 'falante_fora_do_plano' | 'plano_sem_cauda' | 'fala_com_pessoa_real' | 'gemini_recusou_no_envio' | 'gemini_caiu'
 export type LinhaDeFala2511 = { ref: 0 | 1; nome: string; texto: string }
 /** O marcador que viaja no claim (kling4_trial.fala_2511) e que o compose lê. */
-export type MarcadorDaFala2511 = { versao: string; pedida: 'personagens'; modo: 'falado' | 'narrado'; motivo: MotivoNarrado2511 | null; falas?: LinhaDeFala2511[][] }
+export type MarcadorDaFala2511 = { versao: string; pedida: 'characters'; modo: 'falado' | 'narrado'; motivo: MotivoNarrado2511 | null; falas?: LinhaDeFala2511[][] }
 
 /** Máximo de palavras faladas por plano: ~2,2 por segundo (5 s → 11; a receita de nota 10 tinha até 10 por plano de 5 s). */
 export const PALAVRAS_POR_SEGUNDO_2511 = 2.2

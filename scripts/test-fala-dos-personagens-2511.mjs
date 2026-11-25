@@ -37,7 +37,7 @@ async function suite(change) {
   // ── A. o módulo puro ──
   assert.equal(f.FALA_DOS_PERSONAGENS_2511, 'internal', "A no commit: 'internal'")
   igual([f.falaDosPersonagensLigada('internal', CASA), f.falaDosPersonagensLigada('internal', CLIENTE), f.falaDosPersonagensLigada('off', CASA), f.falaDosPersonagensLigada('internal', 'xjosephsskaf@gmail.com')], [true, false, false, false], 'A a chave: só a casa exata')
-  igual([f.vozPedida2511({ voz: 'personagens' }), f.vozPedida2511({ voz: 'Personagens' }), f.vozPedida2511({}), f.vozPedida2511(null), f.vozPedida2511({ voz: 'narrador' })], ['personagens', 'narrador', 'narrador', 'narrador', 'narrador'], 'A o corpo: só "personagens" liga')
+  igual([f.vozPedida2511({ voice_mode: 'characters' }), f.vozPedida2511({ voice_mode: 'Characters' }), f.vozPedida2511({}), f.vozPedida2511(null), f.vozPedida2511({ voice_mode: 'narrator' }), f.vozPedida2511({ voz: 'personagens' })], ['personagens', 'narrador', 'narrador', 'narrador', 'narrador', 'narrador'], 'A o corpo: só voice_mode "characters" liga')
   const NOMES = [['Elias Ward', 'Elias'], ['Mara Quinn', 'Mara']]
   const lidas = f.lerFalas2511(FALAS, NOMES, DURS)
   igual(lidas, { falas: [[{ ref: 0, nome: 'Elias Ward', texto: 'The storm is coming tonight.' }], [{ ref: 1, nome: 'Mara Quinn', texto: 'I hear a boat calling.' }], [{ ref: 0, nome: 'Elias Ward', texto: 'Then we give them light.' }], [{ ref: 0, nome: 'Elias Ward', texto: 'They made it home.' }]] }, 'A "Nome: fala", aspas opcionais, o nome curto vira o do motor')
@@ -104,7 +104,7 @@ async function suite(change) {
   const ini = rota.indexOf('    const gemini2511: {'), fim = rota.indexOf('    if (kling4TrialCandidate && scenes.length === 3', ini)
   assert.ok(ini > 0 && fim > ini, 'B o trecho da tentativa do Gemini')
   const trecho = rota.slice(ini, fim)
-  const rodar = async ({ email = CASA, voz = 'personagens', chave = f.FALA_DOS_PERSONAGENS_2511, lingua = 'en', verbatim = true, falas = FALAS, envio = null } = {}) => {
+  const rodar = async ({ email = CASA, voz = 'characters', chave = f.FALA_DOS_PERSONAGENS_2511, lingua = 'en', verbatim = true, falas = FALAS, envio = null } = {}) => {
     const envios = []
     const escopo = { motorDoFilmeGratis2511: async () => null, cinematicAdmin: {}, geminiNaEsteiraLigado: g.geminiNaEsteiraLigado, GEMINI_NA_ESTEIRA_2511: 'public', user: { email, id: USER },
       kling4PorSecao: (x) => x, kling4Prompts: [], kling4ApprovedStills: [], kling4Timing: { voiceovers: falas, referenciaUnica: { nomes: ['Elias Ward', 'Elias'], segundo: { nomes: ['Mara Quinn', 'Mara'] } } },
@@ -112,14 +112,14 @@ async function suite(change) {
       submitGeminiTrialVideo: async (e) => { envios.push(e); if (envio) return envio(e); return { requestId: 'gem-1', model: GEMINI, submittedAt: 'x' } },
       GeminiRecusadoNoEnvio: g.GeminiRecusadoNoEnvio, writeServerEvent: async () => true, GEMINI_ENVIO_EVENTO: 'x', generationId: GEN, ctxDespacho: () => ({ totalPosts: 0 }), process: { env: {} },
       falaDosPersonagensLigada: f.falaDosPersonagensLigada, FALA_DOS_PERSONAGENS_2511: chave, FALA_DOS_PERSONAGENS_2511_VERSAO: f.FALA_DOS_PERSONAGENS_2511_VERSAO, vozPedida2511: f.vozPedida2511,
-      lerFalas2511: f.lerFalas2511, vozDaFicha2511: f.vozDaFicha2511, geminiFaladoDoKling4: f.geminiFaladoDoKling4, body: { voz }, narrationLanguage: { language: lingua }, verbatim,
+      lerFalas2511: f.lerFalas2511, vozDaFicha2511: f.vozDaFicha2511, geminiFaladoDoKling4: f.geminiFaladoDoKling4, body: { voice_mode: voz }, narrationLanguage: { language: lingua }, verbatim,
       mentionsRealPerson: (t) => /Obama/.test(t), isStylizedLook: () => false, styleAnchor: { look: 'photoreal' }, desenhoInfantil: { ativo: false },
       qualitySnapshot: { characters: [{ nome: 'Elias Ward', genero: 'man', tipo: 'humano', canonica: 'appearance anchors: 50-60' }, { nome: 'Mara Quinn', genero: 'woman', tipo: 'humano', canonica: 'appearance anchors: 20-30' }] } }
     const corpo = ts.transpile('let kling4Posts = 0\n' + trecho + '\nreturn (async () => ({ job: await tentarGemini2511(), gemini2511, fala2511: typeof fala2511 === "undefined" ? undefined : fala2511 }))()', { target: ts.ScriptTarget.ES2022 })
     const r = await Function(...Object.keys(escopo), corpo)(...Object.values(escopo))
     return { ...r, envios }
   }
-  for (const [nome, opts] of [['cliente', { email: CLIENTE }], ['voz narrador', { voz: 'narrador' }], ["chave 'off'", { chave: 'off' }], ['sem voz no corpo', { voz: null }]]) {
+  for (const [nome, opts] of [['cliente', { email: CLIENTE }], ['voice_mode narrator', { voz: 'narrator' }], ["chave 'off'", { chave: 'off' }], ['sem voice_mode no corpo', { voz: null }]]) {
     const x = await rodar(opts)
     igual(x.envios, [FIX.gemini_input_nota_10], `B ${nome}: o pedido da nota 10, byte a byte`)
     assert.equal(x.fala2511?.marcador ?? null, null, `B ${nome}: nenhum campo novo`)
@@ -129,8 +129,10 @@ async function suite(change) {
     igual(x.envios[0], fal.entrada, 'B a casa com voz personagens: o pedido falado')
     igual(x.gemini2511.kling4, { model: K4R, input: FIX.kling4_input }, 'B a entrada do Kling 4 guardada para a queda = a de hoje (narrada)')
     igual(x.gemini2511.entrada, fal.entrada, 'B o claim guarda o pedido falado que foi à fal')
-    igual(x.fala2511.marcador, { versao: 'fala_dos_personagens_2511_v1', pedida: 'personagens', modo: 'falado', motivo: null, falas: lidas.falas }, 'B o marcador: falado, com as falas') }
-  for (const [nome, opts, motivo] of [['outra língua', { lingua: 'pt' }, 'lingua'], ['roteiro da IA', { verbatim: false }, 'roteiro_sem_falas'],
+    igual(x.fala2511.marcador, { versao: 'fala_dos_personagens_2511_v1', pedida: 'characters', modo: 'falado', motivo: null, falas: lidas.falas }, 'B o marcador: falado, com as falas') }
+  { const x = await rodar({ verbatim: false }) // [CEO 25/11] não depende de script_mode: o roteiro do nosso escritor com "Nome: fala" vale igual
+    igual(x.envios, [fal.entrada], 'B fora do verbatim (o escritor): o pedido falado'); assert.equal(x.fala2511.marcador.modo, 'falado', 'B fora do verbatim: falado') }
+  for (const [nome, opts, motivo] of [['outra língua', { lingua: 'pt' }, 'lingua'], ['roteiro sem falas', { falas: ['', '', '', ''] }, 'roteiro_sem_falas'],
     ['fora do formato', { falas: ['The storm is coming.', 'Mara: Hi.', '', ''] }, 'fala_fora_do_formato'], ['pessoa real na fala', { falas: ['Elias: Obama is here.', '', '', ''] }, 'fala_com_pessoa_real'],
     ['recusa no envio', { envio: () => { throw new g.GeminiRecusadoNoEnvio(422) } }, 'gemini_recusou_no_envio']]) {
     const x = await rodar(opts)
@@ -138,6 +140,7 @@ async function suite(change) {
     assert.equal(x.fala2511.marcador.motivo, motivo, `B ${nome}: o motivo`)
     if (nome !== 'recusa no envio') igual(x.envios, [FIX.gemini_input_nota_10], `B ${nome}: o Gemini de hoje (narrado), byte a byte`)
   }
+  assert.ok(rota.includes("...((body as { voice_mode?: unknown }).voice_mode === 'characters' ? { voice_mode: 'characters' } : {})") && /escritorMarcadoDoGenerateScript\(new NextRequest[^\n]*voice_mode: 'characters'/.test(rota), 'B o escritor do servidor recebe o voice_mode (a ideia solta sai em "Nome: fala")')
   assert.ok(rota.includes(";(response.kling4_trial as Record<string, unknown>).fala_2511 = f2511\n") && rota.includes("name: 'fala_dos_personagens_2511'"), 'B o marcador vai ao claim e a um evento')
   { const i = rota.indexOf(';(response.kling4_trial as Record<string, unknown>).fala_2511 = f2511'), j = rota.lastIndexOf('    if (kling4Trial) {\n', i)
     assert.ok(j > 0 && rota.slice(j, i).includes('response.kling4_trial = {'), 'B o marcador entra no kling4_trial já criado') }
@@ -187,7 +190,10 @@ await suite(null)
 const mutantes = [
   [MOD, "export const FALA_DOS_PERSONAGENS_2511: ModoFalaDosPersonagens2511 = 'internal'", "export const FALA_DOS_PERSONAGENS_2511: ModoFalaDosPersonagens2511 = 'public'"],
   [MOD, "modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))", "modo !== 'off'"],
-  [MOD, "return v === 'personagens' ? 'personagens' : 'narrador'", "return v ? 'personagens' : 'narrador'"],
+  [MOD, "return v === 'characters' ? 'personagens' : 'narrador'", "return v ? 'personagens' : 'narrador'"],
+  [MOD, "(body as { voice_mode?: unknown }).voice_mode", "(body as { voz?: unknown }).voz"],
+  [ROUTE, "...((body as { voice_mode?: unknown }).voice_mode === 'characters' ? { voice_mode: 'characters' } : {})", ''],
+  [ROUTE, "motivo: narrationLanguage.language !== 'en' ? 'lingua' : 'sem_gemini' }", "motivo: narrationLanguage.language !== 'en' ? 'lingua' : !verbatim ? 'roteiro_sem_falas' : 'sem_gemini' }"], // voltar a depender do verbatim
   [MOD, "      if (texto.slice(0, inicio).trim()) return { motivo: 'fala_fora_do_formato' }\n", ''],
   [MOD, "        if (qualquerRotulo.test(' ' + fala)) return { motivo: 'falante_fora_do_elenco' }", "        if (false) return { motivo: 'falante_fora_do_elenco' }"],
   [MOD, "      if (total > Math.floor(PALAVRAS_POR_SEGUNDO_2511 * duracoes[i])) return { motivo: 'fala_longa' }\n", ''],
@@ -229,4 +235,4 @@ for (const m of mutantes) {
   await assert.rejects(suite(m), (e) => e instanceof assert.AssertionError, 'SOBREVIVEU: ' + m[0] + ' · ' + m[1].slice(0, 100))
   mortos++
 }
-console.log(`PASS KINEO-FALA-DOS-PERSONAGENS-2511: chave 'internal' (casa exata) + voz 'personagens'; cliente, 'off' ou narrador = a nota 10 byte a byte; a casa = UM pedido falado ao Gemini (cabeçalho da nota 10, fala no plano, sem "Mouth closed"), o Kling 4 da queda = o de hoje (narrado); fora do formato, língua, roteiro da IA, pessoa real e recusa = narrado com o motivo; a montagem falada só com o Gemini entregando (som do motor, sem narração nem música, 15 s, legenda do Whisper do clipe); selo e claim dizem a voz; um débito só; ${mortos}/${mutantes.length} mutantes mortos.`)
+console.log(`PASS KINEO-FALA-DOS-PERSONAGENS-2511: chave 'internal' (casa exata) + voice_mode 'characters' (com ou sem verbatim); cliente, 'off' ou narrador = a nota 10 byte a byte; a casa = UM pedido falado ao Gemini (cabeçalho da nota 10, fala no plano, sem "Mouth closed"), o Kling 4 da queda = o de hoje (narrado); fora do formato, língua, roteiro da IA, pessoa real e recusa = narrado com o motivo; a montagem falada só com o Gemini entregando (som do motor, sem narração nem música, 15 s, legenda do Whisper do clipe); selo e claim dizem a voz; um débito só; ${mortos}/${mutantes.length} mutantes mortos.`)
