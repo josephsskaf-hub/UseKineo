@@ -49,30 +49,46 @@ export function descricaoParaOJuiz(ficha: { nome: string; canonica: string }): s
   return limpa(descricaoDoAutor(ficha.canonica) ?? '')
 }
 // [revisora 25/11, VOLTA 2, §4 e §9] a negação é lida no TEXTO DO AUTOR, por oração: "not a dog, with no ears" não deixa "dog" nem "ears" virarem pedido.
-// Palavras e orações: a oração acaba na pontuação (, ; . : ! ? parênteses, colchetes, quebra de linha) e em "but" ("not a dog but a robot"); "and" e "or" NÃO
-// acabam ("without a hat and scarf", "no glasses or hat"). Uma negação em OUTRA oração não conta.
-const NEGACOES = new Set(['no', 'not', 'without', 'never', 'non', 'nor', 'none', 'neither', 'sem', 'não', 'nao', 'nem', 'nunca', 'sin', 'ni'])
-const ehNegacao = (w: string) => NEGACOES.has(w) || /n't$/.test(w) // doesn't, isn't, don't
-const FRONTEIRAS = new Set(['but', 'mas', 'pero'])
+// Palavras e orações: a oração acaba em ; . : ! ? parênteses, colchetes, quebra de linha e em "but"/"mas"/"pero"/"sino"/"porém" ("not a dog but a robot");
+// "and" e "or" NÃO acabam ("without a hat and scarf", "no glasses or hat"). Uma negação em OUTRA oração não conta.
+// [revisora 25/11, VOLTA 3, §2/§3] a VÍRGULA continua a lista negada ("without a hat, scarf or gloves", "sem chapéu, óculos ou cachecol"): ela só abre oração
+// nova quando a palavra seguinte abre uma ("with", "wearing", "in", "who", "com", "usa", "con", "lleva"…, ou "and a"/"e um"/"y un"). Na dúvida, a lista continua
+// (lado seguro: o traço sai do julgamento).
+const NEGACOES = new Set(['no', 'not', 'without', 'never', 'non', 'nor', 'none', 'neither', 'nothing', 'sans', 'missing', 'lacking', 'lacks', 'lack',
+  'dont', 'doesnt', 'isnt', 'arent', 'wasnt', 'werent', 'cant', 'cannot', 'wont', 'didnt', 'hasnt', 'havent',
+  'sem', 'não', 'nao', 'nem', 'nunca', 'jamais', 'nenhum', 'nenhuma', 'sin', 'ni', 'jamás', 'ningún', 'ninguno', 'ninguna'])
+type Palavra = { w: string; oracao: number }
+// "free of tattoos" nega; "beard-free" nega a palavra antes dele
+const ehNegacao = (ws: readonly Palavra[], i: number) => NEGACOES.has(ws[i].w) || /n't$/.test(ws[i].w) || (ws[i].w === 'free' && ws[i + 1]?.w === 'of')
+const FRONTEIRAS = new Set(['but', 'mas', 'pero', 'sino', 'porém', 'porem'])
+const ABREM_DEPOIS_DA_VIRGULA = new Set(['with', 'wearing', 'wears', 'has', 'have', 'holding', 'holds', 'carrying', 'carries', 'in', 'who', 'which', 'that',
+  'com', 'usa', 'usando', 'veste', 'vestindo', 'tem', 'que', 'em', 'con', 'lleva', 'llevando', 'tiene'])
+const E_COM_ARTIGO = new Set(['and', 'e', 'y'])
+const ARTIGOS = new Set(['a', 'an', 'the', 'his', 'her', 'their', 'its', 'um', 'uma', 'o', 'un', 'una', 'el', 'la'])
 const VAZIAS = new Set(['a', 'an', 'the', 'with', 'and', 'or', 'of', 'in', 'on', 'at', 'to', 'by', 'for', 'his', 'her', 'its', 'their', 'is', 'are'])
-const palavrasEOracoes = (s: unknown) => {
-  const ws: { w: string; oracao: number }[] = []
-  let oracao = 0
-  for (const m of String(s ?? '').toLowerCase().replace(/’/g, "'").matchAll(/[\p{L}\p{N}]+(?:'[\p{L}]+)*|[,;.:!?()[\]{}\n]/gu)) {
-    if (!/^[\p{L}\p{N}]/u.test(m[0]) || FRONTEIRAS.has(m[0])) oracao++; else ws.push({ w: m[0], oracao })
-  }
+const palavrasEOracoes = (s: unknown): Palavra[] => {
+  const brutos = Array.from(String(s ?? '').toLowerCase().replace(/’/g, "'").matchAll(/[\p{L}\p{N}]+(?:'[\p{L}]+)*|[,;.:!?()[\]{}\n]/gu), (m) => m[0])
+  const ws: Palavra[] = []
+  let oracao = 0, virgula = false
+  brutos.forEach((t, i) => {
+    if (t === ',') { virgula = true; return }
+    if (!/^[\p{L}\p{N}]/u.test(t)) { oracao++; virgula = false; return }
+    if (virgula && (ABREM_DEPOIS_DA_VIRGULA.has(t) || (E_COM_ARTIGO.has(t) && ARTIGOS.has(brutos[i + 1] ?? '')))) oracao++
+    virgula = false
+    if (FRONTEIRAS.has(t)) oracao++; else ws.push({ w: t, oracao })
+  })
   return ws
 }
-/** O traço do modelo é do AUTOR: as palavras dele existem, em sequência, na descrição do autor, numa oração em que NENHUMA negação vem antes delas;
- *  o traço não é negação nem só palavra vazia ("with"). Negação longe, na mesma oração, também conta ("does not wear any kind of hat"): é o lado
- *  seguro, o traço sai do julgamento. Dupla negação ("never without his red scarf") também sai. */
+/** O traço do modelo é do AUTOR: as palavras dele existem, em sequência, na descrição do autor, numa oração em que NENHUMA negação vem antes delas
+ *  (nem "-free" logo depois); o traço não é negação nem só palavra vazia ("with"). Negação longe, na mesma oração, também conta ("does not wear any kind
+ *  of hat"): é o lado seguro, o traço sai do julgamento. Dupla negação ("never without his red scarf") também sai. */
 export function tracoDoAutor(traco: string, descricao: string): boolean {
-  const k = palavrasEOracoes(traco).map((x) => x.w), autor = palavrasEOracoes(descricao)
-  if (k.length === 0 || k.some(ehNegacao) || k.every((w) => VAZIAS.has(w))) return false
+  const kw = palavrasEOracoes(traco), k = kw.map((x) => x.w), autor = palavrasEOracoes(descricao)
+  if (k.length === 0 || kw.some((_, i) => ehNegacao(kw, i)) || k.every((w) => VAZIAS.has(w))) return false
   for (let i = 0; i + k.length <= autor.length; i++) {
     if (!k.every((w, j) => autor[i + j].w === w)) continue
-    let negada = false
-    for (let j = i - 1; j >= 0 && autor[j].oracao === autor[i].oracao; j--) if (ehNegacao(autor[j].w)) { negada = true; break }
+    let negada = autor[i + k.length]?.w === 'free' && autor[i + k.length + 1]?.w !== 'of' && autor[i + k.length].oracao === autor[i + k.length - 1].oracao
+    for (let j = i - 1; !negada && j >= 0 && autor[j].oracao === autor[i].oracao; j--) if (ehNegacao(autor, j)) negada = true
     if (!negada) return true
   }
   return false
