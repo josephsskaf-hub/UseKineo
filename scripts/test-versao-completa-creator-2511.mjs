@@ -17,7 +17,7 @@ const shared = 'lib/growth/filmComplete.ts'
 const component = 'components/FilmReadyFullVersionUpsell.tsx'
 const read = name => fs.readFileSync(path.join(root, name), 'utf8').replace(/\r\n/g, '\n')
 
-function fixture(creator, forceCreatorMetadata = false) {
+function fixture(creator = true, forceCreatorMetadata = false) {
   let locale = 'en', welcome = false
   const events = [], modules = new Map()
   let checkout
@@ -59,9 +59,10 @@ function fixture(creator, forceCreatorMetadata = false) {
   function load(name) {
     if (modules.has(name)) return modules.get(name)
     let source = read(name)
-    if (name === shared && creator) {
-      assert(source.includes("FILM_READY_CREATOR_PRIMARY_2511 = 'off'"))
-      source = source.replace("FILM_READY_CREATOR_PRIMARY_2511 = 'off'", "FILM_READY_CREATOR_PRIMARY_2511 = 'on'")
+    if (name === shared && !creator) {
+      const releaseOn = "FILM_READY_CREATOR_PRIMARY_2511 = 'on'"
+      assert.equal(source.split(releaseOn).length, 2, 'rollback edits exactly one shipped switch')
+      source = source.replace(releaseOn, "FILM_READY_CREATOR_PRIMARY_2511 = 'off'")
     }
     if (name === shared && forceCreatorMetadata) {
       // F2: attribution always claims Creator, even with the release OFF.
@@ -163,14 +164,22 @@ function checkMeasurements(f, creator) {
     assert.equal(event.metadata.offer_version, expectedVersion, (creator ? 'ON' : 'OFF') + ' ' + event.name + ' version')
   }
 }
+const shipped = fixture()
+checkMeasurements(shipped, true)
+assert.throws(() => checkMeasurements(fixture(false), true), {
+  code: 'ERR_ASSERTION',
+  message: /ON film15_full_offer_viewed tier/,
+})
+console.log('Mutant killed: switching the shipped Creator offer off fails the ON impression.')
+
 assert.throws(() => checkMeasurements(fixture(false, true), false), {
   code: 'ERR_ASSERTION',
   message: /OFF film15_full_offer_viewed tier/,
 })
 console.log('F2 killed: with the release OFF, forcing Creator attribution fails the visible Starter impression.')
 
-for (const creator of [false,true]) {
-  const f = fixture(creator)
+for (const creator of [true, false]) {
+  const f = creator ? shipped : fixture(false)
   checkMeasurements(f, creator)
   const fc=f.load(shared), pricing=f.load('lib/checkoutPricing.ts')
   const {filmCompleteCopy,filmCompleteEmailHref}=f.load('lib/growth/filmCompleteCopy.ts')

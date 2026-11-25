@@ -4,7 +4,7 @@ import { trackEvent } from '@/lib/analytics'
 import { formatCheckoutMoney, getTierPrice, type CheckoutCurrency, type PriceRegion } from '@/lib/checkoutPricing'
 import { useMrrVisible } from '@/lib/growth/useMrrVisible'
 
-const RELEASE: 'on' | 'off' = 'off'
+const RELEASE: 'on' | 'off' = 'on'
 const CAMPAIGN = 'first_film_wait_2511'
 
 type WaitOfferEvidence = {

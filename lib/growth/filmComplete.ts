@@ -59,7 +59,7 @@ export function filmCompleteWriterRetryNote(i: { attempt: number; reason: unknow
 // Volta: KINEO_VERSAO_COMPLETA_STARTER_1111 = 'off' → o botão volta ao Creator e a 2ª opção some. Os DOIS planos seguem
 // aceitos no checkout, no pagamento e no início do filme, para nenhuma sessão já aberta (Starter ou Creator) quebrar.
 export const KINEO_VERSAO_COMPLETA_STARTER_1111 = 'on' as 'on' | 'off'
-export const FILM_READY_CREATOR_PRIMARY_2511 = 'off' as 'on' | 'off'
+export const FILM_READY_CREATOR_PRIMARY_2511 = 'on' as 'on' | 'off'
 export const FILM_READY_CREATOR_VERSION = 'film_ready_creator_primary_2511'
 export const FILM_COMPLETE_OFFER_VERSION = 'versao_completa_starter_1111'
 export type FilmCompleteOfferTier = 'starter' | 'basic'

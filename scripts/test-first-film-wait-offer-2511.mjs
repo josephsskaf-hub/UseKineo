@@ -7,7 +7,18 @@ const { aba, React, read } = require('../docs/studio-na-moldura-1011/runtime.cjs
 const tab = aba()
 const { firstFilmWaitOfferVisible, default: Offer } = tab.m('components/premiere/FirstFilmWaitOffer')
 const free = { mode: 'cinematic_ai', filmsDelivered: 0, confirmedFree: true, activePlan: false }
-assert.equal(firstFilmWaitOfferVisible(free), false, 'shipped switch is off')
+const checkRelease = visible => assert.equal(visible(free), true, 'shipped first-film wait offer is open')
+checkRelease(firstFilmWaitOfferVisible)
+assert.equal(firstFilmWaitOfferVisible(free, 'off'), false, 'rollback hides the offer')
+const componentPath = 'components/premiere/FirstFilmWaitOffer.tsx'
+const releaseOn = "const RELEASE: 'on' | 'off' = 'on'"
+const componentSource = read(componentPath)
+assert.equal(componentSource.split(releaseOn).length, 2)
+const closed = aba({ [componentPath]: componentSource.replace(releaseOn, releaseOn.replace("= 'on'", "= 'off'")) })
+assert.throws(() => checkRelease(closed.m('components/premiere/FirstFilmWaitOffer').firstFilmWaitOfferVisible), {
+  code: 'ERR_ASSERTION', message: /shipped first-film wait offer is open/,
+})
+console.log('Mutant killed: switching the shipped first-film wait offer off.')
 assert.equal(firstFilmWaitOfferVisible(free, 'on'), true, 'first free film')
 assert.equal(firstFilmWaitOfferVisible({ ...free, mode: 'cinematic' }, 'on'), true, 'Hollywood film')
 for (const [change, scenario] of [

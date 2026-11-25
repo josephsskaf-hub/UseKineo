@@ -5,7 +5,7 @@ import { formatCheckoutMoney, getTierPrice, type CheckoutCurrency, type PriceReg
 import { FILM_COMPLETE_TARGET_SECONDS } from '@/lib/growth/filmComplete'
 import { useMrrVisible } from '@/lib/growth/useMrrVisible'
 
-const RELEASE: 'on' | 'off' = 'off'
+const RELEASE: 'on' | 'off' = 'on'
 const CAMPAIGN = 'film_delivery_next_2511'
 
 type DeliveryEvidence = {

@@ -7,7 +7,18 @@ const fixture = aba()
 const { decideFilmDeliveryOffer, default: Offer } = fixture.m('components/premiere/FilmDeliveryPlanOffer')
 const { FILM_COMPLETE_TARGET_SECONDS: cutoff } = fixture.m('lib/growth/filmComplete')
 const eligible = { delivered: true, confirmedFree: true, activePlan: false, finishedSeconds: cutoff - 1, fullVersionEligible: true }
-assert.equal(decideFilmDeliveryOffer(eligible), 'legacy', 'default switch is off')
+const checkRelease = decide => assert.equal(decide(eligible), 'full_version', 'shipped delivery opens the unified offer')
+checkRelease(decideFilmDeliveryOffer)
+assert.equal(decideFilmDeliveryOffer(eligible, 'off'), 'legacy', 'rollback restores the legacy slot')
+const componentPath = 'components/premiere/FilmDeliveryPlanOffer.tsx'
+const releaseOn = "const RELEASE: 'on' | 'off' = 'on'"
+const componentSource = read(componentPath)
+assert.equal(componentSource.split(releaseOn).length, 2)
+const closed = aba({ [componentPath]: componentSource.replace(releaseOn, releaseOn.replace("= 'on'", "= 'off'")) })
+assert.throws(() => checkRelease(closed.m('components/premiere/FilmDeliveryPlanOffer').decideFilmDeliveryOffer), {
+  code: 'ERR_ASSERTION', message: /shipped delivery opens the unified offer/,
+})
+console.log('Mutant killed: switching the shipped delivery offer off.')
 assert.equal(decideFilmDeliveryOffer(eligible, 'on'), 'full_version')
 for (const patch of [{ finishedSeconds: cutoff }, { finishedSeconds: cutoff + 1 }, { finishedSeconds: null },
   { finishedSeconds: 0 }, { finishedSeconds: Infinity }, { fullVersionEligible: false }]) {
