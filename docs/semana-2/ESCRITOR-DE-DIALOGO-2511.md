@@ -9,7 +9,7 @@
 - **Quem escreve:** `lib/cinematic/escritorDeDialogo2511.ts`, numa chamada só ao `gpt-4o` (o modelo do escritor de hoje). A saída é json_schema estrito, e o **código** confere a régua e monta o texto.
 - **Fora da régua, falhou ou demorou:** segue o escritor de hoje, e o filme sai narrado. O rastro `dialogue_script_written` grava só números e o motivo.
 - **`voice_mode` ausente ou `'narrator'`:** nenhuma linha nova roda. O guardião prova que a rota só GANHA linhas: o diff contra a base não tem nenhuma linha removida.
-- **Chave:** `QUEM_FALA_NO_ROTEIRO = 'internal'`, só a lista exata da casa. Para abrir, `'public'`.
+- **Chave:** `QUEM_FALA_NO_ROTEIRO = 'internal'`, só a lista exata da casa. O cliente tem chave própria, `CLIENTE_FALA_NO_ROTEIRO` (volta 5, nasce `'off'`), e sempre a régua positiva.
 
 ## O formato que sai
 - **Cada seção:**
@@ -75,6 +75,58 @@ Pedido da CEO depois da revisora 392f0a52 (`docs/revisoes-2311/CEO-ESCRITOR-DE-D
   - **A 3,75 s por plano:** 0 de 10 por construção (8 por seção).
   - **A 3 s:** 10 de 10 por construção, porque 25 > 4 × 6 e todo roteiro aceito tem uma seção de 7 ou 8.
   - O ensaio imprime a linha `FALA_LONGA`.
+
+## Volta 5 (25/11): a régua POSITIVA, a do cliente
+Pedido da CEO depois da revisora 52b12696. A v4 é feita de listas de proibição: 18 de 26 famosos e 10 de 14 crianças da revisora ganhavam fala. Ela fica **só para a casa**.
+
+O cliente passa a ter **chave própria**, `CLIENTE_FALA_NO_ROTEIRO`, que nasce `'off'`. Com ela ligada, o cliente usa **sempre** a régua positiva: o padrão é o narrado de hoje, e só fala quem prova que pode.
+
+### As chaves
+- **`QUEM_FALA_NO_ROTEIRO`** (casa): `'off' | 'internal'`. O `'public'` saiu, então essa chave não abre mais ao cliente. A casa continua com a v4, sem mudança.
+- **`CLIENTE_FALA_NO_ROTEIRO`** (cliente): `'off' | 'public'`, nasce `'off'`.
+- **`reguaDoDialogo2511(email, dialogue_rule)`** decide qual régua vale:
+  - a casa EXATA usa a v4;
+  - a casa com `dialogue_rule: 'client'` no corpo usa a régua do cliente (é o ensaio dela);
+  - o cliente só tem diálogo com a chave dele em `'public'`, e sempre na régua positiva.
+
+### Quem pode falar
+- **O papel vem da ideia.** O modelo devolve cada falante como `{ role, name }`.
+  - `role` tem de ser 1 a 3 palavras que ESTÃO na ideia (aceita o plural).
+  - O papel não pode estar escrito como nome próprio, com maiúscula fora do começo da frase: "Lady Gaga" e "Tesla CEO" não viram papel.
+  - Se o papel não está na ideia: narrado, motivo `papel`.
+- **O nome também vem da ideia.** `name` só vale se está escrito na ideia, sem título. Se a ideia não tem o nome: narrado, motivo `nome_inventado`.
+  - O modelo não escolhe nome de gente: "Keanu", "Zuck", "Bey", "Sherlock", "Elsa" e "Barack" caem aqui.
+- **Humano só fala com sinal de adulto DELE.** O sinal é lido no trecho da ideia que é dele: o papel e até 3 palavras antes, parando em pontuação, conector ou determinante. O sinal é um destes:
+  - palavra de adulto da lista fechada da casa (`adultoProvado2511`), também no singular ("fishermen" vira "fisherman");
+  - um ofício da lista curta `ADULTO_DE_OFICIO` (driver, baker, operator, mom, dad, cop, old, elderly…);
+  - idade de 18 anos ou mais escrita ("a 40-year-old mechanic").
+  - "Little", "tiny", "young" ou "small" no trecho de gente = menor.
+  - Sem sinal de adulto: narrado, motivo `sem_adulto`.
+- **Não humano fala sem idade.** Vale para bicho, criatura, máquina, planta, comida, objeto e natureza (lista fechada `NAO_HUMANO`), desde que o trecho dele não diga filhote ("puppy", "kitten", "cub", "baby"…) nem idade de menor.
+- **Na ideia, antes da chamada:**
+  - fora do inglês = narrado (`lingua`). Conta como fora do inglês: letra acentuada ou de outra escrita, ou poucas palavras de função do inglês;
+  - número solto de 1 a 17, ou "thirteen" a "seventeen" = narrado (`menor`).
+- **Continua valendo o que a casa tem:** famoso (`figura`) e menor, na ideia e no roteiro que saiu.
+- **O rótulo no roteiro** é o nome da ideia, ou o papel com maiúscula ("Radio Operator", "Mom"). O rótulo que vem do papel não conta como título.
+
+### Medido (offline, no escritor real com a rede falsa)
+- **Os 10 casos do ensaio:**
+  - com os DOIS personagens que cada ideia descreve falando, **7 de 10** falam: f1, f2 e d1 a d5;
+  - se só o 1º personagem fala, **9 de 10**.
+  - **Caem:**
+    - f3, pelo "his daughter" na ideia;
+    - f4, se o irmão Tomas fala (irmão não prova adulto);
+    - f5, se o passageiro fala.
+- **Os casos da revisora:** todos os famosos e todas as crianças vão ao narrado.
+  - **Duas exceções no famoso:** em "Papa Francisco blesses a fisherman", "Leonardo Di Caprio orders coffee from a waiter" e "Spidey and a cop", o famoso não fala, porque não tem papel na ideia. Fala só o adulto comum (o pescador, o garçom, o policial). O rosto do famoso na tela é da régua da admissão do filme.
+  - **O furo que resta:** um famoso com grafia torta mais um papel de adulto escrito na ideia ("the actor Leonardo Di Caprio"). O nome sai da ideia e só passa pela régua de figura da casa, como a CEO desenhou.
+- **Falam:** os adultos de verdade (pescadores, enfermeira e médico, astronautas, marinheiro e capitã com nome, mecânico de 40 anos, mãe e pai) e os bichos e objetos.
+
+### O ensaio real (precisa de deploy)
+- O mesmo pacote de 10, com `dialogue_rule: 'client'` no corpo do POST, na conta da casa.
+- A régua escrita antes vale igual.
+- **A linha `falantes_no_elenco` pesa mais aqui.** O leitor do 3bbf48a0 e o elenco do filme precisam ler o rótulo de papel ("Radio Operator", "Mom") como personagem.
+- A coluna "sem título" do conferidor marca "Captain" e "Doctor" como título, mesmo quando o rótulo vem do papel: na régua do cliente, ela é só informativa.
 
 ## O risco do caminho do servidor (conferido, executado)
 O roteiro de diálogo passa intacto pelo que o caminho da ideia solta faz depois do escritor (`lib/meta95/ideiaNoEscritor.ts`):

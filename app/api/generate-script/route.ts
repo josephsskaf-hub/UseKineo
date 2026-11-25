@@ -6,7 +6,7 @@ import { minCoverageFor } from '@/lib/narrationFit' // KINEO-K4-NARRACAO-CABE-01
 // KINEO-REGUA-DO-ESCRITOR-2026-09-17 — o escritor dimensiona na régua do motor que VAI falar (a mesma do portão).
 import { minWordsFor, maxWordsFor, writerRateFor } from '@/lib/scriptWriterRate'
 import { openai, OPENAI_SCRIPT_TIMEOUT_MS } from '@/lib/openai'
-import { QUEM_FALA_NO_ROTEIRO, escritorDeDialogoLigado, escreverDialogo2511, lerVoiceMode, prazoDoDialogo2511, DIALOGO_ESCRITO_EVENTO, ROTEIRO_ESCRITO_EVENTO } from '@/lib/cinematic/escritorDeDialogo2511' // KINEO-ESCRITOR-DE-DIALOGO-2511
+import { reguaDoDialogo2511, escreverDialogo2511, lerVoiceMode, prazoDoDialogo2511, DIALOGO_ESCRITO_EVENTO, ROTEIRO_ESCRITO_EVENTO } from '@/lib/cinematic/escritorDeDialogo2511' // KINEO-ESCRITOR-DE-DIALOGO-2511
 import { writeServerEvent } from '@/lib/serverEvents'
 import { buildRefusalEvent } from '@/lib/stageRefusal'
 import {
@@ -429,9 +429,10 @@ export async function POST(req: NextRequest) {
     // (lib/cinematic/escritorDeDialogo2511). Só com a chave (nasce 'internal' = a casa exata), em inglês (a única língua provada) e com IDEIA (o texto que já
     // chega com marcadores segue como hoje). Fora da régua, falhou ou demorou = segue abaixo, o roteiro narrado de hoje. voice_mode ausente ou 'narrator' =
     // nenhuma linha nova roda. Depois da moderação do tema (acima): a política vale igual. Volta 4 (T3): o diálogo com prazo curto (até 12 s, só o que sobra
-    // depois de guardar os 35 s INTEIROS da 1ª chamada do narrado dentro do maxDuration 60); sem tempo = nem chama. ═══
-    if (lerVoiceMode(body.voice_mode) === 'characters' && filmeCurto && language === 'en' && !hasViralMarkers(topic) && escritorDeDialogoLigado(QUEM_FALA_NO_ROTEIRO, user.email)) {
-      const dialogo2511 = await escreverDialogo2511({ ideia: topic, segundos: alvoSegundos, prazoMs: prazoDoDialogo2511(Date.now() - inicioDaRota, OPENAI_SCRIPT_TIMEOUT_MS), chamar: async (corpo, prazoDialogo2511) => {
+    // depois de guardar os 35 s INTEIROS da 1ª chamada do narrado dentro do maxDuration 60); sem tempo = nem chama. Volta 5: a casa segue com a régua da
+    // volta 4; o cliente só com a chave própria (CLIENTE_FALA_NO_ROTEIRO, nasce 'off') e sempre com a régua POSITIVA (dialogue_rule 'client' = a casa no ensaio dela). ═══
+    if (lerVoiceMode(body.voice_mode) === 'characters' && filmeCurto && language === 'en' && !hasViralMarkers(topic) && reguaDoDialogo2511(user.email, body.dialogue_rule) !== null) {
+      const dialogo2511 = await escreverDialogo2511({ ideia: topic, segundos: alvoSegundos, regua: reguaDoDialogo2511(user.email, body.dialogue_rule), prazoMs: prazoDoDialogo2511(Date.now() - inicioDaRota, OPENAI_SCRIPT_TIMEOUT_MS), chamar: async (corpo, prazoDialogo2511) => {
         const c = await openai.chat.completions.create(corpo as unknown as Parameters<typeof openai.chat.completions.create>[0], { timeout: prazoDialogo2511, maxRetries: 0 }) as { choices?: Array<{ message?: { content?: string | null } }> }
         return c.choices?.[0]?.message?.content ?? null } })
       await writeServerEvent({ name: DIALOGO_ESCRITO_EVENTO, userId: user.id, path: '/api/generate-script', metadata: { ...dialogo2511.relato, target_seconds: alvoSegundos, engine: typeof body.engine === 'string' ? body.engine : null } })
