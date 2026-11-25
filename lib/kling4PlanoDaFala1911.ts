@@ -76,6 +76,19 @@ export const REGRA_DO_PLANO_DA_FALA = '\n- KINEO-PLANO-DA-FALA-1911: each item i
   // [2º ensaio, 80d9a38d] "describe only what is seen" tirou o low-poly/PS1 que o pedido escreveu (o 1º ensaio o tinha): o estilo do PEDIDO fica em todo item
   '\n- Keep in every item the visual style the request asks for (for example low-poly, pixel art, claymation, anime, retro video game).'
 
+// KINEO-CAMERA-POR-SECAO-2511 [CEO 25/11 16:33, ensaio da câmera: 0 de 16 planos com deslocamento disseram a câmera] CAUSA: a regra da câmera chegava ao
+// sistema da chamada por seção, mas no MEIO; a regra do plano da fala vinha DEPOIS e mandava o contrário ("Do not name a camera move, lens or shot type …
+// Describe only what is seen"). O modelo seguiu a última. CONSERTO: com a chave da câmera (só a casa), a chamada por seção recebe a regra do plano da fala com
+// a exceção escrita (a posição da câmera que a regra pede) e a regra repetida no FIM, por último. Sem a chave = REGRA_DO_PLANO_DA_FALA byte a byte (a main).
+// Sem exemplo e sem lista de verbos, como a regra da câmera.
+export const CAMERA_POR_SECAO_2511_VERSAO = 'camera_por_secao_2511_v1'
+const LINHA_SEM_CAMERA_1911 = '\n- Do not name a camera move, lens or shot type: the editor sets the framing of every shot. Describe only what is seen: who, doing what, where.'
+export const REGRA_DO_PLANO_DA_FALA_COM_CAMERA_2511 = REGRA_DO_PLANO_DA_FALA.replace(LINHA_SEM_CAMERA_1911,
+  '\n- Do not name a camera move, lens or shot type: the editor sets the framing of every shot. Describe what is seen: who, doing what, where. The one exception is ' +
+  'where the camera stands, which the KINEO-CAMERA-NO-DESLOCAMENTO-2511 rule asks for.') +
+  '\n- KINEO-CAMERA-POR-SECAO-2511: ' + REGRA_DA_CAMERA_2511.replace(/^KINEO-CAMERA-NO-DESLOCAMENTO-2511: /, '') +
+  ' In an item where the subject travels, this is one short sentence of that item; in an item where nobody travels, say nothing about the camera.'
+
 const norm = (t: unknown) => String(t ?? '').trim().replace(/\s+/gu, ' ')
 
 /** [ensaio A2 19/11] O sistema do descritor na chamada POR SEÇÃO: sem as duas linhas de câmera da rota ("Include a camera move (aerial, …)" e "VARY … rotate aerial / …"),

@@ -62,6 +62,7 @@ import { soSemFicha, cenaTemFicha, prazoDoA1A2, A1A2_ESPERA_DO_DESCRITOR_MS, A1A
 import { KLING4_DESCRITOR_FORTE_1911, MODELO_DO_DESCRITOR_FORTE, A2_TETO_DO_JUIZ_MS, A2_EVENTO, promptsDeCenaInteira, topicoDoDescritorA2, planosComNomeProprio, revisarPlanosA2, custoDoUso } from '@/lib/kling4PlanoDaFala1911' // KINEO-DESCRITOR-FORTE-1911 (A2)
 import { descricoesSemRosto, descricaoSemRosto, rostoNaDescricao, SEM_ROSTO_MOTIVO } from '@/lib/kling4PlanoDaFala1911' // KINEO-SEM-ROSTO-2011 — a descrição do A1/A2 no modo sem rosto passa pela troca da cena
 import { CAMERA_NO_DESLOCAMENTO_2511, cameraNoDeslocamentoLigado, REGRA_DA_CAMERA_2511 } from '@/lib/kling4PlanoDaFala1911' // KINEO-CAMERA-NO-DESLOCAMENTO-2511
+import { REGRA_DO_PLANO_DA_FALA_COM_CAMERA_2511, CAMERA_POR_SECAO_2511_VERSAO, CAMERA_NO_DESLOCAMENTO_2511_VERSAO } from '@/lib/kling4PlanoDaFala1911' // KINEO-CAMERA-POR-SECAO-2511
 import { contaDaCasaExata as contaDaCasaExataCamera2511 } from '@/lib/internalAccounts' // KINEO-CAMERA-NO-DESLOCAMENTO-2511 — a casa EXATA
 import { sistemaPorSecao, notaDoEspaco, secoesQueNaoCabem } from '@/lib/kling4PlanoDaFala1911' // [ensaio A2 19/11] sem câmera nomeada; a seção que não coube é pedida de novo
 import { promptMostraOSujeito, comSujeitoNaCena, sujeitoDoFilme, sujeitoExigidoNoUltimo } from '@/lib/cinematic/sujeitoObrigatorio' // [ensaio A2 19/11] o sujeito do pedido no último plano do A2 · [2º ensaio] só o sujeito do FILME (1ª ou última fala o cita)
@@ -1088,6 +1089,8 @@ function eraLockSuffix(context: string): string {
 const PISTA_DE_CLIMA_2511 = new WeakSet<object>()
 // KINEO-CAMERA-NO-DESLOCAMENTO-2511 — as políticas visuais (uma por pedido, objeto novo a cada pedido) cujo pedido tem a chave ligada. WeakSet: some com o pedido.
 const CAMERA_NO_DESLOCAMENTO_POLITICAS_2511 = new WeakSet<object>()
+/** KINEO-CAMERA-POR-SECAO-2511 — quantas chamadas POR SEÇÃO ao descritor foram com a regra da câmera, por política do pedido (o carimbo do ensaio lê). */
+const CAMERA_POR_SECAO_ENVIADA_2511 = new WeakMap<object, number>()
 async function generateCinematicDescriptions(
   scenes: { voiceover: string; stockSearchQuery?: string; description: string }[],
   topic: string,
@@ -1142,11 +1145,14 @@ ${REGRAS_DO_ESCRITOR_DE_CENAS}
   let best: string[] = []
   for (let tentativa = 0; tentativa < 2; tentativa++) {
     const t0Descritor1911 = Date.now() // KINEO-DESCRITOR-FORTE-1911 (A2)
+    // KINEO-CAMERA-POR-SECAO-2511 — a chamada por seção com a chave da câmera leva a regra do plano da fala COM a câmera, e o pedido conta a chamada (carimbo)
+    const camPorSecao2511 = porSecao === true && typeof cameraNoDeslocamento2511 !== 'undefined' && cameraNoDeslocamento2511 === true && typeof REGRA_DO_PLANO_DA_FALA_COM_CAMERA_2511 === 'string'
+    if (camPorSecao2511 && typeof CAMERA_POR_SECAO_ENVIADA_2511 !== 'undefined') CAMERA_POR_SECAO_ENVIADA_2511.set(visualPolicy, (CAMERA_POR_SECAO_ENVIADA_2511.get(visualPolicy) ?? 0) + 1)
     const completion = await openai.chat.completions.create(
       {
         model: modelo ?? 'gpt-4o-mini', // KINEO-DESCRITOR-FORTE-1911 (A2): ausente = o de sempre
         messages: [
-          { role: 'system', content: porSecao ? sistemaPorSecao(system) + REGRA_DO_PLANO_DA_FALA : system }, // KINEO-PLANO-DA-FALA-1911 (A1): só na chamada por seção · [ensaio A2 19/11] sem as linhas de câmera ("aerial" abria 34 de 47)
+          { role: 'system', content: porSecao ? sistemaPorSecao(system) + (camPorSecao2511 ? REGRA_DO_PLANO_DA_FALA_COM_CAMERA_2511 : REGRA_DO_PLANO_DA_FALA) : system }, // KINEO-CAMERA-POR-SECAO-2511 (camPorSecao2511: só com a chave) // KINEO-PLANO-DA-FALA-1911 (A1): só na chamada por seção · [ensaio A2 19/11] sem as linhas de câmera ("aerial" abria 34 de 47)
           { role: 'user', content: tentativa === 0 ? userMsg : `${userMsg}\n\nYour previous answer had ${best.length} descriptions. Return EXACTLY ${scenes.length} descriptions, one per scene, in order.` },
         ],
         temperature: 0.6,
@@ -7929,6 +7935,10 @@ async function manipularPost(req: NextRequest) {
       return NextResponse.json({
         dry_run: true,
         ...(a2Ensaio1911 ? { a2_ensaio: a2Ensaio1911 } : {}),
+        // KINEO-CAMERA-POR-SECAO-2511 [CEO 25/11] o carimbo do ensaio: a chave da câmera, se a política do pedido foi marcada e quantas chamadas por seção ao descritor
+        // levaram a regra (0 com a chave ligada = a regra NÃO foi lida). Só no ensaio do filme grátis (k4_gratis_ensaio), só a conta do dry_run.
+        ...(k4GratisEnsaio ? { camera_2511: { versao: CAMERA_NO_DESLOCAMENTO_2511_VERSAO, versao_por_secao: CAMERA_POR_SECAO_2511_VERSAO, ligada: cameraNoDeslocamento2511 === true,
+          politica_marcada: CAMERA_NO_DESLOCAMENTO_POLITICAS_2511.has(classicVisualPolicy), chamadas_por_secao_com_a_regra: CAMERA_POR_SECAO_ENVIADA_2511.get(classicVisualPolicy) ?? 0 } } : {}),
         ...(!a2Ensaio1911 && k4GratisEnsaio && verbatim && planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, isDryRunAccount(user.email)) ? { a2_ensaio: { versao: 'a2_ensaio_1911_v2', caminho: 'hoje', motivo: parsedScript.segments.length < 2 ? 'sem_secoes' : parsedScript.segments.length < scenes.length ? 'secoes_menos_que_cenas' : parsedScript.segments.length > 5 ? 'secoes_demais' : 'fora_do_kling4_gratis', secoes: parsedScript.segments.length, cenas: scenes.length } } : {}), // [ensaio A2 19/11] o A2 precisa de uma seção por plano: sem isso, o caminho de hoje, dito na resposta // KINEO-DESCRITOR-FORTE-1911 (A2) — o ensaio de texto
         ...(segundaLeitura1911 ? { b1_segunda_leitura: { ...segundaLeitura1911.relato, elenco_final: pedidoSemantico?.elenco ? [pedidoSemantico.elenco.protagonist, ...pedidoSemantico.elenco.supporting].filter(Boolean).map((p) => ({ nome: p!.name ?? p!.role, kind: p!.kind, especie: p!.species, idade_escrita: p!.age_text ?? null })) : null } } : {}), // KINEO-SEGUNDA-LEITURA-DA-GENTE-1911 — B1(c) no ensaio // KINEO-DESCRITOR-FORTE-1911 (A2) — o ensaio de texto
         family: 'classic',

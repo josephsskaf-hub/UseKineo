@@ -46,7 +46,7 @@ async function prova(over = {}) {
   no(camera.length !== 2 || /aerial/i.test(sp) || !sp.includes('- Anchor the shot on the subject.') || !sp.includes('- Keep the approved look.'), `A1 o sistema por seção perde as 2 linhas de câmera da rota ("aerial" primeiro) e guarda o resto (${camera.length})`)
   no(!/Do not name a camera move, lens or shot type/.test(L.REGRA_DO_PLANO_DA_FALA) || /\baerial\b/i.test(L.REGRA_DO_PLANO_DA_FALA), 'A2 a regra por seção não nomeia câmera (o enquadramento é da montagem), sem trocar por outro vício')
   no(!/FIRST sentence of each item is a complete shot on its own/.test(L.REGRA_DO_PLANO_DA_FALA) || !/Never describe how a named or recurring character looks/.test(L.REGRA_DO_PLANO_DA_FALA), 'A3 a 1ª frase basta sozinha; a aparência do personagem é da ficha (c968edac: "small green" contra a ficha "warm orange")')
-  no(!rota.includes("{ role: 'system', content: porSecao ? sistemaPorSecao(system) + REGRA_DO_PLANO_DA_FALA : system }"), 'A4 só a chamada por seção perde a câmera; a das cenas fica a de sempre')
+  no(!rota.includes("{ role: 'system', content: porSecao ? sistemaPorSecao(system) + (camPorSecao2511 ? REGRA_DO_PLANO_DA_FALA_COM_CAMERA_2511 : REGRA_DO_PLANO_DA_FALA) : system }"), 'A4 só a chamada por seção perde a câmera; a das cenas fica a de sempre')
 
   // ── B · cortes e seções vazias, no replay dos 47 ──
   const medir = (QQ) => {
@@ -176,7 +176,7 @@ async function prova(over = {}) {
 const MUT = [
   ['câmera continua', LIB, (s) => s.replace(".filter((l) => !/^- (?:Include a camera move|VARY the camera move)\\b/.test(l))", '')],
   ['regra sem o "não nomeie câmera"', LIB, (s) => s.replace("'\\n- Do not name a camera move, lens or shot type: the editor sets the framing of every shot. Describe only what is seen: who, doing what, where.' +\n", '')],
-  ['rota: câmera na chamada por seção', ROTA, (s) => s.replace('content: porSecao ? sistemaPorSecao(system) + REGRA_DO_PLANO_DA_FALA : system }', 'content: porSecao ? system + REGRA_DO_PLANO_DA_FALA : system }')],
+  ['rota: câmera na chamada por seção', ROTA, (s) => s.replace('content: porSecao ? sistemaPorSecao(system) + (camPorSecao2511 ? REGRA_DO_PLANO_DA_FALA_COM_CAMERA_2511 : REGRA_DO_PLANO_DA_FALA) : system }', 'content: porSecao ? system + (camPorSecao2511 ? REGRA_DO_PLANO_DA_FALA_COM_CAMERA_2511 : REGRA_DO_PLANO_DA_FALA) : system }') /* KINEO-CAMERA-POR-SECAO-2511: a âncora nova */],
   ['corte na vírgula volta', QP, (s) => s.replace('  if (soFrase) return null\n', '')],
   ['não aponta a que não cabe', QP, (s) => s.replace('opcoes.relato.caiuNaFala = cortaInteiro(dA1, maxAcao - 1, true) === null', 'opcoes.relato.caiuNaFala = false')],
   ['rota: nula não é pedida de novo', ROTA, (s) => s.replace("        if (nulas.length) { pedidas.push(...nulas); await pedir(nulas, '') }\n", '')],
