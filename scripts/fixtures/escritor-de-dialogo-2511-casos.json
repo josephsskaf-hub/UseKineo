@@ -4,9 +4,12 @@
   "regua_escrita_antes": [
     "a resposta veio com voiceMode = characters (saiu falado, não caiu no narrado)",
     "exatamente 4 seções, na ordem HOOK, MICRO REWARD 1, MICRO REWARD 2, PAYOFF, cada uma com [Pexels: cue]",
-    "toda seção tem 1 ou 2 falas válidas no formato Nome: fala",
-    "no máximo 2 falantes no filme",
-    "cada fala com até 10 palavras",
+    "cada seção é feita SÓ de 1 ou 2 linhas Nome: fala (nenhum texto fora do rótulo)",
+    "no máximo 2 falantes no filme, sempre com a mesma grafia, sem título na frente do nome",
+    "até 8 palavras por seção (somando as falas) e 25 a 35 palavras no filme",
+    "cada fala termina em . ! ? … ou aspas de fecho",
+    "quem fala na seção está na marca [Pexels: …] da seção",
+    "nenhum outro \"Palavra:\" dentro da fala e nada de rubrica (parênteses, asterisco, colchete)",
     "nenhuma fala atribuída a quem não está no elenco (com o elenco do dry-run do filme, quando houver)",
     "nada de narrador nem voz de fora",
     "o parser de hoje lê as 4 seções",
@@ -124,5 +127,6 @@
         "voice_mode": "characters"
       }
     }
-  ]
+  ],
+  "formato": "docs/semana-2/PERSONAGENS-FALAM-2511.md (topo): o FORMATO EXATO do leitor lerFalas2511 do 3bbf48a0"
 }

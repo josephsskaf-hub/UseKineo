@@ -17,17 +17,23 @@
   - depois, em linhas próprias, 1 ou 2 falas `Nome: fala`.
 - **As seções** são separadas por uma linha em branco.
 - **O nome** fica como o personagem é chamado, sem caixa alta, por exemplo `Mara`.
-- **Atenção, 3bbf48a0:**
-  - o `parseUserScript` de hoje junta as linhas de cada seção com espaço; o `voiceover` da seção chega como `Mara: … Elias: …` numa linha só, e o nome continua lá;
-  - se o nome estivesse em CAIXA ALTA, o parser de hoje o tiraria da fala;
-  - o formato mora numa função só (`secaoDoDialogo2511`): se o seu parser pedir outro, é uma linha.
+- **Volta 3: o FORMATO EXATO do leitor do 3bbf48a0** (`lerFalas2511`, topo de `docs/semana-2/PERSONAGENS-FALAM-2511.md`).
+  - A seção é só de linhas `Nome: fala`, e cada fala termina em `.` `!` `?` `…` ou aspas de fecho. Se a fala vier sem isso, o código põe o ponto final.
+  - Quem fala está na marca `[Pexels: …]` da seção.
+  - **Conferido executando o leitor dele** (branch `codex/personagens-falam-2511` @ `a1b8f3588`, transpilado):
+    - o roteiro que este escritor monta passa pelo `parseUserScript` e pelo `lerFalas2511` com as falas e os nomes certos, a 3,75 s e a 4 s por plano;
+    - funciona com o nome do elenco só pelo núcleo e com o nome completo mais o núcleo.
 
 ## A régua (no código; o que não passa = narrado de hoje)
 - exatamente 4 seções, na ordem;
 - de 1 a 2 falantes no filme inteiro, com nome próprio, e nunca narrador, voz de fora ou nome repetido;
-- cada seção com 1 ou 2 falas, cada fala de 1 a 10 palavras, dita por quem foi declarado e sem o nome dentro;
+- sem título na frente do nome (Captain, Mr…), e nenhum dos dois nomes contido no outro;
+- cada seção com 1 ou 2 falas de quem foi declarado, com **até 8 palavras SOMADAS** (contadas como o leitor conta, por espaço);
+- quem fala está na **marca `[Pexels: …]`** da seção, o nome como palavra inteira, sem caixa;
+- nenhuma rubrica (parênteses, colchete, asterisco) e nenhum outro `Palavra:` dentro da fala;
+- toda fala termina em `.` `!` `?` `…` ou aspas de fecho; a que vem sem isso ganha o ponto final;
 - `cue` de 2 palavras ou mais, sem colchete nem dois-pontos;
-- o filme com 26 a 60 palavras de fala; o pedido mira de 28 a 40. Com os nomes (4 falas ou mais), o roteiro aceito sempre passa do piso de 29 palavras do `avaliarRoteiroEscrito`, que conta os nomes.
+- o filme com **25 a 35 palavras** de fala; com 4 seções de até 8, o teto efetivo é 32. Com os nomes (uma fala por seção, no mínimo), o roteiro aceito sempre passa do piso de 29 palavras do `avaliarRoteiroEscrito`, que conta os nomes.
 
 ## O risco do caminho do servidor (conferido, executado)
 O roteiro de diálogo passa intacto pelo que o caminho da ideia solta faz depois do escritor (`lib/meta95/ideiaNoEscritor.ts`):
@@ -44,7 +50,7 @@ O único cuidado é o piso, que conta os nomes. Daí o mínimo aceito de 26 pala
   3. o `GenerateClient` manda `voice_mode` no POST `/api/generate-video-cinematic`.
 - **Ao 3bbf48a0:**
   - repassar `body.voice_mode` no corpo do `escritorMarcadoDoGenerateScript` (route.ts l. 2081). É o caminho da ideia solta escrita pelo servidor;
-  - o portão de tamanho do filme curto precisa aceitar a fala: são de 28 a 40 palavras pedidas, contadas sem os nomes.
+  - o portão de tamanho do filme curto precisa aceitar a fala: são de 25 a 35 palavras, contadas sem os nomes.
 
 ## Executado (sem rede)
 - **Guardião `scripts/test-escritor-de-dialogo-2511.mjs`:** PASS, com 30 de 30 mutantes mortos.
@@ -63,9 +69,12 @@ O único cuidado é o piso, que conta os nomes. Daí o mínimo aceito de 26 pala
 - **Régua escrita antes** (o conferidor aplica):
   - saiu falado;
   - 4 seções na ordem;
-  - toda seção com 1 ou 2 falas válidas;
-  - no máximo 2 falantes;
-  - cada fala com até 10 palavras;
+  - toda seção só de 1 ou 2 falas `Nome: fala`;
+  - no máximo 2 falantes, sem título;
+  - até 8 palavras por seção e de 25 a 35 no filme;
+  - toda fala termina em pontuação;
+  - quem fala está na marca da seção;
+  - nenhum dois-pontos a mais nem rubrica;
   - nada de narrador;
   - o parser de hoje lê 4 seções;
   - os falantes no elenco, quando o dry-run do filme der o elenco.
