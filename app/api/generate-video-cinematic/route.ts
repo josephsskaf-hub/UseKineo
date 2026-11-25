@@ -8155,7 +8155,7 @@ async function manipularPost(req: NextRequest) {
       // KINEO-JUIZ-DA-FOLHA-2411 [CEO 24/11, Bolt ab9a1d7a: a folha saiu cachorro-robô e o filme seguiu a folha] — a casa, no filme grátis do Kling 4, com folha nova (herdada não): cada folha é LIDA antes de
       // qualquer imagem-chave. Reprovou: UMA folha nova com a instrução do que faltou, e ela passa a ser a folha do filme. Reprovou de novo ou sem leitura: a folha segue no caminho de hoje (imagens-chave),
       // mas a admissão da referência única não a lê. Cliente e 'off': o `if` não entra (nenhuma chamada).
-      if (juizDaFolhaLigado(JUIZ_DA_FOLHA_2411, user.email) && kling4TrialCandidate && !qualidadeHerdada && folhaDe.size > 0) {
+      if (juizDaFolhaLigado(JUIZ_DA_FOLHA_2411, user.email) && kling4TrialCandidate && !qualidadeHerdada && !ensaioPersonagemFixo /* [revisora, v3] o ensaio do personagem fixo fica como hoje */ && folhaDe.size > 0) {
         const julgadas = await Promise.all(elencoP.filter((f) => folhaDe.has(f.nome)).map((f, i) => julgarAFolha({ ficha: f, url: folhaDe.get(f.nome) as string, filmeFotorreal: !isStylizedLook(styleAnchor) && !desenhoInfantil.ativo, lookPhrase: styleAnchor.lookPhrase },
           { ler: (descricao, url) => lerAFolha(descricao, url), gerar: (instrucao) => generateCinematicSceneStill({ scenePrompt: promptDaFolha(f, styleAnchor) + instrucao, styleSuffix: '', seed: (generationSeed + 7_919 * (201 + i)) % 2_147_483_647, pollWindowMs: 15_000, aspect: aspectRequested }) })))
         for (const j of julgadas) { if (j.url) folhaDe.set(j.nome, j.url); else folhasReprovadas2411.add(j.nome) }

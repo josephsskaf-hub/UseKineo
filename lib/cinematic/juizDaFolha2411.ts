@@ -17,6 +17,12 @@
 import { contaDaCasaExata } from '@/lib/internalAccounts'
 import { STILL_CRITIC_MODELO, custoDoCriticoUsd } from '@/lib/cinematic/criticoStill'
 import type { FilmQualitySnapshot } from '@/lib/filmComplete/qualityInheritance'
+import { descricaoDoAutor } from '@/lib/cinematic/referenciaUnica2411'
+import { PERSONAGEM_FOLHA_USD } from '@/lib/cinematic/folhaDePersonagem'
+// [revisora 24/11, VOLTA, docs/revisoes-2311/CEO-JUIZ-DA-FOLHA-2411.md §11] v3: (1) só conta, e só vai à folha nova, o traço do modelo que EXISTE palavra por palavra na
+// descrição do autor e não é negação; o resto é descartado e contado; (2) sem descrição do AUTOR (Slocum; o Elias do cedd1250: a canônica é biografia/ação),
+// o eixo traços não julga — só um personagem e o meio; (3) folha sem personagem reprova ('nenhum'); (4) o custo grava a folha nova e o relato grava a 1ª leitura;
+// (5) o ensaio do personagem fixo não roda o juiz (rota).
 
 export const JUIZ_DA_FOLHA_2411_VERSAO = 'KINEO-JUIZ-DA-FOLHA-2411'
 export type ModoJuizDaFolha2411 = 'off' | 'internal' | 'public'
@@ -28,23 +34,26 @@ export const JUIZ_DA_FOLHA_TIMEOUT_MS = 8_000
 export type MeioDaFolha = 'photo_or_realistic_render' | 'cartoon_3d' | 'cartoon_2d' | 'other'
 export type CategoriaDoTraco = 'species' | 'shape' | 'size' | 'color' | 'feature' | 'clothing'
 export type LeituraDaFolha = { meio: MeioDaFolha; personagens: number; tracos: Array<{ traco: string; categoria: CategoriaDoTraco; visivel: 'yes' | 'no' | 'unclear' }> }
-export type MotivoDosTracos = 'mais_de_um' | 'forma_especie' | 'traco'
+export type MotivoDosTracos = 'mais_de_um' | 'nenhum' | 'forma_especie' | 'traco'
 /** O veredito POR EIXO: traços do autor e meio do filme. */
-export type VereditoDaFolha = { tracos: 'ok' | MotivoDosTracos; meio: 'ok' | 'meio'; ausentes: string[] }
+export type VereditoDaFolha = { tracos: 'ok' | MotivoDosTracos; meio: 'ok' | 'meio'; ausentes: string[]; descartados: number }
 export const folhaPassa = (v: VereditoDaFolha): boolean => v.tracos === 'ok' && v.meio === 'ok'
 
 const MEIOS: readonly MeioDaFolha[] = ['photo_or_realistic_render', 'cartoon_3d', 'cartoon_2d', 'other']
 const CATEGORIAS: readonly CategoriaDoTraco[] = ['species', 'shape', 'size', 'color', 'feature', 'clothing']
 const limpa = (s: unknown) => String(s ?? '').replace(/\s+/g, ' ').trim()
 
-/** O que o AUTOR escreveu do personagem: o trecho entre aspas de "exactly as the author wrote:"; senão a canônica sem o nome, sem âncoras e sem a linha
- *  de estilo (texto NOSSO). Vazio = nada a conferir além do meio e da contagem. */
+/** O que o AUTOR escreveu do personagem (o mesmo leitor da referência única, descricaoDoAutor: o trecho entre aspas de "exactly as the author wrote:" e o de
+ *  "as the request describes:"). Nada disso = '' = o eixo traços não julga (a canônica sem aspas é biografia/ação, não aparência: Slocum, Elias). */
 export function descricaoParaOJuiz(ficha: { nome: string; canonica: string }): string {
-  const c = limpa(ficha.canonica)
-  const autor = /exactly as the author wrote:\s*"([^"]+)"/u.exec(c)?.[1]
-  if (autor && limpa(autor)) return limpa(autor)
-  const semNome = c.replace(new RegExp(`^${ficha.nome.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')},\\s*`, 'iu'), '')
-  return limpa(semNome.split(';')[0].replace(/\bexactly as the author wrote\b/giu, ''))
+  return limpa(descricaoDoAutor(ficha.canonica) ?? '')
+}
+const normaliza = (s: unknown) => ' ' + String(s ?? '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/\s+/g, ' ').trim() + ' '
+const NEGACAO_RE = / (?:no|not|without|never|non|nor) /
+/** O traço do modelo é do AUTOR: o texto dele existe, palavra por palavra, na descrição do autor, e não é negação. */
+export function tracoDoAutor(traco: string, descricao: string): boolean {
+  const k = normaliza(traco), autor = normaliza(descricao)
+  return k.trim().length > 0 && autor.trim().length > 0 && autor.includes(k) && !NEGACAO_RE.test(k)
 }
 
 /** O pedido ao modelo: só observação, em JSON. Nenhum exemplo; nenhuma ordem de reprovar. */
@@ -74,19 +83,20 @@ export function lerLeituraDaFolha(raw: string): LeituraDaFolha | null {
 }
 
 /** A regra, no código, POR EIXO. Traços: contagem > espécie/forma/tamanho > outros traços. Meio: cartum em filme fotorreal, foto em filme desenhado. */
-export function decidirDaFolha(l: LeituraDaFolha, filmeFotorreal: boolean): VereditoDaFolha {
-  const ausentes = (cats: readonly CategoriaDoTraco[]) => l.tracos.filter((t) => t.visivel === 'no' && cats.includes(t.categoria)).map((t) => t.traco)
+export function decidirDaFolha(l: LeituraDaFolha, filmeFotorreal: boolean, descricao: string = ''): VereditoDaFolha {
+  const doAutor = l.tracos.filter((t) => tracoDoAutor(t.traco, descricao)) // sem descrição do autor = nenhum traço conta
+  const ausentes = (cats: readonly CategoriaDoTraco[]) => doAutor.filter((t) => t.visivel === 'no' && cats.includes(t.categoria)).map((t) => t.traco)
   const forma = ausentes(['species', 'shape', 'size']), outros = ausentes(['color', 'feature', 'clothing'])
-  const tracos: VereditoDaFolha['tracos'] = l.personagens > 1 ? 'mais_de_um' : forma.length ? 'forma_especie' : outros.length ? 'traco' : 'ok'
+  const tracos: VereditoDaFolha['tracos'] = l.personagens > 1 ? 'mais_de_um' : l.personagens < 1 ? 'nenhum' : forma.length ? 'forma_especie' : outros.length ? 'traco' : 'ok'
   const cartum = l.meio === 'cartoon_3d' || l.meio === 'cartoon_2d'
   const meio: VereditoDaFolha['meio'] = (filmeFotorreal ? cartum : l.meio === 'photo_or_realistic_render') ? 'meio' : 'ok'
-  return { tracos, meio, ausentes: tracos === 'forma_especie' ? forma : tracos === 'traco' ? outros : [] }
+  return { tracos, meio, ausentes: tracos === 'forma_especie' ? forma : tracos === 'traco' ? outros : [], descartados: l.tracos.length - doAutor.length }
 }
 
 /** A instrução da folha nova: POSITIVA (o motor desenha o que é nomeado), os traços que faltaram com as palavras do autor, e o meio do filme. */
 export function instrucaoDaFolhaNova(v: VereditoDaFolha, lookPhrase: string): string {
   if (folhaPassa(v)) return ''
-  const um = v.tracos === 'mais_de_um' ? ' Exactly one character alone in the frame.' : ''
+  const um = v.tracos === 'mais_de_um' || v.tracos === 'nenhum' ? ' Exactly one character alone in the frame.' : ''
   const tracos = v.ausentes.length ? ` Exactly as the author wrote, clearly visible: ${v.ausentes.join('; ')}.` : ''
   return `${um}${tracos} Rendered in ${limpa(lookPhrase) || 'the film\'s own look'}.`
 }
@@ -113,27 +123,32 @@ export async function lerAFolha(descricao: string, url: string, opts: { timeoutM
 
 /** Para o claim: só código e número. `tentativa` = a folha que serviu (1 = a de hoje, 2 = a nova; null = nenhuma serviu). */
 export type RelatoDaFolha = { tipo: 'humano' | 'animal' | 'criatura' | null; tracos: 'ok' | MotivoDosTracos | 'sem_leitura'; meio: 'ok' | 'meio' | 'meio_tolerado' | 'sem_leitura'
-  serve: boolean; tentativa: 1 | 2 | null; regerou: boolean; custo_usd: number }
+  serve: boolean; tentativa: 1 | 2 | null; regerou: boolean; custo_usd: number
+  tracos_1: 'ok' | MotivoDosTracos | 'sem_leitura'; meio_1: 'ok' | 'meio' | 'sem_leitura'; descartados: number /* [revisora, v3] a 1ª leitura e os traços do modelo que não eram do autor */ }
 /** O juiz inteiro para UMA folha: lê; reprovou → UMA folha nova com a instrução → lê de novo; a tolerância do meio só na 2ª e só para bicho e criatura
  *  em filme fotorreal. Devolve a URL que serve (a nova, se foi ela) ou null. */
 export async function julgarAFolha(args: { ficha: { nome: string; canonica: string; tipo?: unknown }; url: string; filmeFotorreal: boolean; lookPhrase: string },
   deps: { ler: (descricao: string, url: string) => Promise<ChamadaDaFolha>; gerar: (instrucao: string) => Promise<string | null> }): Promise<{ url: string | null; nome: string; relato: RelatoDaFolha }> {
   const descricao = descricaoParaOJuiz(args.ficha)
   const tipo: RelatoDaFolha['tipo'] = args.ficha.tipo === 'humano' || args.ficha.tipo === 'animal' || args.ficha.tipo === 'criatura' ? args.ficha.tipo : null
-  let custo = 0
+  let custo = 0, descartados = 0, v1: VereditoDaFolha | null = null
   const fim = (url: string | null, v: VereditoDaFolha | null, meio: RelatoDaFolha['meio'] | null, tentativa: 1 | 2 | null, regerou: boolean) =>
-    ({ url, nome: args.ficha.nome, relato: { tipo, tracos: v ? v.tracos : 'sem_leitura' as const, meio: meio ?? (v ? v.meio : 'sem_leitura' as const), serve: url !== null, tentativa, regerou, custo_usd: Math.round(custo * 1e6) / 1e6 } })
+    ({ url, nome: args.ficha.nome, relato: { tipo, tracos: v ? v.tracos : 'sem_leitura' as const, meio: meio ?? (v ? v.meio : 'sem_leitura' as const), serve: url !== null, tentativa, regerou, custo_usd: Math.round(custo * 1e6) / 1e6,
+      tracos_1: v1 ? v1.tracos : 'sem_leitura' as const, meio_1: v1 ? v1.meio : 'sem_leitura' as const, descartados } })
   const r1 = await deps.ler(descricao, args.url)
   custo += r1.custoUsd
   if (!r1.leitura) return fim(null, null, null, null, false) // não julgada = não serve (é o furo que o juiz fecha)
-  const v1 = decidirDaFolha(r1.leitura, args.filmeFotorreal)
+  v1 = decidirDaFolha(r1.leitura, args.filmeFotorreal, descricao)
+  descartados += v1.descartados
   if (folhaPassa(v1)) return fim(args.url, v1, null, 1, false)
+  custo += PERSONAGEM_FOLHA_USD // a folha nova (FLUX) é paga quando pedida, saia ou não
   const nova = await deps.gerar(instrucaoDaFolhaNova(v1, args.lookPhrase)).catch(() => null)
   if (!nova || !/^https:\/\/[^\s]+$/i.test(nova)) return fim(null, v1, null, null, false)
   const r2 = await deps.ler(descricao, nova)
   custo += r2.custoUsd
   if (!r2.leitura) return fim(null, null, null, null, true)
-  const v2 = decidirDaFolha(r2.leitura, args.filmeFotorreal)
+  const v2 = decidirDaFolha(r2.leitura, args.filmeFotorreal, descricao)
+  descartados += v2.descartados
   if (folhaPassa(v2)) return fim(nova, v2, null, 2, true)
   // a tolerância: traços certos, só o meio errado, bicho ou criatura, filme fotorreal (folha de animação num filme de foto). Humano e filme desenhado: nunca.
   if (v2.tracos === 'ok' && v2.meio === 'meio' && args.filmeFotorreal && (tipo === 'animal' || tipo === 'criatura')) return fim(nova, v2, 'meio_tolerado', 2, true)
