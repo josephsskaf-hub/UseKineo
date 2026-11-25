@@ -420,6 +420,9 @@ export async function elencoComCasting(script: string, elenco: ReadonlyArray<Fic
 // — sem idade, sem profissão. Quem diz o que o personagem É continua sendo a descrição do autor, que segue inteira. O texto entre aspas (retas e curvas)
 // nunca é tocado; papel sem nome próprio ("the boy", "The Captain") fica. Só a folha muda: as cenas, o crítico, a fala e o Kling seguem com o nome.
 // Sem o pedido (semNome falso) = byte a byte o de antes.
+// Volta 5 [CEO 25/11, sonda 2 às 05:31: "this character" deu o robô certo (2 de 2) e o Elias certo, mas a Mara SEM gênero virou um rapaz; com "this
+// female character" saiu a moça do filme]: a troca só onde está provada — bicho e criatura, "this character"; gente COM gênero no elenco, "this male /
+// female character"; gente SEM gênero conhecido MANTÉM O NOME (a ficha é byte a byte a de hoje). O gênero nunca é deduzido do nome.
 export const PESSOAS_DA_FOLHA = PESSOAS // KINEO-FICHA-SEM-NOME-2511 — a lista de gente, lida pelo conferente da folha (o ser "person")
 /** O que entra no lugar do nome na folha: "this character", ou o gênero que o elenco conhece, só para gente. */
 export function quemNaFolha(ficha: Pick<FichaDePersonagem, 'tipo'> & { genero?: FichaDePersonagem['genero'] }): string {
@@ -430,6 +433,7 @@ export function quemNaFolha(ficha: Pick<FichaDePersonagem, 'tipo'> & { genero?: 
 export function canonicaSemNome(ficha: Pick<FichaDePersonagem, 'nome' | 'canonica' | 'tipo'> & { genero?: FichaDePersonagem['genero'] }): string {
   const nome = limpa(ficha.nome), c = String(ficha.canonica ?? '')
   if (!/^\p{Lu}/u.test(nome) || /^the\s/i.test(nome)) return c
+  if (ficha.tipo === 'humano' && ficha.genero !== 'man' && ficha.genero !== 'woman') return c // volta 5: gente sem gênero conhecido fica com o nome
   const partes = [nome, ...nome.split(' ').filter((p) => p.length >= 3 && /^\p{Lu}/u.test(p) && p !== nome)]
   const fonte = `(?<![\\p{L}\\p{N}-])(?:${partes.map(escapaRe).join('|')})(?![\\p{L}\\p{N}-])`
   const quem = quemNaFolha(ficha)

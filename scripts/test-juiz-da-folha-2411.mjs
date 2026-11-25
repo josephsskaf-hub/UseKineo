@@ -33,7 +33,9 @@ const TRACOS_EMBER = [{ trait: 'small green dragon', category: 'species', visibl
 const EMBER_REALISTA = { medium: 'photo_or_realistic_render', characters: 1, traits: TRACOS_EMBER }
 const EMBER_CARTUM = { medium: 'cartoon_3d', characters: 1, traits: TRACOS_EMBER }
 const ELIAS_DESENHO = { medium: 'cartoon_2d', characters: 1, traits: [{ trait: 'gray-bearded', category: 'feature', visible: 'yes' }, { trait: 'navy coat', category: 'clothing', visible: 'yes' }] }
-const resposta = o => JSON.stringify(o)
+// KINEO-JUIZ-SEM-PROFISSAO-2511: as leituras daqui são todas de APARÊNCIA (o formato novo marca cada traço; o guardião test-ficha-sem-nome-2511 prova papel e profissão)
+const comAparencia = o => o && Array.isArray(o.traits) ? { ...o, traits: o.traits.map(t => t && typeof t === 'object' && !('appearance' in t) ? { ...t, appearance: 'yes' } : t) } : o
+const resposta = o => JSON.stringify(comAparencia(o))
 
 // O trecho REAL da rota que julga as folhas (logo depois do Map folhaDe), com a rede falsa.
 function julgarNaRota(route, j, { email, folhaDe, elencoP, look = 'photoreal', infantil = false, candidato = true, herdada = null, fixo = false, ler, gerar }) {
@@ -69,7 +71,7 @@ async function suite(change) {
   assert.ok(p.includes('small round orange robot') && p.includes('https://x.org/f.png'))
 
   // 3. a leitura: campo a campo; fora do formato = null; o veredito pronto do modelo (J2) é ignorado
-  igual(j.lerLeituraDaFolha(resposta(LEITURA_BOLT)), { meio: 'cartoon_3d', personagens: 1, tracos: LEITURA_BOLT.traits.map(t => ({ traco: t.trait, categoria: t.category, visivel: t.visible })) })
+  igual(j.lerLeituraDaFolha(resposta(LEITURA_BOLT)), { meio: 'cartoon_3d', personagens: 1, tracos: LEITURA_BOLT.traits.map(t => ({ traco: t.trait, categoria: t.category, visivel: t.visible, aparencia: 'yes' })) })
   for (const ruim of ['', 'nada', '{}', resposta({ verdict: 'PASS' }), resposta({ verdict: 'PASS', characters: 1 }), resposta({ ...LEITURA_BOLT, medium: 'painting' }), resposta({ ...LEITURA_BOLT, characters: '1' }), resposta({ ...LEITURA_BOLT, traits: null })]) assert.equal(j.lerLeituraDaFolha(ruim), null, ruim)
   igual(j.decidirDaFolha(j.lerLeituraDaFolha(resposta({ ...LEITURA_BOLT, verdict: 'PASS' })), false, j.descricaoParaOJuiz(BOLT)).tracos, 'forma_especie', 'J2: "PASS" do modelo não decide')
   assert.equal(j.lerLeituraDaFolha(resposta({ ...LEITURA_BOLT, traits: [{ trait: 'x', category: 'mood', visible: 'yes' }, { trait: 'y', category: 'color', visible: 'maybe' }] })).tracos.length, 0, 'traço fora do formato some')

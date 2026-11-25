@@ -86,7 +86,7 @@ export async function rodarSondaDaFolha(p: PedidoDaSonda, deps: {
   const r = await deps.ler(descricao, url)
   const custo = Math.round((SONDA_FOLHA_USD + r.custoUsd) * 1e6) / 1e6
   if (!r.leitura) return { ...base, url, custo_usd: custo, erro: r.erro ?? 'sem_leitura' }
-  return { ...base, url, leitura: r.leitura, veredito: decidirDaFolha(r.leitura, p.filmeFotorreal, descricao, modoForma), custo_usd: custo, erro: null }
+  return { ...base, url, leitura: r.leitura, veredito: decidirDaFolha(r.leitura, p.filmeFotorreal, descricao, modoForma, p.tipo), custo_usd: custo, erro: null }
 }
 
 export type ResultadoDaLeitura = Omit<ResultadoDaSonda, 'prompt'>
@@ -97,5 +97,5 @@ export async function rodarLeituraDaSonda(p: PedidoDeLeitura, deps: { ler: (desc
   const r = await deps.ler(descricao, p.url)
   const custo = Math.round(r.custoUsd * 1e6) / 1e6
   if (!r.leitura) return { url: p.url, descricao, especie, leitura: null, veredito: null, custo_usd: custo, erro: r.erro ?? 'sem_leitura' }
-  return { url: p.url, descricao, especie, leitura: r.leitura, veredito: decidirDaFolha(r.leitura, p.filmeFotorreal, descricao, modoForma), custo_usd: custo, erro: null }
+  return { url: p.url, descricao, especie, leitura: r.leitura, veredito: decidirDaFolha(r.leitura, p.filmeFotorreal, descricao, modoForma, p.tipo), custo_usd: custo, erro: null }
 }

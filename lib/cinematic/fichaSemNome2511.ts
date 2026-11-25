@@ -7,11 +7,10 @@
 import { contaDaCasaExata } from '@/lib/internalAccounts'
 
 export type ModoFichaSemNome2511 = 'off' | 'internal' | 'public'
-// [CEO 25/11, volta 4] 'off' neste commit: o texto novo ("this character" / "this male character" / "this female character") ainda não foi provado
-// na sonda (o provado foi "a robot"). A CEO roda 4 fichas (Bolt nas 2 sementes, Mara, Elias) e só depois pede o commit que liga 'internal'. A sonda lê
-// `sem_nome` do corpo e não depende disto.
-export const FICHA_SEM_NOME_2511: ModoFichaSemNome2511 = 'off'
-export const FICHA_SEM_NOME_2511_VERSAO = 'ficha_sem_nome_2511_v3'
+// [CEO 25/11, volta 5] 'internal': a sonda 2 (05:31) provou "this character" para criatura (robô certo nas 2 sementes) e "this female/male character"
+// para gente com gênero (a Mara do filme). Gente sem gênero no elenco mantém o nome (canonicaSemNome). A sonda lê `sem_nome` do corpo e não depende disto.
+export const FICHA_SEM_NOME_2511: ModoFichaSemNome2511 = 'internal'
+export const FICHA_SEM_NOME_2511_VERSAO = 'ficha_sem_nome_2511_v4'
 export function fichaSemNomeLigada(modo: ModoFichaSemNome2511, email: string | null | undefined): boolean {
   return modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))
 }

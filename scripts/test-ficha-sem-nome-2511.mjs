@@ -45,7 +45,7 @@ const autor = (nome, tipo, genero, texto) => ficha(nome, tipo, genero, `${nome},
 const M = 'this male character', W = 'this female character', X = 'this character'
 const pelaAutora = (quem, texto) => `${quem}, exactly as the author wrote: "${texto}"`
 const A = (rotulo, nome, tipo, genero, texto, quem) => [rotulo, autor(nome, tipo, genero, texto), pelaAutora(quem, texto)]
-const CASOS = [
+const CASOS_V4 = [
   // da revisora — a regra do sujeito errava o ser; agora não há ser a errar
   A('Jack pirata (man)', 'Jack', 'humano', 'man', 'a pirate with a parrot on his shoulder', M),
   A('Jack pirata (sem gênero)', 'Jack', 'humano', null, 'a pirate with a parrot on his shoulder', X),
@@ -144,13 +144,17 @@ const CASOS = [
   ['nome em toda parte fora das aspas', ficha('Gus', 'animal', null, 'Gus, a pug; Gus runs; Gus\'s bed; Gus.'), `${X}, a pug; ${X} runs; ${X}'s bed; ${X}.`],
   ['Marta (gênero de gente sem aspas)', ficha('Marta', 'humano', 'woman', 'Marta, 50-60, gray hair'), `${W}, 50-60, gray hair`],
 ]
+// Volta 5 [CEO 25/11, sonda 2: a Mara sem gênero virou rapaz]: gente SEM gênero no elenco mantém o nome — a canônica fica byte a byte a de hoje.
+const semGenero = f => f.tipo === 'humano' && f.genero !== 'man' && f.genero !== 'woman'
+const CASOS = CASOS_V4.map(([r, f, e]) => (semGenero(f) ? [r + ' — gente sem gênero: o nome fica', f, f.canonica] : [r, f, e]))
 const IGUAIS = [BOY, ficha('The Captain', 'humano', 'man', 'The Captain, an old sailor'), ficha('Nemo', 'animal', null, 'a small orange fish with white stripes'), ficha('boy', 'humano', null, 'boy, a sad boy of about 8'),
   ficha('Rose', 'humano', 'woman', 'exactly as the author wrote: "Rose wears a red coat"'), // o nome SÓ dentro das aspas: fica (o texto do autor não é tocado)
   ficha('Bolt', 'criatura', null, 'BOLT, a small robot'), // a caixa diferente não troca (anotação da revisora)
   ficha('ハナ', 'humano', 'woman', 'ハナ, a girl')] // escrita sem maiúscula: não é tratada como nome próprio (anotação da revisora)
 
 // as leituras das 4 folhas da sonda (o que eu vi em QUATRO-FICHAS.jpg), no formato novo
-const TRACOS_SIM = ['small', 'round', 'orange', 'robot', 'big blue eyes'].map((trait, i) => ({ trait, category: ['size', 'shape', 'color', 'species', 'feature'][i], visible: 'yes' }))
+const TRACOS_SIM = ['small', 'round', 'orange', 'robot', 'big blue eyes'].map((trait, i) => ({ trait, category: ['size', 'shape', 'color', 'species', 'feature'][i], visible: 'yes', appearance: 'yes' }))
+const DB0 = 'small round orange robot with big blue eyes'
 const leituraJson = (head) => JSON.stringify({ medium: 'cartoon_3d', characters: 1, traits: TRACOS_SIM, ...(head ? { head_check: head } : {}) })
 const C1_CAO = { resembles: 'dog', animal_ears: 'yes', nose: 'yes', snout_or_muzzle: 'yes', fur: 'no' } // c1: orelhas caídas, focinho, nariz preto
 const C3_BICHO = { resembles: 'cat', animal_ears: 'yes', nose: 'yes', snout_or_muzzle: 'no', fur: 'no' } // c3: orelhas pontudas, nariz pequeno
@@ -184,7 +188,8 @@ async function suite(change) {
   assert.ok(!/\bBolt\b/.test(L.promptDaFolha(BOLT, LOOK, true)) && L.promptDaFolha(BOLT, LOOK).includes('nobody else: Bolt, exactly as the author wrote'))
 
   // o interruptor: 'off' neste commit (o texto novo ainda não foi provado)
-  assert.equal(S.FICHA_SEM_NOME_2511, 'off', 'volta 4: nenhum filme muda até a sonda provar "this character"')
+  assert.equal(S.FICHA_SEM_NOME_2511, 'internal', 'volta 5: a casa pede a folha sem o nome onde a sonda provou')
+  assert.ok(CASOS.filter(c => semGenero(c[1])).length >= 8 && CASOS.filter(c => semGenero(c[1])).every(([, f, e]) => e === f.canonica), 'gente sem gênero: o nome fica')
   assert.equal(S.fichaSemNomeLigada('internal', CASA), true)
   for (const e of [CLIENTE, 'joseph@usekineo.com', 'xjosephsskaf@gmail.com', '', null, undefined]) assert.equal(S.fichaSemNomeLigada('internal', e), false, String(e))
   assert.equal(S.fichaSemNomeLigada('off', CASA), false)
@@ -194,7 +199,7 @@ async function suite(change) {
   const linha = trechoDaRota(route, '    const folhaSemNome2511 = ', '\n')
   assert.ok(route.indexOf(linha) < route.indexOf('    // >>> KINEO-META95-PERSONAGEM-2010 bloco'), 'a chave nasce antes do bloco')
   const chave = (email) => Function('fichaSemNomeLigada', 'FICHA_SEM_NOME_2511', 'user', ts.transpile(linha + '\nreturn folhaSemNome2511'))(S.fichaSemNomeLigada, S.FICHA_SEM_NOME_2511, { email })
-  assert.equal(chave(CASA), false, "'off': nem a casa"); assert.equal(chave(CLIENTE), false); assert.equal(chave(null), false)
+  assert.equal(chave(CASA), true); assert.equal(chave(CLIENTE), false); assert.equal(chave(null), false)
   assert.equal(route.split('promptDaFolha(f, styleAnchor, folhaSemNome2511)').length - 1, 2, 'as 2 folhas (a do filme e a nova do conferente)')
   assert.equal(route.split('promptDaFolha(f, styleAnchor)').length - 1, 0, 'nenhuma folha com o nome por esquecimento')
   const folhaDoFilme = trechoDaRota(route, '      const folhasP = await Promise.all(', '\n')
@@ -206,11 +211,14 @@ async function suite(change) {
     assert.equal(folhas.length, elencoP.length)
     return pedidos
   }
-  const casa = await pedirFolhas(chave(CASA), [BOLT, MARA]), cliente = await pedirFolhas(chave(CLIENTE), [BOLT, MARA]), ligada = await pedirFolhas(true, [BOLT, MARA])
-  for (const [quem, ps] of [['casa', casa], ['cliente', cliente]]) igual(ps.map(p => p.scenePrompt), [FM.promptDaFolha(BOLT, LOOK), FM.promptDaFolha(MARA, LOOK)], quem + ": byte a byte o da main ('off')")
+  const MARA_SEM = { ...MARA, genero: null }, ELENCO = [BOLT, MARA, MARA_SEM, ELIAS]
+  const casa = await pedirFolhas(chave(CASA), ELENCO), cliente = await pedirFolhas(chave(CLIENTE), ELENCO), ligada = await pedirFolhas(true, [BOLT, MARA])
+  igual(casa.map(p => p.scenePrompt), [L.promptDaFolha(BOLT, LOOK, true), L.promptDaFolha(MARA, LOOK, true), FM.promptDaFolha(MARA_SEM, LOOK), L.promptDaFolha(ELIAS, LOOK, true)], 'a casa: criatura e gente com gênero sem o nome; gente sem gênero = a main')
+  assert.ok(casa[0].scenePrompt.includes('nobody else: this character, exactly') && casa[1].scenePrompt.includes('nobody else: this female character,') && casa[2].scenePrompt.includes('nobody else: Mara Quinn,') && casa[3].scenePrompt.includes('nobody else: this male character, kept'))
+  igual(cliente.map(p => p.scenePrompt), ELENCO.map(f => FM.promptDaFolha(f, LOOK)), 'cliente: byte a byte o da main')
   igual(ligada.map(p => p.scenePrompt), [L.promptDaFolha(BOLT, LOOK, true), L.promptDaFolha(MARA, LOOK, true)], 'a chave ligada (depois da sonda): a folha sem o nome')
   assert.ok(ligada.every(p => !/\b(?:Bolt|Mara|Quinn)\b/.test(p.scenePrompt)) && ligada[1].scenePrompt.includes('nobody else: this female character, a young radio operator; this female character wears'))
-  igual(cliente.map(p => [p.seed, p.styleSuffix, p.pollWindowMs, p.aspect]), ligada.map(p => [p.seed, p.styleSuffix, p.pollWindowMs, p.aspect]), 'só o texto muda')
+  igual(cliente.map(p => [p.seed, p.styleSuffix, p.pollWindowMs, p.aspect]), casa.map(p => [p.seed, p.styleSuffix, p.pollWindowMs, p.aspect]), 'só o texto muda')
   const juizNaRota = trechoDaRota(route, '      if (juizDaFolhaLigado(JUIZ_DA_FOLHA_2411, user.email) && kling4TrialCandidate && !qualidadeHerdada', '        juizDaFolhaRelato2411 = julgadas.map((j) => j.relato)\n')
   const folhaNova = async (folhaSemNome2511, primeira) => {
     const gerados = []
@@ -224,9 +232,45 @@ async function suite(change) {
   }
   const SEM_SMALL = JSON.stringify({ medium: 'cartoon_3d', characters: 1, traits: TRACOS_SIM.map(t => t.trait === 'small' ? { ...t, visible: 'no' } : t) })
   igual(await folhaNova(chave(CASA), leituraJson(C1_CAO)), [], "a forma continua fora do filme ('sonda'): a cabeça de cachorro não reprova no filme")
-  igual(await folhaNova(chave(CASA), SEM_SMALL), [FM.promptDaFolha(BOLT, LOOK) + ' Exactly as the author wrote, clearly visible: small. Rendered in stylized 3D animated film look.'], "a casa ('off'): a folha nova da main")
+  igual(await folhaNova(chave(CASA), SEM_SMALL), [L.promptDaFolha(BOLT, LOOK, true) + ' Exactly as the author wrote, clearly visible: small. Rendered in stylized 3D animated film look.'], 'a casa: a folha nova sem o nome')
   igual(await folhaNova(true, SEM_SMALL), [L.promptDaFolha(BOLT, LOOK, true) + ' Exactly as the author wrote, clearly visible: small. Rendered in stylized 3D animated film look.'], 'a chave ligada: a folha nova sem o nome')
   igual(await folhaNova(false, SEM_SMALL), [FM.promptDaFolha(BOLT, LOOK) + ' Exactly as the author wrote, clearly visible: small. Rendered in stylized 3D animated film look.'], "sem a chave: a folha nova da main")
+
+  // ── 1b. o conferente sem profissão (KINEO-JUIZ-SEM-PROFISSAO-2511): as leituras REAIS da sonda 2, ficha CERTA ───────────────────────────
+  const DM = 'young red-haired radio operator in a green sweater, cargo pants and brown boots', DE = 'gray-bearded lighthouse keeper in a navy coat'
+  const tr = (trait, category, visible, appearance) => ({ trait, category, visible, ...(appearance ? { appearance } : {}) })
+  const MARA_REAL = [tr('young', 'feature', 'yes'), tr('red-haired', 'color', 'yes'), tr('radio operator', 'feature', 'no'), tr('green sweater', 'clothing', 'yes'), tr('cargo pants', 'clothing', 'yes'), tr('brown boots', 'clothing', 'yes')]
+  const ELIAS_REAL = [tr('gray-bearded', 'feature', 'yes'), tr('lighthouse keeper', 'species', 'no'), tr('navy coat', 'clothing', 'yes')]
+  const foto = (traits) => j.lerLeituraDaFolha(JSON.stringify({ medium: 'photo_or_realistic_render', characters: 1, traits }))
+  const decGente = (traits, d, tipo = 'humano') => j.decidirDaFolha(foto(traits), true, d, undefined, tipo)
+  // a leitura real, como veio (formato antigo, sem "appearance"): não julga papel → a ficha certa serve. Na main ela reprovava.
+  igual([decGente(MARA_REAL, DM).tracos, decGente(ELIAS_REAL, DE).tracos], ['ok', 'ok'], 'Mara e Elias reais: a ficha certa serve')
+  igual([JM.decidirDaFolha(JM.lerLeituraDaFolha(JSON.stringify({ medium: 'photo_or_realistic_render', characters: 1, traits: MARA_REAL })), true, DM).tracos,
+    JM.decidirDaFolha(JM.lerLeituraDaFolha(JSON.stringify({ medium: 'photo_or_realistic_render', characters: 1, traits: ELIAS_REAL })), true, DE).tracos], ['traco', 'forma_especie'], 'o defeito, reproduzido na main')
+  // o formato novo
+  const MARA_NOVA = MARA_REAL.map(t => ({ ...t, appearance: t.trait === 'radio operator' ? 'no' : 'yes' }))
+  igual(decGente(MARA_NOVA, DM).tracos, 'ok', 'profissão com appearance "no": não julga')
+  igual(decGente(MARA_NOVA.map(t => t.trait === 'radio operator' ? { ...t, category: 'role', appearance: 'yes' } : t), DM).tracos, 'ok', 'categoria "role": nunca julga')
+  igual(decGente(ELIAS_REAL.map(t => ({ ...t, appearance: 'yes' })), DE).tracos, 'ok', '"species" de gente nunca vira forma_especie')
+  igual(decGente(ELIAS_REAL.map(t => ({ ...t, appearance: 'yes' })), DE, 'criatura').tracos, 'forma_especie', '"species" de bicho e criatura continua julgada')
+  igual(decGente(ELIAS_REAL.map(t => ({ ...t, appearance: 'yes', visible: t.trait === 'navy coat' ? 'no' : t.visible })), DE), { tracos: 'traco', meio: 'ok', ausentes: ['navy coat'], descartados: 0, forma: 'nao_julgada', especie: null }, 'a aparência errada continua reprovando')
+  igual(decGente(MARA_NOVA.map(t => t.trait === 'radio operator' ? { ...t, appearance: 'yes' } : t), DM).tracos, 'traco', 'limite: profissão que o modelo marca como aparência ainda reprova (só a sonda "ler" mede)')
+  igual(decGente(MARA_REAL.map(t => ({ ...t, appearance: 'unclear' })), DM).tracos, 'ok', '"unclear" não julga')
+  // a leitura conferida: o campo novo e a categoria nova
+  igual(j.lerLeituraDaFolha(JSON.stringify({ medium: 'cartoon_3d', characters: 1, traits: [tr('radio operator', 'role', 'no', 'no'), tr('red', 'color', 'yes', 'yes'), tr('x', 'color', 'yes', 'maybe')] })).tracos,
+    [{ traco: 'radio operator', categoria: 'role', visivel: 'no', aparencia: 'no' }, { traco: 'red', categoria: 'color', visivel: 'yes', aparencia: 'yes' }, { traco: 'x', categoria: 'color', visivel: 'yes', aparencia: 'unclear' }])
+  const pedido = j.pedidoAoJuizDaFolha(DM, 'https://x.org/f.png').messages[0].content
+  for (const k of ['"appearance": "yes" | "no"', '"role"', 'job, occupation, role, activity or age', 'one full-body picture of the character alone on a plain studio background']) assert.ok(pedido.includes(k), k)
+  assert.ok(!/e\.g\.|for example|such as|like this|FAIL|reject/i.test(pedido), 'sem exemplo e sem ordem de reprovar')
+  // o laço inteiro, com a rede falsa (o corpo da OpenAI e a resposta real): Mara e Elias servem de primeira, sem folha nova; o Bolt c1 (traços todos "yes") serve no filme
+  const MARA_F = autor('Mara Quinn', 'humano', 'woman', DM), ELIAS_F = autor('Elias Ward', 'humano', 'man', DE)
+  for (const [f, traits, d] of [[MARA_F, MARA_REAL, DM], [ELIAS_F, ELIAS_REAL, DE], [ELIAS_F, ELIAS_REAL.map(t => ({ ...t, appearance: 'yes' })), DE], [MARA_F, MARA_NOVA, DM], [BOLT, TRACOS_SIM, DB0]]) {
+    const novas = [], conteudo = JSON.stringify({ medium: f.tipo === 'humano' ? 'photo_or_realistic_render' : 'cartoon_3d', characters: 1, traits })
+    const r = await j.julgarAFolha({ ficha: f, url: 'https://x.org/f.png', filmeFotorreal: f.tipo === 'humano', lookPhrase: 'x' }, {
+      ler: (descricao, url) => j.lerAFolha(descricao, url, { apiKey: 'k', fetchImpl: async () => ({ ok: true, json: async () => ({ choices: [{ message: { content: conteudo } }], usage: { prompt_tokens: 100, completion_tokens: 50 } }) }) }),
+      gerar: async (i) => { novas.push(i); return 'https://x.org/nova.png' } })
+    igual([r.url, r.relato.tracos, r.relato.tentativa, novas.length, j.descricaoParaOJuiz(f)], ['https://x.org/f.png', 'ok', 1, 0, d], 'serve de primeira: ' + f.nome)
+  }
 
   // ── 2. a FORMA (fica 'sonda'): perguntas concretas da cabeça; robô e gente ──────────────────────────────────────────────────────────────
   assert.equal(j.FORMA_DA_FOLHA_2511, 'sonda')
@@ -241,12 +285,15 @@ async function suite(change) {
   const sistema = j.pedidoAoJuizDaFolha(DB, 'https://x.org/f.png', 'robot').messages[0].content
   for (const k of ['"head_check"', '"resembles"', '"animal_ears"', '"nose"', '"snout_or_muzzle"', '"fur"', 'never clothing, headwear, accessories or objects']) assert.ok(sistema.includes(k), k)
   assert.ok(!/robot|kind_check|e\.g\.|for example|such as|like this|FAIL|reject/i.test(sistema), 'o pedido não diz o ser esperado, nem exemplo, nem ordem de reprovar')
-  for (const d of [DB, '', 'old bearded sailor']) igual(j.pedidoAoJuizDaFolha(d, 'https://x.org/f.png'), JM.pedidoAoJuizDaFolha(d, 'https://x.org/f.png'), 'sem o ser = a main: ' + d)
+  const semProfissao = (t) => t.replace(', "role"', '').replace('"appearance": "yes" | "no", ', '').replace(', and each job, occupation, role, activity or age)', ' and garment)').replace(', named feature, garment', ', named feature').replace(/ "role" is the category[^]*?accessory\./, '')
+  for (const d of [DB, '', 'old bearded sailor']) { const a = j.pedidoAoJuizDaFolha(d, 'https://x.org/f.png'), b = JM.pedidoAoJuizDaFolha(d, 'https://x.org/f.png')
+    igual(a.messages[1], b.messages[1], 'o texto do autor e a imagem = a main: ' + d); assert.equal(semProfissao(a.messages[0].content), b.messages[0].content, 'o sistema = a main mais o papel e a aparência: ' + d) }
   // a leitura
   for (const raw of [leituraJson(null), leituraJson(VELHA), leituraJson({ ...ROBO, resembles: '' }), leituraJson({ ...ROBO, resembles: 7 }), leituraJson({ ...ROBO, nose: 'maybe' }), leituraJson({ ...ROBO, fur: undefined }), leituraJson('yes')])
     assert.equal(j.lerLeituraDaFolha(raw, true), null, raw)
   igual(j.lerLeituraDaFolha(leituraJson({ ...C1_CAO, resembles: '  Dog ' }), true).forma, { parecido: 'dog', orelhas: 'yes', nariz: 'yes', focinho: 'yes', pelo: 'no' })
-  for (const raw of [leituraJson(null), leituraJson(C1_CAO), leituraJson(VELHA)]) igual(j.lerLeituraDaFolha(raw), JM.lerLeituraDaFolha(raw), 'não perguntada = a main')
+  const semAparencia = (l) => l && { ...l, tracos: l.tracos.map(({ aparencia, ...t }) => t) }
+  for (const raw of [leituraJson(null), leituraJson(C1_CAO), leituraJson(VELHA)]) igual(semAparencia(j.lerLeituraDaFolha(raw)), JM.lerLeituraDaFolha(raw), 'não perguntada = a main (mais a aparência de cada traço)')
   // a decisão: as 4 folhas da sonda
   const dec = (head, d = DB) => j.decidirDaFolha(j.lerLeituraDaFolha(leituraJson(head), true), false, d, 'on')
   igual([C1_CAO, C3_BICHO, ROBO, ROBO].map(h => dec(h).forma), ['outra_especie', 'outra_especie', 'ok', 'ok'], 'c1 e c3 reprovam, c2 e c4 servem')
@@ -265,7 +312,8 @@ async function suite(change) {
   const r1 = await rede(j, DB, leituraJson(VELHA), 'on')
   assert.ok(r1.corpos[0].includes('head_check')); igual([r1.r.leitura, r1.r.erro], [null, 'resposta_ilegivel'], 'perguntada e não respondida: leitura falhou')
   igual((await rede(j, DB, leituraJson(C1_CAO), 'on')).r.leitura.forma.parecido, 'dog')
-  for (const d of [DB, 'old bearded sailor', '', 'a robot dog']) { const a = await rede(j, d, leituraJson(null)), b = await rede(JM, d, leituraJson(null)); igual([a.corpos, a.r], [b.corpos, b.r], 'o filme: byte a byte a main: ' + d) }
+  for (const d of [DB, 'old bearded sailor', '', 'a robot dog']) { const a = await rede(j, d, leituraJson(null)), b = await rede(JM, d, leituraJson(null)); const ca = JSON.parse(a.corpos[0]), cb = JSON.parse(b.corpos[0])
+    igual([ca.model, ca.temperature, ca.max_tokens, ca.response_format, ca.messages[1], semProfissao(ca.messages[0].content), semAparencia(a.r.leitura), a.r.erro], [cb.model, cb.temperature, cb.max_tokens, cb.response_format, cb.messages[1], cb.messages[0].content, b.r.leitura, b.r.erro], 'o filme: a main mais o papel e a aparência: ' + d) }
   // o laço: no filme = a main; com 'on' (2º mundo), a forma reprova e pede o corpo do robô
   const filaM = (mod, exige, ...q) => { const r = [...q]; return async () => { const k = r.shift(); assert.ok(k !== undefined, 'leitura a mais'); return { leitura: mod.lerLeituraDaFolha(leituraJson(k), exige), custoUsd: 0.001, erro: null } } }
   const arg = (foto = false) => ({ ficha: BOLT, url: 'https://x.org/folha-1.png', filmeFotorreal: foto, lookPhrase: LOOK.lookPhrase })
@@ -334,6 +382,9 @@ async function suite(change) {
   igual([l.res.url, l.res.especie, l.res.veredito.forma, l.res.custo_usd, l.res.erro, 'prompt' in l.res], [URL_OK, 'robot', 'outra_especie', 0.000559, null, false])
   l = await leia(ROBO); igual(l.res.veredito.forma, 'ok')
   l = await leia(null, 'resposta_ilegivel'); igual([l.res.veredito, l.res.erro, l.res.custo_usd], [null, 'resposta_ilegivel', 0.0005])
+  { const p = so.lerPedidoDeLeitura({ ...lerOk, nome: 'Elias Ward', tipo: 'humano', canonica: ELIAS_F.canonica, filme_fotorreal: true }, BASE) // a sonda lê gente como gente (a profissão não reprova)
+    const r = await so.rodarLeituraDaSonda(p, { ler: async () => ({ leitura: foto(ELIAS_REAL.map(t => ({ ...t, appearance: 'yes' }))), custoUsd: 0.0006, erro: null }) })
+    igual([r.veredito.tracos, r.especie], ['ok', 'person'], 'Elias d4 pela sonda: serve') }
   // a rota da sonda: lida (Next não roda offline)
   { const login = rotaSonda.indexOf("if (!user) return NextResponse.json({ erro: 'nao_e_da_casa' }, { status: 403 })"); assert.ok(login > 0 && login < rotaSonda.indexOf("=== 'ler'"), 'o login antes dos dois modos') }
   assert.ok(/const admissaoLeitura = admitirSonda\(estado, user\.email, chaveDaLeitura\(leitura\), 'ler'\)\n\s+if \(admissaoLeitura !== 'ok'\) return/.test(rotaSonda), 'a trava da leitura antes da leitura')
@@ -375,8 +426,19 @@ const mutants = [
   [F, "new RegExp(fonte, 'gu'), quem)", "new RegExp(fonte, 'u'), quem)"], // só a 1ª ocorrência
   [F, '${semNome ? canonicaSemNome(ficha) : ficha.canonica}', '${ficha.canonica}'],
   [F, '${semNome ? canonicaSemNome(ficha) : ficha.canonica}', '${canonicaSemNome(ficha)}'],
-  [SN, "export const FICHA_SEM_NOME_2511: ModoFichaSemNome2511 = 'off'", "export const FICHA_SEM_NOME_2511: ModoFichaSemNome2511 = 'internal'"], // a casa recebe antes da prova
-  [SN, "export const FICHA_SEM_NOME_2511: ModoFichaSemNome2511 = 'off'", "export const FICHA_SEM_NOME_2511: ModoFichaSemNome2511 = 'public'"],
+  [SN, "export const FICHA_SEM_NOME_2511: ModoFichaSemNome2511 = 'internal'", "export const FICHA_SEM_NOME_2511: ModoFichaSemNome2511 = 'off'"],
+  [SN, "export const FICHA_SEM_NOME_2511: ModoFichaSemNome2511 = 'internal'", "export const FICHA_SEM_NOME_2511: ModoFichaSemNome2511 = 'public'"], // o cliente recebe
+  [F, "  if (ficha.tipo === 'humano' && ficha.genero !== 'man' && ficha.genero !== 'woman') return c // volta 5: gente sem gênero conhecido fica com o nome\n", ''], // a Mara sem gênero vira rapaz
+  [F, "  if (ficha.tipo === 'humano' && ficha.genero !== 'man' && ficha.genero !== 'woman') return c", "  if (ficha.genero !== 'man' && ficha.genero !== 'woman') return c"], // bicho e criatura param de trocar
+  // 1b. o conferente sem profissão
+  [J, "t.aparencia === 'yes' && !(tipo", "!(tipo"], // sem o campo, julga (a leitura real reprova)
+  [J, "!(tipo === 'humano' && t.categoria === 'species') //", 'true //'], // \"species\" de gente julgada
+  [J, "!(tipo === 'humano' && t.categoria === 'species')", "!(t.categoria === 'species')"], // \"species\" de criatura deixa de ser julgada
+  [J, "r?.appearance === 'yes' || r?.appearance === 'no' ? r.appearance : 'unclear'", "r?.appearance === 'no' ? 'no' : 'yes'"], // sem o campo = aparência
+  [J, "const CATEGORIAS: readonly CategoriaDoTraco[] = ['species', 'shape', 'size', 'color', 'feature', 'clothing', 'role']", "const CATEGORIAS: readonly CategoriaDoTraco[] = ['species', 'shape', 'size', 'color', 'feature', 'clothing']"],
+  [J, '\"appearance\": \"yes\" | \"no\", ', ''], // o pedido sem o campo
+  [J, 'v1 = decidirDaFolha(r1.leitura, args.filmeFotorreal, descricao, FORMA_DA_FOLHA_2511, tipo)', 'v1 = decidirDaFolha(r1.leitura, args.filmeFotorreal, descricao, FORMA_DA_FOLHA_2511)'], // o laço sem o tipo
+  [SO, 'decidirDaFolha(r.leitura, p.filmeFotorreal, descricao, modoForma, p.tipo), custo_usd: custo, erro: null }\n}\n', 'decidirDaFolha(r.leitura, p.filmeFotorreal, descricao, modoForma), custo_usd: custo, erro: null }\n}\n'], // a leitura da sonda sem o tipo
   [SN, "modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))", "modo !== 'off'"],
   [routeFile, 'promptDaFolha(f, styleAnchor, folhaSemNome2511), epocaVisual?.ficha, true), styleSuffix: \'\', seed: (generationSeed + 7_919 * (101', 'promptDaFolha(f, styleAnchor), epocaVisual?.ficha, true), styleSuffix: \'\', seed: (generationSeed + 7_919 * (101'],
   [routeFile, 'promptDaFolha(f, styleAnchor, folhaSemNome2511), epocaVisual?.ficha, true) + instrucao', 'promptDaFolha(f, styleAnchor), epocaVisual?.ficha, true) + instrucao'],
@@ -427,7 +489,7 @@ const mutants = [
   [SO, "if (!/^https:\\/\\/[^/]+$/.test(base) || ", 'if ('],
   [SO, ".replace(/\\/+$/, '')", ''],
   [SO, "/storage/v1/object/public/broll/`", "/storage/v1/object/public/`"], // outro bucket
-  [SO, "decidirDaFolha(r.leitura, p.filmeFotorreal, descricao, modoForma), custo_usd: custo, erro: null }\n}\n", "decidirDaFolha(r.leitura, p.filmeFotorreal, descricao), custo_usd: custo, erro: null }\n}\n"],
+  [SO, "decidirDaFolha(r.leitura, p.filmeFotorreal, descricao, modoForma, p.tipo), custo_usd: custo, erro: null }\n}\n", "decidirDaFolha(r.leitura, p.filmeFotorreal, descricao, undefined, p.tipo), custo_usd: custo, erro: null }\n}\n"], // a leitura da sonda sem a forma
   [sondaRoute, "admitirSonda(estado, user.email, chaveDaLeitura(leitura), 'ler')", 'admitirSonda(estado, user.email, chaveDaLeitura(leitura))'],
   [sondaRoute, '      return NextResponse.json(r, { status: r.erro ? 502 : 200 })\n    } finally {\n      liberarSonda(estado)\n    }', '      return NextResponse.json(r, { status: r.erro ? 502 : 200 })\n    } finally {\n    }'],
   [sondaRoute, "lerPedidoDeLeitura(corpo, process.env.NEXT_PUBLIC_SUPABASE_URL ?? '')", "lerPedidoDeLeitura(corpo, 'https://x')"],
@@ -440,4 +502,4 @@ for (const mutant of mutants) {
   await assert.rejects(suite(mutant), err => err instanceof assert.AssertionError, 'SOBREVIVEU: ' + mutant[1])
   mortos++
 }
-console.log(`PASS KINEO-FICHA-SEM-NOME-2511 volta 4 + FORMA-DA-FOLHA-2511 + SONDA-DA-FOLHA-2511: o nome vira "this character" (gente com gênero conhecido: "this male/female character"), sem adivinhar o ser, em ${CASOS.length} fichas (as da revisora e as minhas), aspas do autor byte a byte; chave 'off' (casa e cliente byte a byte a main) até a sonda provar o texto novo; a forma (fora do filme) e a sonda com o modo "só ler" como na volta 3; ${mortos}/${mutants.length} mutantes mortos.`)
+console.log(`PASS KINEO-FICHA-SEM-NOME-2511 volta 5 + JUIZ-SEM-PROFISSAO-2511 + FORMA-DA-FOLHA-2511 + SONDA-DA-FOLHA-2511: chave 'internal' — criatura e bicho viram "this character", gente com gênero "this male/female character", gente SEM gênero mantém o nome (a ficha de hoje), em ${CASOS.length} fichas com as aspas byte a byte; cliente byte a byte a main; o conferente só julga aparência (as leituras reais da Mara e do Elias servem; o defeito reproduzido na main); a forma fora do filme; a sonda e o modo "só ler"; ${mortos}/${mutants.length} mutantes mortos.`)

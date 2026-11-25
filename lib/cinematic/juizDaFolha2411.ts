@@ -32,6 +32,12 @@ import { ESPECIES_DA_FOLHA, PERSONAGEM_FOLHA_USD, PESSOAS_DA_FOLHA } from '@/lib
 // focinho, pelo), e só para os seres em que o código sabe o que é estranho: robô (orelha de bicho, nariz, focinho, pelo, cabeça de bicho = outro ser) e
 // gente (orelha de bicho, focinho, cabeça de bicho). Bicho e outras criaturas não são julgados. Brinquedo, fantasia, figura e robô humanoide também não.
 // Continua 'sonda' (fora do filme) até a sonda de leitura provar nas 4 folhas que já existem no bucket.
+// KINEO-JUIZ-SEM-PROFISSAO-2511 [CEO 25/11, sonda 2: leituras REAIS da ficha CERTA — Mara "radio operator|feature|no" → 'traco'; Elias "lighthouse keeper|
+// species|no" → 'forma_especie'; o filme das duas pessoas teria as duas fichas reprovadas]. Conserto ESTRUTURAL, sem lista de profissões: o leitor marca
+// cada traço com "appearance" (yes = uma foto de corpo inteiro em fundo de estúdio mostra isso sozinha: corpo, rosto, cabelo, pelo, cor, tamanho, forma,
+// roupa, acessório) e tem a categoria própria "role" (profissão, papel, atividade, idade, história). O código só julga traço com appearance "yes" e
+// categoria de aparência; "role" nunca; "species" de GENTE nunca vira 'forma_especie' (gente é gente; "lighthouse keeper|species" é profissão). Sem o
+// campo, ou "unclear": não julga (lado seguro).
 // [revisora 24/11, VOLTA, docs/revisoes-2311/CEO-JUIZ-DA-FOLHA-2411.md §11] v3: (1) só conta, e só vai à folha nova, o traço do modelo que EXISTE palavra por palavra na
 // descrição do autor e não é negação; o resto é descartado e contado; (2) sem descrição do AUTOR (Slocum; o Elias do cedd1250: a canônica é biografia/ação),
 // o eixo traços não julga — só um personagem e o meio; (3) folha sem personagem reprova ('nenhum'); (4) o custo grava a folha nova e o relato grava a 1ª leitura;
@@ -45,8 +51,8 @@ export const juizDaFolhaLigado = (modo: ModoJuizDaFolha2411, email: string | nul
 export const JUIZ_DA_FOLHA_TIMEOUT_MS = 8_000
 
 export type MeioDaFolha = 'photo_or_realistic_render' | 'cartoon_3d' | 'cartoon_2d' | 'other'
-export type CategoriaDoTraco = 'species' | 'shape' | 'size' | 'color' | 'feature' | 'clothing'
-export type LeituraDaFolha = { meio: MeioDaFolha; personagens: number; tracos: Array<{ traco: string; categoria: CategoriaDoTraco; visivel: 'yes' | 'no' | 'unclear' }>
+export type CategoriaDoTraco = 'species' | 'shape' | 'size' | 'color' | 'feature' | 'clothing' | 'role'
+export type LeituraDaFolha = { meio: MeioDaFolha; personagens: number; tracos: Array<{ traco: string; categoria: CategoriaDoTraco; visivel: 'yes' | 'no' | 'unclear'; aparencia: 'yes' | 'no' | 'unclear' }>
   forma?: { parecido: string; orelhas: SimNao; nariz: SimNao; focinho: SimNao; pelo: SimNao } | null /* KINEO-FORMA-DA-FOLHA-2511 volta 3 */ }
 export type SimNao = 'yes' | 'no' | 'unclear'
 export type MotivoDosTracos = 'mais_de_um' | 'nenhum' | 'forma_especie' | 'traco'
@@ -81,7 +87,7 @@ const BICHO_RE = new RegExp(`^(?:${ESPECIES_DA_FOLHA.animais})(?:s|es)?$`, 'i')
 export const pareceBicho = (parecido: string): boolean => String(parecido ?? '').toLowerCase().split(/[^\p{L}]+/u).some((w) => BICHO_RE.test(w))
 
 const MEIOS: readonly MeioDaFolha[] = ['photo_or_realistic_render', 'cartoon_3d', 'cartoon_2d', 'other']
-const CATEGORIAS: readonly CategoriaDoTraco[] = ['species', 'shape', 'size', 'color', 'feature', 'clothing']
+const CATEGORIAS: readonly CategoriaDoTraco[] = ['species', 'shape', 'size', 'color', 'feature', 'clothing', 'role']
 const limpa = (s: unknown) => String(s ?? '').replace(/\s+/g, ' ').trim()
 
 /** O que o AUTOR escreveu do personagem (o mesmo leitor da referência única, descricaoDoAutor: o trecho entre aspas de "exactly as the author wrote:" e o de
@@ -117,7 +123,7 @@ export function tracoDoAutor(traco: string, descricao: string): boolean {
 export function pedidoAoJuizDaFolha(descricao: string, url: string, especie: string | null = null /* KINEO-FORMA-DA-FOLHA-2511 */): { messages: unknown[]; imagens: number; caracteres: number } {
   const sistema = 'You describe one character reference image. Answer only with JSON: {"medium": one of ' + MEIOS.map((m) => `"${m}"`).join(', ') +
     ', "characters": number of distinct characters drawn, "traits": [{"trait": string, "category": one of ' + CATEGORIAS.map((c) => `"${c}"`).join(', ') +
-    ', "visible": "yes" | "no" | "unclear"}]}. For "traits", split the author description into its separate traits (each kind of being, body shape, size, colour, named feature and garment), copy each trait in the author\'s own words, and say whether the image shows it.' +
+    ', "appearance": "yes" | "no", "visible": "yes" | "no" | "unclear"}]}. For "traits", split the author description into its separate traits (each kind of being, body shape, size, colour, named feature, garment, and each job, occupation, role, activity or age), copy each trait in the author\'s own words, and say whether the image shows it. "role" is the category of a job, occupation, role, activity, age or story detail. "appearance" says whether one full-body picture of the character alone on a plain studio background can show the trait by itself: body, face, hair, fur, colour, size, shape, clothing or an accessory.' + // KINEO-JUIZ-SEM-PROFISSAO-2511
     (especie ? ' Also answer "head_check": {"resembles": string, "animal_ears": "yes" | "no" | "unclear", "nose": "yes" | "no" | "unclear", "snout_or_muzzle": "yes" | "no" | "unclear", "fur": "yes" | "no" | "unclear"}, about the character\'s own head and body only, never clothing, headwear, accessories or objects: "resembles" is the one kind of being the head looks most like, in one word; "animal_ears" says whether the head has ears shaped like an animal\'s; "nose" says whether the face has a nose; "snout_or_muzzle" says whether the face sticks out into a snout or muzzle; "fur" says whether the head or body is covered in fur.' : '') // KINEO-FORMA-DA-FOLHA-2511 volta 3: o ser esperado NÃO vai no pedido
   const texto = `Author description of the character: ${descricao || '(none)'}`
   return { messages: [{ role: 'system', content: sistema }, { role: 'user', content: [{ type: 'text', text: texto }, { type: 'image_url', image_url: { url, detail: 'low' } }] }], imagens: 1, caracteres: sistema.length + texto.length }
@@ -135,7 +141,8 @@ export function lerLeituraDaFolha(raw: string, exigeForma = false /* KINEO-FORMA
     const r = t && typeof t === 'object' ? (t as Record<string, unknown>) : null
     const categoria = CATEGORIAS.includes(r?.category as CategoriaDoTraco) ? (r!.category as CategoriaDoTraco) : null
     const visivel: LeituraDaFolha['tracos'][number]['visivel'] | null = r?.visible === 'yes' || r?.visible === 'no' || r?.visible === 'unclear' ? r.visible : null
-    return r && categoria && visivel && limpa(r.trait) ? [{ traco: limpa(r.trait).slice(0, 80), categoria, visivel }] : []
+    const aparencia: LeituraDaFolha['tracos'][number]['aparencia'] = r?.appearance === 'yes' || r?.appearance === 'no' ? r.appearance : 'unclear' // sem o campo = não julga
+    return r && categoria && visivel && limpa(r.trait) ? [{ traco: limpa(r.trait).slice(0, 80), categoria, visivel, aparencia }] : []
   })
   const k = o.head_check && typeof o.head_check === 'object' ? (o.head_check as Record<string, unknown>) : null
   const sn = (x: unknown): SimNao | null => (x === 'yes' || x === 'no' || x === 'unclear' ? x : null)
@@ -147,9 +154,11 @@ export function lerLeituraDaFolha(raw: string, exigeForma = false /* KINEO-FORMA
 }
 
 /** A regra, no código, POR EIXO. Traços: contagem > espécie/forma/tamanho > outros traços. Meio: cartum em filme fotorreal, foto em filme desenhado. */
-export function decidirDaFolha(l: LeituraDaFolha, filmeFotorreal: boolean, descricao: string = '', modoForma: ModoFormaDaFolha2511 = FORMA_DA_FOLHA_2511): VereditoDaFolha {
+export function decidirDaFolha(l: LeituraDaFolha, filmeFotorreal: boolean, descricao: string = '', modoForma: ModoFormaDaFolha2511 = FORMA_DA_FOLHA_2511, tipo: 'humano' | 'animal' | 'criatura' | null = null): VereditoDaFolha {
   const doAutor = l.tracos.filter((t) => tracoDoAutor(t.traco, descricao)) // sem descrição do autor = nenhum traço conta
-  const ausentes = (cats: readonly CategoriaDoTraco[]) => doAutor.filter((t) => t.visivel === 'no' && cats.includes(t.categoria)).map((t) => t.traco)
+  // KINEO-JUIZ-SEM-PROFISSAO-2511: só aparência é julgada; papel/profissão nunca; "species" de gente nunca
+  const julgavel = (t: LeituraDaFolha['tracos'][number]) => t.aparencia === 'yes' && !(tipo === 'humano' && t.categoria === 'species') // "role" não está em nenhuma lista de ausentes abaixo: nunca julga
+  const ausentes = (cats: readonly CategoriaDoTraco[]) => doAutor.filter((t) => julgavel(t) && t.visivel === 'no' && cats.includes(t.categoria)).map((t) => t.traco)
   const forma = ausentes(['species', 'shape', 'size']), outros = ausentes(['color', 'feature', 'clothing'])
   const tracos: VereditoDaFolha['tracos'] = l.personagens > 1 ? 'mais_de_um' : l.personagens < 1 ? 'nenhum' : forma.length ? 'forma_especie' : outros.length ? 'traco' : 'ok'
   const cartum = l.meio === 'cartoon_3d' || l.meio === 'cartoon_2d'
@@ -212,7 +221,7 @@ export async function julgarAFolha(args: { ficha: { nome: string; canonica: stri
   const r1 = await deps.ler(descricao, args.url)
   custo += r1.custoUsd
   if (!r1.leitura) return fim(null, null, null, null, false) // não julgada = não serve (é o furo que o juiz fecha)
-  v1 = decidirDaFolha(r1.leitura, args.filmeFotorreal, descricao)
+  v1 = decidirDaFolha(r1.leitura, args.filmeFotorreal, descricao, FORMA_DA_FOLHA_2511, tipo)
   descartados += v1.descartados
   if (folhaPassa(v1)) return fim(args.url, v1, null, 1, false)
   custo += PERSONAGEM_FOLHA_USD // a folha nova (FLUX) é paga quando pedida, saia ou não
@@ -221,7 +230,7 @@ export async function julgarAFolha(args: { ficha: { nome: string; canonica: stri
   const r2 = await deps.ler(descricao, nova)
   custo += r2.custoUsd
   if (!r2.leitura) return fim(null, null, null, null, true)
-  const v2 = decidirDaFolha(r2.leitura, args.filmeFotorreal, descricao)
+  const v2 = decidirDaFolha(r2.leitura, args.filmeFotorreal, descricao, FORMA_DA_FOLHA_2511, tipo)
   descartados += v2.descartados
   if (folhaPassa(v2)) return fim(nova, v2, null, 2, true)
   // a tolerância: traços certos, só o meio errado, bicho ou criatura, filme fotorreal (folha de animação num filme de foto). Humano e filme desenhado: nunca.
