@@ -10,6 +10,9 @@ import { contaDaCasaExata } from '@/lib/internalAccounts'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
 
 export const ESCRITOR_DE_DIALOGO_2511_VERSAO = 'escritor_de_dialogo_2511_v1'
+/** Os rastros: o do escritor de diálogo (só números) e o MESMO script_written de sempre (a ideia original, para o juiz de coerência), com voice_mode. */
+export const DIALOGO_ESCRITO_EVENTO = 'dialogue_script_written'
+export const ROTEIRO_ESCRITO_EVENTO = 'script_written'
 /** A chave: 'internal' = só a lista EXATA da casa; 'public' = todos; 'off' = nada. Nasce 'internal' (CEO 25/11). */
 export type ModoEscritorDeDialogo2511 = 'off' | 'internal' | 'public'
 export const ESCRITOR_DE_DIALOGO_2511: ModoEscritorDeDialogo2511 = 'internal'

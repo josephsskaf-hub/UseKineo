@@ -102,7 +102,7 @@ async function suite(change) {
   const rodar0 = async ({ email = CASA, voice, language = 'en', alvo = 15, topic = 'A keeper and a radio operator save a ship in a storm.', resposta = JSON.stringify(BOM()), lanca = false } = {}) => {
     const chamadas = [], eventos = []
     const escopo = { body: { voice_mode: voice, engine: 'kling4' }, filmeCurto: alvo <= 20, language, topic, alvoSegundos: alvo, user: { id: 'u', email },
-      lerVoiceMode: E.lerVoiceMode, escritorDeDialogoLigado: E.escritorDeDialogoLigado, ESCRITOR_DE_DIALOGO_2511: E.ESCRITOR_DE_DIALOGO_2511, escreverDialogo2511: E.escreverDialogo2511,
+      lerVoiceMode: E.lerVoiceMode, DIALOGO_ESCRITO_EVENTO: E.DIALOGO_ESCRITO_EVENTO, ROTEIRO_ESCRITO_EVENTO: E.ROTEIRO_ESCRITO_EVENTO, escritorDeDialogoLigado: E.escritorDeDialogoLigado, ESCRITOR_DE_DIALOGO_2511: E.ESCRITOR_DE_DIALOGO_2511, escreverDialogo2511: E.escreverDialogo2511,
       OPENAI_SCRIPT_TIMEOUT_MS: 35000, openai: { chat: { completions: { create: async (corpo, opts) => { chamadas.push({ corpo, opts }); if (lanca) throw new Error('rede'); return { choices: [{ message: { content: resposta } }] } } } } },
       writeServerEvent: async (e) => { eventos.push(e); return true }, NextResponse: { json: (b) => ({ __resposta: b }) } }
     const corpo = ts.transpile(`${hv}\nreturn (async () => {\n${bloco}\nreturn null })()`, { target: ts.ScriptTarget.ES2022 })
@@ -119,13 +119,19 @@ async function suite(change) {
     const x = await rodar(opts); igual([x.r, x.chamadas.length, x.eventos.length], [null, 0, 0], nome + ': nenhuma chamada, segue o caminho de hoje') }
   for (const [nome, opts] of [['fora da régua', { resposta: com((d) => { d.speakers.push('Tomas') }) }], ['a chamada falha', { lanca: true }], ['json torto', { resposta: '{' }]]) {
     const x = await rodar(opts); igual([x.r, x.chamadas.length, x.eventos.map((e) => e.name), x.eventos[0].metadata.ok], [null, 1, ['dialogue_script_written'], false], nome + ': segue narrado, com o rastro') }
-  assert.ok(rota.includes("import { ESCRITOR_DE_DIALOGO_2511, escritorDeDialogoLigado, escreverDialogo2511, lerVoiceMode } from '@/lib/cinematic/escritorDeDialogo2511'"), 'o import')
+  assert.ok(rota.includes("import { ESCRITOR_DE_DIALOGO_2511, escritorDeDialogoLigado, escreverDialogo2511, lerVoiceMode, DIALOGO_ESCRITO_EVENTO, ROTEIRO_ESCRITO_EVENTO } from '@/lib/cinematic/escritorDeDialogo2511'"), 'o import')
 
   // ── 7. byte a byte: a rota só GANHA linhas (o import e o bloco); nenhuma linha de hoje muda ──────────────────────────────────────────
   if (!change) { const diff = execSync(`git diff --no-color -U0 ${BASE} -- ${ROTA}`, { encoding: 'utf8', maxBuffer: 1 << 26 }).replaceAll('\r\n', '\n').split('\n')
     const tirou = diff.filter((l) => l.startsWith('-') && !l.startsWith('---')), pos = diff.filter((l) => l.startsWith('+') && !l.startsWith('+++'))
     igual(tirou, [], 'nenhuma linha de hoje sai nem muda')
-    assert.ok(pos.length >= 10 && pos.every((l) => /KINEO-ESCRITOR-DE-DIALOGO-2511|dialogo2511|escreverDialogo2511|lerVoiceMode|^\+\s*\}\s*$|^\+\s*\/\/|const c = await openai|return c\.choices/.test(l)), 'só o import e o bloco entram') }
+    // a camada da cadeia dos guardiões históricos: desfazer esta entrega devolve EXATAMENTE a base (e a anterior, a condensa, a tira primeiro)
+    const { semEscritorDeDialogo2511 } = await import('./test-support/desfaz-escritor-de-dialogo-2511.mjs')
+    const { semEscritorCondensa1311 } = await import('./test-support/desfaz-escritor-condensa-1311.mjs')
+    const base = execSync(`git show ${BASE}:${ROTA}`, { encoding: 'utf8', maxBuffer: 1 << 26 }).replaceAll('\r\n', '\n')
+    assert.equal(semEscritorDeDialogo2511(local(ROTA), ROTA).replaceAll('\r\n', '\n'), base, 'a camada desfaz exatamente esta entrega')
+    assert.equal(semEscritorCondensa1311(local(ROTA), ROTA).replaceAll('\r\n', '\n'), semEscritorCondensa1311(base, ROTA).replaceAll('\r\n', '\n'), 'a cadeia tira esta camada primeiro')
+    assert.ok(pos.length >= 10 && pos.every((l) => /KINEO-ESCRITOR-DE-DIALOGO-2511|dialogo2511|escreverDialogo2511|lerVoiceMode|ROTEIRO_ESCRITO_EVENTO|DIALOGO_ESCRITO_EVENTO|^\+\s*\}\s*$|^\+\s*\/\/|const c = await openai|return c\.choices/.test(l)), 'só o import e o bloco entram') }
 }
 
 await suite(null)

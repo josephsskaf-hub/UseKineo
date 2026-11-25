@@ -1,0 +1,22 @@
+{
+  "marca": "KINEO-ESCRITOR-DE-DIALOGO-2511",
+  "scope": {
+    "app/api/generate-script/route.ts": {
+      "beforeSha256": "4620be52899db965fc99c61e214e407ad8ec050aefb95448fb20ec60c29ced86",
+      "afterSha256": "657b9ec1f78656aa7d98bd2721747d0537b35098b4e96aa6f6d64600c3090e03",
+      "hunks": [
+        {
+          "before": "import { openai, OPENAI_SCRIPT_TIMEOUT_MS } from '@/lib/openai'\n",
+          "after": "import { openai, OPENAI_SCRIPT_TIMEOUT_MS } from '@/lib/openai'\nimport { ESCRITOR_DE_DIALOGO_2511, escritorDeDialogoLigado, escreverDialogo2511, lerVoiceMode, DIALOGO_ESCRITO_EVENTO, ROTEIRO_ESCRITO_EVENTO } from '@/lib/cinematic/escritorDeDialogo2511' // KINEO-ESCRITOR-DE-DIALOGO-2511\n"
+        },
+        {
+          "before": "    if (!forceAuthoring && hasViralMarkers(topic)) {\n",
+          "after": "    // ═══ KINEO-ESCRITOR-DE-DIALOGO-2511 [CEO 25/11 noite; dono 17:50 \"Pode abrir\"] — voice_mode 'characters' no filme curto: o roteiro nasce com as falas\n    // (lib/cinematic/escritorDeDialogo2511). Só com a chave (nasce 'internal' = a casa exata), em inglês (a única língua provada) e com IDEIA (o texto que já\n    // chega com marcadores segue como hoje). Fora da régua, falhou ou demorou = segue abaixo, o roteiro narrado de hoje. voice_mode ausente ou 'narrator' =\n    // nenhuma linha nova roda. Depois da moderação do tema (acima): a política vale igual. ═══\n    if (lerVoiceMode(body.voice_mode) === 'characters' && filmeCurto && language === 'en' && !hasViralMarkers(topic) && escritorDeDialogoLigado(ESCRITOR_DE_DIALOGO_2511, user.email)) {\n      const dialogo2511 = await escreverDialogo2511({ ideia: topic, segundos: alvoSegundos, chamar: async (corpo) => {\n        const c = await openai.chat.completions.create(corpo as unknown as Parameters<typeof openai.chat.completions.create>[0], { timeout: OPENAI_SCRIPT_TIMEOUT_MS, maxRetries: 0 }) as { choices?: Array<{ message?: { content?: string | null } }> }\n        return c.choices?.[0]?.message?.content ?? null } })\n      await writeServerEvent({ name: DIALOGO_ESCRITO_EVENTO, userId: user.id, path: '/api/generate-script', metadata: { ...dialogo2511.relato, target_seconds: alvoSegundos, engine: typeof body.engine === 'string' ? body.engine : null } })\n      if (dialogo2511.script) {\n        await writeServerEvent({ name: ROTEIRO_ESCRITO_EVENTO, userId: user.id, path: '/api/generate-script', metadata: { original_idea: topic.slice(0, 4000), script_head: dialogo2511.script.slice(0, 200), voice_mode: 'characters', engine: typeof body.engine === 'string' ? body.engine : null, target_seconds: alvoSegundos, dialogue: dialogo2511.relato } })\n        return NextResponse.json({ script: dialogo2511.script, alreadyStructured: false, voiceMode: 'characters', targetSeconds: alvoSegundos, words: dialogo2511.relato.palavras, speakers: dialogo2511.relato.falantes })\n      }\n    }\n    if (!forceAuthoring && hasViralMarkers(topic)) {\n"
+        }
+      ]
+    }
+  },
+  "addedSources": {
+    "lib/cinematic/escritorDeDialogo2511.ts": "e9780b0b41ccfed8d9f4a97f8c6ccdea2b94ee3aa8311c60f1a64e114e8734b3"
+  }
+}

@@ -6,6 +6,7 @@
 // ponta da cadeia) a tira primeiro. Nunca usar em lib/app.
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
+import { semEscritorDeDialogo2511 } from './desfaz-escritor-de-dialogo-2511.mjs' // KINEO-ESCRITOR-DE-DIALOGO-2511 — a camada mais nova do escritor
 
 export const ESCRITOR_CONDENSA_1311 = JSON.parse(readFileSync(new URL('./desfaz-escritor-condensa-1311-fontes.json', import.meta.url), 'utf8'))
 const lf = (t) => String(t).replace(/\r\n/g, '\n')
@@ -14,6 +15,7 @@ const rel = (f) => String(f ?? '').replace(/\\/g, '/').replace(/^.*?(app\/|lib\/
 
 /** O texto de hoje sem esta entrega (exato) — ou o mesmo texto, se ele não é o "depois" desta entrega. */
 export function semEscritorCondensa1311(source, file) {
+  source = semEscritorDeDialogo2511(source, file) // KINEO-ESCRITOR-DE-DIALOGO-2511 — a camada mais nova (25/11) sai primeiro
   const entry = ESCRITOR_CONDENSA_1311.scope[rel(file)]
   if (typeof source !== 'string' || !entry) return source
   const text = lf(source)
