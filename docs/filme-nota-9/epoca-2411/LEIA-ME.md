@@ -1,3 +1,9 @@
+## Volta 2 de 25/11 · prova sem render
+
+**TESTADO LOCALMENTE.** Base c76e0badc, produto 0d09c9252. Os cinco recibos deste diretório e a comparação por plano foram regravados contra essas duas pontas. O guardião da rota captura o corpo enviado ao transporte simulado com uma e duas fotos. Retirar toda a reserva M5 ou apenas a segunda frase faz a asserção de preservação do texto falhar. A reserva usa o comprimento em pontos de código das frases disponíveis, cada qual com seu separador. É conservadora em planos onde o montador decide omitir uma referência. Nessa fronteira a indicação adicional de época pode ficar de fora.
+
+**TESTADO LOCALMENTE.** 23 controles e 30 mutantes do helper, incluindo datas ligadas a objetos, calendário por extenso e eras. A data histórica da cena continua prevalecendo quando declarada. O teste da ficha sem nome matou os seus 54 mutantes e o do juiz matou os seus 56. TypeScript retornou 0. O comparativo da área passou em 17 de 19 guardiões; os outros dois, meta95-personagem e meta95-personagem-ajuste, falharam também na base. Zero vermelho novo. O ensaio usa roteiros da casa ou sintéticos. A aparência final requer prova visual separada.
+
 # Prova offline de época em ficha, imagem e clipe — 24/11/2026
 
 **TESTADO LOCALMENTE.** Base `96299a66b523e2f5e03e2e26f27d5ca69cad7e91`, candidata de código `be8e21e70b16430c21590fc11d71d8b9001112fd`, carregador original em `codex/nota9-replay-2311` (`7af247b9d006517b91791bf5261f69a7d5219404`).

@@ -1,6 +1,6 @@
 # Ficha e planos antes e depois da correção de época
 
-**TESTADO LOCALMENTE · 24/11/2026.** A coluna Antes usa `96299a66b523e2f5e03e2e26f27d5ca69cad7e91` e a coluna Depois usa `be8e21e70b16430c21590fc11d71d8b9001112fd` com a chave interna ativa. Os textos em inglês são os bytes de texto capturados na chamada simulada ao produtor de vídeo com referência única (`kling/v4/reference-to-video`). A ficha é o prompt que a rota passa ao produtor de imagem do personagem. Todos os corpos foram confrontados com os hashes dos recibos anteriores.
+**TESTADO LOCALMENTE · 24/11/2026.** A coluna Antes usa `c76e0badcc281aa910581d1d1433fadc25b25af4` e a coluna Depois usa `0d09c9252f75387dd5d969057c839430ca8331ba` com a chave interna ativa. Os textos em inglês são os bytes de texto capturados na chamada simulada ao produtor de vídeo com referência única (`kling/v4/reference-to-video`). A ficha é o prompt que a rota passa ao produtor de imagem do personagem. Todos os corpos foram confrontados com os hashes dos recibos anteriores.
 
 Os roteiros históricos são os da casa. O casting e a referência são entradas de ensaio. A foto é representada por [REFERÊNCIA 1]. Os pedidos foram observados antes de responder localmente ao transporte. Esta prova não avalia imagens renderizadas.
 
@@ -315,7 +315,7 @@ Envelope comum a Antes e Depois para este controle: `{"image_urls":["[REFERÊNCI
 
 ## Ano da câmera e ano da cena
 
-**TESTADO LOCALMENTE.** Cada linha identifica a revisão anterior testada. Nos cinco primeiros casos ela é `da221631e5571db63c77b159fe14f1a605220df4`. Nos demais é `f420898505fa225b4381bc7772758c84d4f7fc7f`, que ainda confundia a câmera de 1888 com o museu de 1920. A coluna Depois usa `be8e21e70b16430c21590fc11d71d8b9001112fd`. Cada linha corresponde ao último plano de uma variante. A coluna de imagem traz o texto exato do still, e os detalhes trazem os prompts recebidos pelo modelo de referência. O recibo guarda ainda o still com referência e os pedidos dos modelos de imagem e texto para vídeo.
+**TESTADO LOCALMENTE.** Cada linha identifica a revisão anterior testada. Nos cinco primeiros casos ela é `da221631e5571db63c77b159fe14f1a605220df4`. Nos demais é `f420898505fa225b4381bc7772758c84d4f7fc7f`, que ainda confundia a câmera de 1888 com o museu de 1920. A coluna Depois usa `0d09c9252f75387dd5d969057c839430ca8331ba`. Cada linha corresponde ao último plano de uma variante. A coluna de imagem traz o texto exato do still, e os detalhes trazem os prompts recebidos pelo modelo de referência. O recibo guarda ainda o still com referência e os pedidos dos modelos de imagem e texto para vídeo.
 
 | Revisão anterior | Cena pedida | Narração preservada em ambas as versões | Still antes | Still depois |
 | --- | --- | --- | --- | --- |
