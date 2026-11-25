@@ -9,6 +9,7 @@
 // Formato aceito (1ª entrega: só o roteiro do autor, 'verbatim'): cada seção do roteiro traz uma ou mais linhas "Nome: fala" (aspas opcionais), o Nome é um
 // dos personagens COM referência (no máximo 2), até ~2,2 palavras por segundo do plano. Texto fora do formato, nome fora do elenco ou fala longa = narrado.
 import { contaDaCasaExata } from '@/lib/internalAccounts'
+import { falanteConhecido2511, falanteAdulto2511 } from '@/lib/cinematic/reguaDaPessoaNaFala2511' // [revisora 392f0a52, T1 e T2] quem fala
 
 export const FALA_DOS_PERSONAGENS_2511_VERSAO = 'fala_dos_personagens_2511_v1'
 export type ModoFalaDosPersonagens2511 = 'off' | 'internal' | 'public'
@@ -28,21 +29,27 @@ export function vozPedida2511(body: unknown): VozDoFilme2511 {
 export type MotivoNarrado2511 =
   | 'lingua' | 'sem_gemini' | 'sem_referencia' | 'roteiro_sem_falas' | 'fala_fora_do_formato' | 'falante_fora_do_elenco' | 'fala_longa'
   | 'planos_desencontrados' | 'falante_fora_do_plano' | 'plano_sem_cauda' | 'fala_com_pessoa_real' | 'gemini_recusou_no_envio' | 'gemini_caiu'
+  | 'falante_conhecido' /* [T1] quem fala é figura conhecida, pessoa real, personagem de obra ou de marca */ | 'falante_menor' /* [T2] filme fotorreal: quem fala não é adulto provado */
 export type LinhaDeFala2511 = { ref: 0 | 1; nome: string; texto: string }
 /** O marcador que viaja no claim (kling4_trial.fala_2511) e que o compose lê. */
 export type MarcadorDaFala2511 = { versao: string; pedida: 'characters'; modo: 'falado' | 'narrado'; motivo: MotivoNarrado2511 | null; falas?: LinhaDeFala2511[][] }
 
-/** Máximo de palavras faladas por plano: ~2,2 por segundo (5 s → 11; a receita de nota 10 tinha até 10 por plano de 5 s). */
-export const PALAVRAS_POR_SEGUNDO_2511 = 2.2
+/** [revisora 392f0a52, T4] no modo falado não há narração a medir: o tempo de cada plano no pedido FALADO sai das palavras (duracoesDaFala2511), e o teto é
+ *  de 3 palavras por segundo do plano repartido (fala rápida, ainda natural). No filme inteiro: até 45 palavras (3 × 15 s). O roteiro-limite do escritor (até 8
+ *  por seção, 25 a 35 no filme) sempre cabe. */
+export const PALAVRAS_POR_SEGUNDO_2511 = 3
+export const PALAVRAS_NO_FILME_2511 = 45
+/** O piso de cada plano no pedido falado (o plano calado também fica na tela). */
+export const PISO_DO_PLANO_FALADO_2511 = 2
 const palavras = (t: string) => String(t ?? '').trim().split(/\s+/u).filter(Boolean)
 const escapa = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const limpaFala = (t: string) => String(t ?? '').replace(/\s+/gu, ' ').trim().replace(/^["“”'‘’]+|["“”'‘’]+$/gu, '').trim().replace(/["“”]/gu, "'")
 
 /** As falas de cada plano, lidas da fala (voiceover) de cada plano. `nomes[k]` = os nomes do personagem da referência k (o 1º é o que vai ao motor).
- *  Fora do formato = o motivo (o filme sai narrado). */
-export function lerFalas2511(falasDosPlanos: ReadonlyArray<string>, nomes: ReadonlyArray<ReadonlyArray<string>>, duracoes: ReadonlyArray<number>):
+ *  `planos` = quantos planos o pedido tem (a fala de cada plano é uma entrada). Fora do formato = o motivo (o filme sai narrado). */
+export function lerFalas2511(falasDosPlanos: ReadonlyArray<string>, nomes: ReadonlyArray<ReadonlyArray<string>>, planos: number):
   { falas: LinhaDeFala2511[][] } | { motivo: MotivoNarrado2511 } {
-  if (!Array.isArray(falasDosPlanos) || falasDosPlanos.length === 0 || falasDosPlanos.length !== duracoes.length) return { motivo: 'planos_desencontrados' }
+  if (!Array.isArray(falasDosPlanos) || falasDosPlanos.length === 0 || falasDosPlanos.length !== planos) return { motivo: 'planos_desencontrados' }
   const rotulos: Array<{ re: string; ref: 0 | 1; nome: string }> = []
   nomes.slice(0, 2).forEach((lista, k) => {
     const principal = String(lista?.[0] ?? '').trim()
@@ -70,13 +77,43 @@ export function lerFalas2511(falasDosPlanos: ReadonlyArray<string>, nomes: Reado
         const r = rotulos.find((x) => new RegExp(`^${x.re}$`, 'iu').test(m[2].trim()))!
         linhas.push({ ref: r.ref, nome: r.nome, texto: fala })
       }
-      const total = linhas.reduce((s, l) => s + palavras(l.texto).length, 0)
-      if (total > Math.floor(PALAVRAS_POR_SEGUNDO_2511 * duracoes[i])) return { motivo: 'fala_longa' }
     }
     falas.push(linhas)
   }
   if (!falas.some((l) => l.length)) return { motivo: 'roteiro_sem_falas' }
+  if (falas.flat().reduce((s, l) => s + palavras(l.texto).length, 0) > PALAVRAS_NO_FILME_2511) return { motivo: 'fala_longa' }
   return { falas }
+}
+
+/** [T4] O tempo de cada plano no pedido FALADO: o piso de 2 s para cada um e o resto dos 15 s repartido pelas palavras (maior resto), inteiros, soma 15.
+ *  Sem nenhuma palavra = partes iguais. Fora do formato (planos demais para o piso) = null. */
+export function duracoesDaFala2511(falas: ReadonlyArray<ReadonlyArray<LinhaDeFala2511>>, total = 15): number[] | null {
+  const n = falas.length
+  if (!n || n * PISO_DO_PLANO_FALADO_2511 > total) return null
+  const w = falas.map((l) => l.reduce((s, x) => s + palavras(x.texto).length, 0))
+  const W = w.reduce((a, b) => a + b, 0), resto = total - n * PISO_DO_PLANO_FALADO_2511
+  const quota = w.map((x) => (W ? (resto * x) / W : resto / n))
+  const d = quota.map((q) => PISO_DO_PLANO_FALADO_2511 + Math.floor(q))
+  let falta = total - d.reduce((a, b) => a + b, 0)
+  const ordem = quota.map((q, i) => [q - Math.floor(q), i] as const).sort((a, b) => b[0] - a[0] || a[1] - b[1])
+  for (let k = 0; falta > 0; k = (k + 1) % n, falta--) d[ordem[k][1]]++
+  return d
+}
+
+/** [T1 e T2] quem fala pode falar: nenhuma figura conhecida, pessoa real, personagem de obra ou de marca; no filme FOTORREAL, só adulto provado (falha
+ *  fechada). `fichas[k]` = a ficha do personagem da referência k (nome, núcleo, canônica); sem ficha = só os nomes (sem sinal de adulto = barra). */
+export function admitirFalantes2511(falas: ReadonlyArray<ReadonlyArray<LinhaDeFala2511>>, fichas: ReadonlyArray<{ nome?: unknown; nucleo?: unknown; canonica?: unknown } | null>,
+  nomes: ReadonlyArray<ReadonlyArray<string>>, estilizado: boolean): MotivoNarrado2511 | null {
+  const quem = [...new Set(falas.flat().map((l) => l.ref))]
+  for (const r of quem) {
+    const f = fichas[r] ?? { nome: nomes[r]?.[0], nucleo: nomes[r]?.[1] ?? nomes[r]?.[0] }
+    if (falanteConhecido2511(f) || (nomes[r] ?? []).some((n) => falanteConhecido2511({ nome: n }))) return 'falante_conhecido'
+  }
+  if (!estilizado) for (const r of quem) {
+    const f = fichas[r] ?? { nome: nomes[r]?.[0], nucleo: nomes[r]?.[1] ?? nomes[r]?.[0] }
+    if (!falanteAdulto2511(f, falas.flat().map((l) => l.texto))) return 'falante_menor'
+  }
+  return null
 }
 
 /** A voz do personagem, pela ficha (idade, gênero, tipo): nunca sotaque, nunca nome de pessoa real. */
@@ -111,12 +148,17 @@ export function geminiFaladoDoKling4(input: unknown, nomesNoMotor: ReadonlyArray
   const quem = fotos.map((_, k) => String(nomesNoMotor[k] ?? '').replace(/\s+/g, ' ').trim())
   if (quem.some((n) => !n || n.length > 80 || /[<>"]/.test(n))) return { motivo: 'sem_referencia' }
   if (vozes.length < quem.length || vozes.slice(0, quem.length).some((v) => typeof v !== 'string' || !v.trim() || /[<>"]/.test(v))) return { motivo: 'sem_referencia' }
+  // [T4] o tempo de cada plano no pedido falado vem das palavras (o do Kling 4 era o da narração medida); o pedido do Kling 4 da queda fica com o de hoje
+  if (tiros.reduce((s: number, x) => s + (x && typeof x === 'object' && Number.isInteger((x as { duration?: unknown }).duration) ? Number((x as { duration: number }).duration) : NaN), 0) !== 15) return { motivo: 'sem_gemini' }
+  const tempos = duracoesDaFala2511(falas)
+  if (!tempos) return { motivo: 'planos_desencontrados' }
   let t = 0
   const linhas: string[] = []
   for (let k = 0; k < tiros.length; k++) {
     const s = tiros[k] && typeof tiros[k] === 'object' ? (tiros[k] as Record<string, unknown>) : null
-    const d = s?.duration, p = s?.prompt
-    if (typeof d !== 'number' || !Number.isInteger(d) || d < 1 || typeof p !== 'string' || !p.trim()) return { motivo: 'sem_gemini' }
+    const d = tempos[k], p = s?.prompt
+    if (typeof p !== 'string' || !p.trim()) return { motivo: 'sem_gemini' }
+    if ((falas[k] ?? []).reduce((n, l) => n + palavras(l.texto).length, 0) > Math.floor(PALAVRAS_POR_SEGUNDO_2511 * d)) return { motivo: 'fala_longa' }
     if (!p.endsWith(CAUDA_DA_BOCA_2511) || p.slice(0, -CAUDA_DA_BOCA_2511.length).includes('Mouth closed')) return { motivo: 'plano_sem_cauda' }
     const refs = new Set([...p.matchAll(REF_RE)].map((m) => Number(m[1]) - 1))
     if ([...refs].some((r) => r >= fotos.length) || /<IMAGE_REF_\d+>/.test(p)) return { motivo: 'sem_gemini' }

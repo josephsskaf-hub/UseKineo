@@ -27,7 +27,7 @@ import { KLING4_TRIAL_LIVE, kling4TrialEligible } from '@/lib/kling4TrialPolicy'
 import { KLING4_TRIAL_MAX_SECONDS, KLING4_TRIAL_MAX_SECONDS_ENSAIO, kling4TrialTetoDaFala, kling4TrialClipSeconds, kling4TrialClipCostUsd } from '@/lib/kling4TrialPolicy' // KINEO-K4-GRATIS-20S-1711
 import { submitKling4TrialVideo, orchestrateKling4Trial, buildKling4TrialInput, kling4TrialSceneDurations, kling4TrialClipTotal /* KINEO-K4-GRATIS-20S-1711 */, approvedKling4TrialStills, KLING4_DURACAO_PELA_VOZ, duracaoPelaVozLigada, type Kling4TrialResult } from '@/lib/kling4Trial' // KINEO-K4-DURACAO-PELA-VOZ-1311: + interruptor
 import { reserveKling4Trial, recordKling4TrialFilm } from '@/lib/kling4TrialBudget'
-import { FALA_DOS_PERSONAGENS_2511, FALA_DOS_PERSONAGENS_2511_VERSAO, falaDosPersonagensLigada, vozPedida2511, lerFalas2511, vozDaFicha2511, geminiFaladoDoKling4, type MarcadorDaFala2511 } from '@/lib/cinematic/falaDosPersonagens2511' // KINEO-FALA-DOS-PERSONAGENS-2511 — o modo "personagens falam" (só a casa)
+import { FALA_DOS_PERSONAGENS_2511, FALA_DOS_PERSONAGENS_2511_VERSAO, falaDosPersonagensLigada, vozPedida2511, lerFalas2511, vozDaFicha2511, geminiFaladoDoKling4, admitirFalantes2511, type MarcadorDaFala2511 } from '@/lib/cinematic/falaDosPersonagens2511' // KINEO-FALA-DOS-PERSONAGENS-2511 — o modo "personagens falam" (só a casa)
 import { motorDoFilmeGratis2511 } from '@/lib/cinematic/chaveDoMotor2511' // KINEO-TOMADA-DO-MOTOR-2511 — o motor do filme grátis sem deploy
 import { gravarSeloDoFilmeGratis2511 } from '@/lib/kling4TrialBudget' // KINEO-GEMINI-NA-ESTEIRA-2511 [revisora 25/11, conserto 1]
 import { medirFalaDoKling4Trial as medirFalaK4Crua } from '@/lib/kling4TrialScript' // KINEO-K4-SEMPRE-0511 [TRAVA 8.2 — fundador 05/11 "vai"]
@@ -8675,14 +8675,17 @@ async function manipularPost(req: NextRequest) {
       let entrada2511: EntradaDoGemini = entrada, falado2511: MarcadorDaFala2511['falas'] | null = null
       const fm2511 = typeof fala2511 !== 'undefined' ? fala2511.marcador : null
       if (fm2511 && fm2511.motivo === 'sem_gemini') {
-        const durs = ((wire.input.multi_prompt as Array<{ duration?: unknown }> | undefined) ?? []).map((m) => Number(m?.duration))
+        const nPlanos = ((wire.input.multi_prompt as unknown[] | undefined) ?? []).length
         const refs = [ru, ru?.segundo].filter((r): r is NonNullable<typeof r> => !!r && Array.isArray(r.nomes) && r.nomes.length > 0)
-        const lidas = lerFalas2511((e.timing?.voiceovers ?? []) as string[], refs.map((r) => r.nomes as string[]), durs)
+        const lidas = lerFalas2511((e.timing?.voiceovers ?? []) as string[], refs.map((r) => r.nomes as string[]), nPlanos)
+        const estilizado2511 = isStylizedLook(styleAnchor) || desenhoInfantil.ativo
+        const fichas2511 = refs.map((r) => qualitySnapshot?.characters?.find((c) => c.nome === r.nomes?.[0]) ?? null)
+        const falantes2511 = 'motivo' in lidas ? null : admitirFalantes2511(lidas.falas, fichas2511, refs.map((r) => r.nomes as string[]), estilizado2511) // [revisora 392f0a52, T1 e T2]
         if ('motivo' in lidas) fm2511.motivo = lidas.motivo
         else if (mentionsRealPerson(lidas.falas.flat().map((l) => l.texto).join(' '))) fm2511.motivo = 'fala_com_pessoa_real'
+        else if (falantes2511) fm2511.motivo = falantes2511
         else {
-          const estilizado2511 = isStylizedLook(styleAnchor) || desenhoInfantil.ativo
-          const vozes = refs.map((r) => vozDaFicha2511(qualitySnapshot?.characters?.find((c) => c.nome === r.nomes?.[0]) ?? null, estilizado2511))
+          const vozes = fichas2511.map((f) => vozDaFicha2511(f, estilizado2511))
           const g = geminiFaladoDoKling4(wire.input, [nome2511(ru?.nomes?.[0]), nome2511(ru?.segundo?.nomes?.[0])], lidas.falas, vozes)
           if ('motivo' in g) fm2511.motivo = g.motivo
           else { entrada2511 = g.entrada; falado2511 = lidas.falas }
@@ -9011,7 +9014,7 @@ async function manipularPost(req: NextRequest) {
         const f2511 = fala2511.marcador
         if (f2511.modo !== 'falado' && f2511.motivo === 'sem_gemini' && !kling4Timing.referenciaUnica) f2511.motivo = 'sem_referencia'
         ;(response.kling4_trial as Record<string, unknown>).fala_2511 = f2511
-        void writeServerEvent({ name: 'fala_dos_personagens_2511', userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, versao: f2511.versao, modo: f2511.modo, motivo: f2511.motivo, planos_com_fala: (f2511.falas ?? []).filter((l) => l.length > 0).length } }).catch(() => false)
+        void writeServerEvent({ name: 'fala_dos_personagens_2511', userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, versao: f2511.versao, voice_mode: 'characters', modo: f2511.modo, motivo: f2511.motivo, planos_com_fala: (f2511.falas ?? []).filter((l) => l.length > 0).length, falantes: new Set((f2511.falas ?? []).flat().map((l) => l.ref)).size, palavras: (f2511.falas ?? []).flat().reduce((s, l) => s + l.texto.split(/\s+/).filter(Boolean).length, 0) } }).catch(() => false)
       }
       if (gemini2511.recusaNoEnvio !== null) (response.kling4_trial as Record<string, unknown>).gemini_queda = { estado: 'no_envio', motivo: 'recusa_no_envio', erro: `http_${gemini2511.recusaNoEnvio}` } // KINEO-GEMINI-NA-ESTEIRA-2511: o Kling 4 foi na hora
       if (kling4Encaixe.r) (response.kling4_trial as Record<string, unknown>).narration_refit = kling4Encaixe.r.rastro // KINEO-K4-SEMPRE-0511 — quanto foi encurtada

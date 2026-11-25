@@ -39,21 +39,30 @@ async function suite(change) {
   igual([f.falaDosPersonagensLigada('internal', CASA), f.falaDosPersonagensLigada('internal', CLIENTE), f.falaDosPersonagensLigada('off', CASA), f.falaDosPersonagensLigada('internal', 'xjosephsskaf@gmail.com')], [true, false, false, false], 'A a chave: só a casa exata')
   igual([f.vozPedida2511({ voice_mode: 'characters' }), f.vozPedida2511({ voice_mode: 'Characters' }), f.vozPedida2511({}), f.vozPedida2511(null), f.vozPedida2511({ voice_mode: 'narrator' }), f.vozPedida2511({ voz: 'personagens' })], ['personagens', 'narrador', 'narrador', 'narrador', 'narrador', 'narrador'], 'A o corpo: só voice_mode "characters" liga')
   const NOMES = [['Elias Ward', 'Elias'], ['Mara Quinn', 'Mara']]
-  const lidas = f.lerFalas2511(FALAS, NOMES, DURS)
+  const lidas = f.lerFalas2511(FALAS, NOMES, DURS.length)
   igual(lidas, { falas: [[{ ref: 0, nome: 'Elias Ward', texto: 'The storm is coming tonight.' }], [{ ref: 1, nome: 'Mara Quinn', texto: 'I hear a boat calling.' }], [{ ref: 0, nome: 'Elias Ward', texto: 'Then we give them light.' }], [{ ref: 0, nome: 'Elias Ward', texto: 'They made it home.' }]] }, 'A "Nome: fala", aspas opcionais, o nome curto vira o do motor')
-  igual(f.lerFalas2511(['Mara: Look. Elias: I see it.'], NOMES, [5]).falas, [[{ ref: 1, nome: 'Mara Quinn', texto: 'Look.' }, { ref: 0, nome: 'Elias Ward', texto: 'I see it.' }]], 'A duas falas no mesmo plano')
-  igual(f.lerFalas2511(['elias ward: Hold on.', ''], NOMES, [5, 5]).falas, [[{ ref: 0, nome: 'Elias Ward', texto: 'Hold on.' }], []], 'A nome sem caixa; plano sem fala fica calado')
+  igual(f.lerFalas2511(['Mara: Look. Elias: I see it.'], NOMES, 1).falas, [[{ ref: 1, nome: 'Mara Quinn', texto: 'Look.' }, { ref: 0, nome: 'Elias Ward', texto: 'I see it.' }]], 'A duas falas no mesmo plano')
+  igual(f.lerFalas2511(['elias ward: Hold on.', ''], NOMES, 2).falas, [[{ ref: 0, nome: 'Elias Ward', texto: 'Hold on.' }], []], 'A nome sem caixa; plano sem fala fica calado')
   for (const [nome, falas, durs, motivo] of [
     ['narração sem rótulo', ['The storm is coming tonight.', 'Mara: Hi.'], [5, 5], 'fala_fora_do_formato'],
     ['texto antes do rótulo', ['Night falls. Elias: Hold on.'], [5], 'fala_fora_do_formato'],
     ['quem não tem referência', ['Tom: Hello there.'], [5], 'falante_fora_do_elenco'],
     ['outro falante dentro da fala', ['Elias: Wait. Tom: Hello there.'], [5], 'falante_fora_do_elenco'],
-    ['fala longa', ['Elias: one two three four five six seven'], [3], 'fala_longa'],
+    ['fala longa no filme (46 palavras)', ['Elias: ' + Array.from({ length: 23 }, (_, i) => 'w' + i).join(' ') + '.', 'Mara: ' + Array.from({ length: 23 }, (_, i) => 'v' + i).join(' ') + '.'], [5, 5], 'fala_longa'],
     ['rótulo vazio', ['Elias: ""'], [5], 'fala_fora_do_formato'],
     ['nenhuma fala', ['', ''], [5, 5], 'roteiro_sem_falas'],
     ['planos ≠ falas', ['Elias: Hi.'], [5, 5], 'planos_desencontrados'],
-  ]) igual(f.lerFalas2511(falas, NOMES, durs), { motivo }, 'A ' + nome)
-  assert.equal(f.lerFalas2511(['Elias: one two three four five six'], NOMES, [3]).falas?.length, 1, 'A 6 palavras em 3 s cabem (2,2 por segundo)')
+  ]) igual(f.lerFalas2511(falas, NOMES, durs.length), { motivo }, 'A ' + nome)
+  // [T4] o tempo de cada plano no pedido falado vem das palavras: piso de 2 s, o resto proporcional, soma 15
+  const tempos = (ws) => f.duracoesDaFala2511(ws.map((n, i) => (n ? [{ ref: 0, nome: 'E', texto: Array.from({ length: n }, (_, j) => 'p' + i + j).join(' ') }] : [])))
+  igual(tempos([5, 5, 5, 4]), [4, 4, 4, 3], 'T4 19 palavras em 4 planos')
+  igual(tempos([0, 8, 0]), [2, 11, 2], 'T4 plano calado fica no piso')
+  igual(tempos([0, 0, 0]), [5, 5, 5], 'T4 sem palavra = partes iguais')
+  assert.equal(f.duracoesDaFala2511(Array.from({ length: 8 }, () => [])), null, 'T4 planos demais para o piso = nada')
+  for (const ws of [[5, 5, 5, 4], [8, 8, 8, 8], [7, 7, 7, 7, 7], [8, 8, 8, 0], [8, 0, 8, 8], [8, 8, 9], [1, 8, 8, 8], [6, 6, 6, 6, 6, 5]]) {
+    const d = tempos(ws); assert.equal(d.reduce((a, b) => a + b, 0), 15, 'T4 soma 15: ' + ws)
+    assert.ok(d.every((x, i) => x >= 2 && ws[i] <= Math.floor(f.PALAVRAS_POR_SEGUNDO_2511 * x)), 'T4 o roteiro-limite do escritor cabe em todo plano: ' + ws + ' → ' + d)
+  }
   // a voz pela ficha: idade, gênero, tipo; nunca sotaque
   const voz = (x, est = false) => f.vozDaFicha2511(x, est)
   assert.equal(voz({ genero: 'man', tipo: 'humano', canonica: 'appearance anchors: 50-60, gray' }), "speaks in a clear, natural older man's voice")
@@ -73,10 +82,14 @@ async function suite(change) {
   assert.ok(!p.includes('Mouth closed, no speaking'), 'A nenhuma cauda "Mouth closed" no pedido falado')
   const hoje = FIX.gemini_input_nota_10.prompt.split('\n')
   for (let k = 0; k < 4; k++) {
-    const corpo = hoje[k + 1].slice(0, -' Mouth closed, no speaking.'.length)
-    assert.ok(linhas[k + 1].startsWith(corpo + ' '), `A plano ${k + 1}: o texto de hoje, byte a byte, até a cauda`)
+    const semTempo = (l) => l.replace(/^\d+-\d+ s \(shot \d+, hard cut\): /, '')
+    const corpo = semTempo(hoje[k + 1]).slice(0, -' Mouth closed, no speaking.'.length)
+    assert.ok(semTempo(linhas[k + 1]).startsWith(corpo + ' '), `A plano ${k + 1}: o texto de hoje, byte a byte, até a cauda`)
   }
   assert.ok(linhas[1].endsWith(' Elias Ward says: "The storm is coming tonight."') && linhas[2].endsWith(' Mara Quinn says: "I hear a boat calling."'), 'A a fala de quem fala, entre aspas, no fim do plano')
+  igual(linhas.slice(1).map((l) => l.match(/^(\d+-\d+) s/)[1]), ['0-4', '4-8', '8-12', '12-15'], 'T4 o tempo dos planos no pedido falado vem das palavras (5, 5, 5, 4)')
+  { const longo = f.lerFalas2511(['Elias: ' + Array.from({ length: 30 }, (_, i) => 'w' + i).join(' ') + '.', '', '', ''], NOMES, 4)
+    igual(f.geminiFaladoDoKling4(FIX.kling4_input, ['Elias Ward', 'Mara Quinn'], longo.falas, VOZES), { motivo: 'fala_longa' }, 'T4 30 palavras num plano só (9 s, teto 27) = narrado') }
   igual([fal.entrada.image_urls, fal.entrada.duration, fal.entrada.resolution, fal.entrada.aspect_ratio], [FIX.gemini_input_nota_10.image_urls, 15, '720p', '9:16'], 'A as mesmas fotos, 15 s, 720p, 9:16')
   { const doisNoPlano = JSON.parse(JSON.stringify(FIX.kling4_input)); doisNoPlano.multi_prompt[0].prompt = doisNoPlano.multi_prompt[0].prompt.replace(' Mouth closed, no speaking.', ' Keep the face and outfit of @Image2. Mouth closed, no speaking.')
     const x = f.geminiFaladoDoKling4(doisNoPlano, ['Elias Ward', 'Mara Quinn'], lidas.falas, VOZES)
@@ -86,6 +99,20 @@ async function suite(change) {
   { const semCauda = JSON.parse(JSON.stringify(FIX.kling4_input)); semCauda.multi_prompt[2].prompt = semCauda.multi_prompt[2].prompt.replace(' Mouth closed, no speaking.', '')
     igual(f.geminiFaladoDoKling4(semCauda, ['Elias Ward', 'Mara Quinn'], lidas.falas, VOZES), { motivo: 'plano_sem_cauda' }, 'A plano sem a cauda de hoje = narrado') }
   igual(f.geminiFaladoDoKling4(FIX.kling4_input, ['Elias Ward', 'Mara Quinn'], lidas.falas.slice(0, 3), VOZES), { motivo: 'planos_desencontrados' }, 'A falas ≠ planos')
+  // [T1 e T2] quem fala
+  const ADULTOS = [{ nome: 'Elias Ward', nucleo: 'Elias', canonica: 'appearance anchors: 50-60' }, { nome: 'Mara Quinn', nucleo: 'Mara', canonica: 'appearance anchors: 20-30' }]
+  assert.equal(f.admitirFalantes2511(lidas.falas, ADULTOS, NOMES, false), null, 'T1/T2 dois adultos comuns falam')
+  for (const famoso of ['Elon Musk', 'Taylor Swift', 'Spider-Man', 'Mickey Mouse', 'Lara Croft', 'Napoleon']) {
+    const nomes = [[famoso], NOMES[1]], fichas = [{ nome: famoso, nucleo: famoso, canonica: 'a 40-year-old man' }, ADULTOS[1]]
+    const falas = f.lerFalas2511([famoso + ': We sail at dawn.', '', '', ''], nomes, 4).falas
+    assert.equal(f.admitirFalantes2511(falas, fichas, nomes, false), 'falante_conhecido', 'T1 ' + famoso + ' falando = narrado')
+    assert.equal(f.admitirFalantes2511(falas, fichas, nomes, true), 'falante_conhecido', 'T1 ' + famoso + ' falando no desenho = narrado') }
+  assert.equal(f.admitirFalantes2511(lidas.falas, [ADULTOS[0], { nome: 'Mara Quinn', canonica: 'a 12-year-old girl' }], NOMES, false), 'falante_menor', 'T2 menor fotorreal falando = narrado')
+  assert.equal(f.admitirFalantes2511(lidas.falas, [ADULTOS[0], { nome: 'Mara Quinn', canonica: 'long wavy brown hair' }], NOMES, false), 'falante_menor', 'T2 sem sinal de adulto = narrado (falha fechada)')
+  assert.equal(f.admitirFalantes2511(lidas.falas, [ADULTOS[0], null], NOMES, false), 'falante_menor', 'T2 sem ficha = narrado')
+  assert.equal(f.admitirFalantes2511(f.lerFalas2511(['Elias: My daughter is out there.', '', '', ''], NOMES, 4).falas, ADULTOS, NOMES, false), 'falante_menor', 'T2 a fala que diz menor barra')
+  assert.equal(f.admitirFalantes2511(lidas.falas, [ADULTOS[0], { nome: 'Mara Quinn', canonica: 'a 12-year-old girl' }], NOMES, true), null, 'T2 no desenho a criança falando fica (2ª abertura decide)')
+  assert.equal(f.admitirFalantes2511(f.lerFalas2511(['Elias: Hi.', '', '', ''], NOMES, 4).falas, [ADULTOS[0], { nome: 'Mara Quinn', canonica: 'a 12-year-old girl' }], NOMES, false), null, 'T2 só quem FALA passa pela régua')
   // a conferência
   const ditas = 'The storm is coming tonight. I hear a boat calling. Then we give them light. They made it home.'.split(' ')
   igual(f.conferirFala2511(ditas, lidas.falas), { versao: 'conferencia_da_fala_2511_v1', nota: 1, escritas: 19, ditas: 19, faltando: 0, inventadas: 0, certa: true }, 'A conferência exata')
@@ -104,7 +131,7 @@ async function suite(change) {
   const ini = rota.indexOf('    const gemini2511: {'), fim = rota.indexOf('    if (kling4TrialCandidate && scenes.length === 3', ini)
   assert.ok(ini > 0 && fim > ini, 'B o trecho da tentativa do Gemini')
   const trecho = rota.slice(ini, fim)
-  const rodar = async ({ email = CASA, voz = 'characters', chave = f.FALA_DOS_PERSONAGENS_2511, lingua = 'en', verbatim = true, falas = FALAS, envio = null } = {}) => {
+  const rodar = async ({ email = CASA, voz = 'characters', chave = f.FALA_DOS_PERSONAGENS_2511, lingua = 'en', verbatim = true, falas = FALAS, envio = null, fichas = null } = {}) => {
     const envios = []
     const escopo = { motorDoFilmeGratis2511: async () => null, cinematicAdmin: {}, geminiNaEsteiraLigado: g.geminiNaEsteiraLigado, GEMINI_NA_ESTEIRA_2511: 'public', user: { email, id: USER },
       kling4PorSecao: (x) => x, kling4Prompts: [], kling4ApprovedStills: [], kling4Timing: { voiceovers: falas, referenciaUnica: { nomes: ['Elias Ward', 'Elias'], segundo: { nomes: ['Mara Quinn', 'Mara'] } } },
@@ -112,9 +139,9 @@ async function suite(change) {
       submitGeminiTrialVideo: async (e) => { envios.push(e); if (envio) return envio(e); return { requestId: 'gem-1', model: GEMINI, submittedAt: 'x' } },
       GeminiRecusadoNoEnvio: g.GeminiRecusadoNoEnvio, writeServerEvent: async () => true, GEMINI_ENVIO_EVENTO: 'x', generationId: GEN, ctxDespacho: () => ({ totalPosts: 0 }), process: { env: {} },
       falaDosPersonagensLigada: f.falaDosPersonagensLigada, FALA_DOS_PERSONAGENS_2511: chave, FALA_DOS_PERSONAGENS_2511_VERSAO: f.FALA_DOS_PERSONAGENS_2511_VERSAO, vozPedida2511: f.vozPedida2511,
-      lerFalas2511: f.lerFalas2511, vozDaFicha2511: f.vozDaFicha2511, geminiFaladoDoKling4: f.geminiFaladoDoKling4, body: { voice_mode: voz }, narrationLanguage: { language: lingua }, verbatim,
+      lerFalas2511: f.lerFalas2511, vozDaFicha2511: f.vozDaFicha2511, admitirFalantes2511: f.admitirFalantes2511, geminiFaladoDoKling4: f.geminiFaladoDoKling4, body: { voice_mode: voz }, narrationLanguage: { language: lingua }, verbatim,
       mentionsRealPerson: (t) => /Obama/.test(t), isStylizedLook: () => false, styleAnchor: { look: 'photoreal' }, desenhoInfantil: { ativo: false },
-      qualitySnapshot: { characters: [{ nome: 'Elias Ward', genero: 'man', tipo: 'humano', canonica: 'appearance anchors: 50-60' }, { nome: 'Mara Quinn', genero: 'woman', tipo: 'humano', canonica: 'appearance anchors: 20-30' }] } }
+      qualitySnapshot: { characters: fichas ?? [{ nome: 'Elias Ward', genero: 'man', tipo: 'humano', canonica: 'appearance anchors: 50-60' }, { nome: 'Mara Quinn', genero: 'woman', tipo: 'humano', canonica: 'appearance anchors: 20-30' }] } }
     const corpo = ts.transpile('let kling4Posts = 0\n' + trecho + '\nreturn (async () => ({ job: await tentarGemini2511(), gemini2511, fala2511: typeof fala2511 === "undefined" ? undefined : fala2511 }))()', { target: ts.ScriptTarget.ES2022 })
     const r = await Function(...Object.keys(escopo), corpo)(...Object.values(escopo))
     return { ...r, envios }
@@ -134,7 +161,8 @@ async function suite(change) {
     igual(x.envios, [fal.entrada], 'B fora do verbatim (o escritor): o pedido falado'); assert.equal(x.fala2511.marcador.modo, 'falado', 'B fora do verbatim: falado') }
   for (const [nome, opts, motivo] of [['outra língua', { lingua: 'pt' }, 'lingua'], ['roteiro sem falas', { falas: ['', '', '', ''] }, 'roteiro_sem_falas'],
     ['fora do formato', { falas: ['The storm is coming.', 'Mara: Hi.', '', ''] }, 'fala_fora_do_formato'], ['pessoa real na fala', { falas: ['Elias: Obama is here.', '', '', ''] }, 'fala_com_pessoa_real'],
-    ['recusa no envio', { envio: () => { throw new g.GeminiRecusadoNoEnvio(422) } }, 'gemini_recusou_no_envio']]) {
+    ['recusa no envio', { envio: () => { throw new g.GeminiRecusadoNoEnvio(422) } }, 'gemini_recusou_no_envio'],
+    ['menor fotorreal falando', { fichas: [{ nome: 'Elias Ward', genero: 'man', tipo: 'humano', canonica: 'appearance anchors: 50-60' }, { nome: 'Mara Quinn', genero: 'woman', tipo: 'humano', canonica: 'a 12-year-old girl' }] }, 'falante_menor']]) {
     const x = await rodar(opts)
     assert.equal(x.fala2511.marcador.modo, 'narrado', `B ${nome}: narrado`)
     assert.equal(x.fala2511.marcador.motivo, motivo, `B ${nome}: o motivo`)
@@ -196,7 +224,18 @@ const mutantes = [
   [ROUTE, "motivo: narrationLanguage.language !== 'en' ? 'lingua' : 'sem_gemini' }", "motivo: narrationLanguage.language !== 'en' ? 'lingua' : !verbatim ? 'roteiro_sem_falas' : 'sem_gemini' }"], // voltar a depender do verbatim
   [MOD, "      if (texto.slice(0, inicio).trim()) return { motivo: 'fala_fora_do_formato' }\n", ''],
   [MOD, "        if (qualquerRotulo.test(' ' + fala)) return { motivo: 'falante_fora_do_elenco' }", "        if (false) return { motivo: 'falante_fora_do_elenco' }"],
-  [MOD, "      if (total > Math.floor(PALAVRAS_POR_SEGUNDO_2511 * duracoes[i])) return { motivo: 'fala_longa' }\n", ''],
+  [MOD, "  if (falas.flat().reduce((s, l) => s + palavras(l.texto).length, 0) > PALAVRAS_NO_FILME_2511) return { motivo: 'fala_longa' }\n", ''],
+  [MOD, "    if ((falas[k] ?? []).reduce((n, l) => n + palavras(l.texto).length, 0) > Math.floor(PALAVRAS_POR_SEGUNDO_2511 * d)) return { motivo: 'fala_longa' }\n", ''],
+  [MOD, "export const PISO_DO_PLANO_FALADO_2511 = 2", "export const PISO_DO_PLANO_FALADO_2511 = 1"],
+  [MOD, "  const quota = w.map((x) => (W ? (resto * x) / W : resto / n))", "  const quota = w.map(() => resto / n)"],
+  [MOD, "    const d = tempos[k], p = s?.prompt", "    const d = Number(s?.duration), p = s?.prompt"],
+  [MOD, "    if (falanteConhecido2511(f) || (nomes[r] ?? []).some((n) => falanteConhecido2511({ nome: n }))) return 'falante_conhecido'\n", ''],
+  [MOD, "  if (!estilizado) for (const r of quem) {", "  if (false) for (const r of quem) {"],
+  [MOD, "    if (!falanteAdulto2511(f, falas.flat().map((l) => l.texto))) return 'falante_menor'", "    if (!falanteAdulto2511(f, [])) return 'falante_menor'"],
+  [MOD, "  const quem = [...new Set(falas.flat().map((l) => l.ref))]", "  const quem = [0, 1].filter((r) => r < fichas.length)"],
+  [ROUTE, "        else if (falantes2511) fm2511.motivo = falantes2511\n", ''],
+  ['lib/cinematic/reguaDaPessoaNaFala2511.ts', "  return adultoProvado2511(c) && !pareceMenorNaFala2511(c) && !falas.some((t) => textoDizMenor2511(t))", "  return !pareceMenorNaFala2511(c) && !falas.some((t) => textoDizMenor2511(t))"],
+  ['lib/cinematic/reguaDaPessoaNaFala2511.ts', "  return mentionsRealPerson(canonica) || [...nomes, canonica].some((t) => FICCAO_DE_MARCA_2511.test(t))", "  return mentionsRealPerson(canonica)"],
   [MOD, "  if (!falas.some((l) => l.length)) return { motivo: 'roteiro_sem_falas' }\n", ''],
   [MOD, "with synchronized spoken dialogue in English. ", ''],
   [MOD, "Only the lines written below are spoken, exactly as written, with the lips in sync; no narrator, no other speech, no singing.", ''],
