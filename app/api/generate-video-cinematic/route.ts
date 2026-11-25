@@ -52,6 +52,7 @@ import { claimKling4PaidSlot, finishKling4PaidSlot } from '@/lib/kling4PaidQueue
 import { ensureKling4PromoBudgetToday } from '@/lib/kling4PromoCarry'
 import { creditCostFor, creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 import { isInternalEmail } from '@/lib/internalAccounts'
+import { selectedFilmLook } from '@/lib/cinematic/filmLook2511Server'
 import { comPeloFacialDoTexto } from '@/lib/cinematic/peloFacialDoTexto' // KINEO-PELO-FACIAL-DO-TEXTO-1211
 import { KLING4_PLANO_DA_FALA_1911, planoDaFalaLigado, REGRA_DO_PLANO_DA_FALA, secoesParaODescritor, descricoesPorSecao, topicoComoDado, descricoesCompletas } from '@/lib/kling4PlanoDaFala1911' // KINEO-PLANO-DA-FALA-1911 (A1)
 import { soSemFicha, cenaTemFicha, prazoDoA1A2, A1A2_ESPERA_DO_DESCRITOR_MS, A1A2_REESCRITA_MS, PLANO_DA_FALA_EVENTO, KLING4_PLANO_DA_FALA_VERSAO, type PrazoDoA1A2 } from '@/lib/kling4PlanoDaFala1911' // [revisor 19/11, "pode com condição"] modo só sem ficha, prazo e rastro do A1/A2
@@ -1651,7 +1652,7 @@ async function manipularPost(req: NextRequest) {
     // user's own clips.
     // KINEO-VERBATIM-SEM-MARCADOR-2026-08-24: `script_mode` ('verbatim'|'ai')
     // e `dry_run` (validador de $0, só contas do fundador) entram no contrato.
-    let body: { generationId?: string; prompt?: string; duration?: number; allow_shorter_duration?: boolean; engine?: string; language?: string; vertical?: string; characterId?: string; script_mode?: string; k4_personagem_fixo?: boolean; k4_reference_plan?: unknown; k4_gratis_ensaio?: boolean; /* KINEO-K4-GRATIS-20S-1711 — só isDryRunAccount: o filme grátis do Kling 4 com teto de 20 s neste pedido */ dry_run?: boolean | 'stills'; /* KINEO-BANCO-PROVA-2710 — 'stills' = o banco de pedidos-prova (para no still, só conta do ensaio) */ brollScenes?: Array<{ sceneNumber?: number; brollPrompt?: string; shotType?: string; negativePrompt?: string; userFootageUrl?: string }>; globalStyle?: { mood?: string; lighting?: string; cameraStyle?: string }; /* KINEO-K4-SUJEITO-0111 — a ideia de onde o roteiro estruturado pelo cliente nasceu (só o sujeito obrigatório do Kling 4 lê) */ original_idea?: string }
+    let body: { look?: unknown; generationId?: string; prompt?: string; duration?: number; allow_shorter_duration?: boolean; engine?: string; language?: string; vertical?: string; characterId?: string; script_mode?: string; k4_personagem_fixo?: boolean; k4_reference_plan?: unknown; k4_gratis_ensaio?: boolean; /* KINEO-K4-GRATIS-20S-1711 — só isDryRunAccount: o filme grátis do Kling 4 com teto de 20 s neste pedido */ dry_run?: boolean | 'stills'; /* KINEO-BANCO-PROVA-2710 — 'stills' = o banco de pedidos-prova (para no still, só conta do ensaio) */ brollScenes?: Array<{ sceneNumber?: number; brollPrompt?: string; shotType?: string; negativePrompt?: string; userFootageUrl?: string }>; globalStyle?: { mood?: string; lighting?: string; cameraStyle?: string }; /* KINEO-K4-SUJEITO-0111 — a ideia de onde o roteiro estruturado pelo cliente nasceu (só o sujeito obrigatório do Kling 4 lê) */ original_idea?: string }
     try {
       body = await req.json()
     } catch {
@@ -4051,6 +4052,7 @@ async function manipularPost(req: NextRequest) {
     const styleAnchor = deriveStyleAnchor(
       textoDoLook(prompt, body.original_idea), // KINEO-ELENCO-TRAVA-0311 — + a ideia de onde o roteiro nasceu ("Estilo animación cinematográfica 3D familiar" vivia só nela: o filme nascia fotorreal); era: prompt // KINEO-ROMANCE-ADULTO-2026-10-13 — o look vem SÓ do texto do cliente; o plano do GPT ("illustrated by their body language") não decide mais
       styleSuffix,
+      selectedFilmLook(body.look, user.email),
     )
     if (romanceAdulto.ativo) Object.assign(styleAnchor, forcePhotorealAnchor(styleAnchor, styleSuffix)) // KINEO-ROMANCE-ADULTO-2026-10-13 — romance é sempre fotorreal
     if (desenhoInfantil.ativo) Object.assign(styleAnchor, desenhoInfantil.estilo) // KINEO-BEBE-QUE-FALA-2010 — desenho infantil: o look 3D fixo (vence o texto) e, por ser desenhado, a estrada vira character_story

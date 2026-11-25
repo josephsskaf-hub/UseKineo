@@ -130,17 +130,19 @@ export function forcePhotorealAnchor(anchor: StyleAnchor, explicitStyleSuffix?: 
 } // KINEO-ROMANCE-ADULTO-2026-10-13
 
 /** Decide UMA vez por filme, a partir do roteiro inteiro (nunca por cena). */
-export function deriveStyleAnchor(scriptAndVisuals: string, explicitStyleSuffix?: string): StyleAnchor {
+export function deriveStyleAnchor(scriptAndVisuals: string, explicitStyleSuffix?: string, selected?: 'photoreal' | 'animated3d' | 'anime'): StyleAnchor {
   const t = semEstiloNegado((scriptAndVisuals || '').slice(0, 8000)) // KINEO-ROMANCE-ADULTO-2026-10-13 — "no logo animation" não pede animação
   const explicit = semEstiloNegado(explicitStyleSuffix || '') // KINEO-ROMANCE-ADULTO-2026-10-13
   let look: StyleLook = 'photoreal'
   // The client's explicit style must decide the look, not merely be appended
   // after a contradictory photoreal lock chosen from a planner's description.
   const matched = LOOK_RE.find(([re]) => re.test(explicit)) ?? LOOK_RE.find(([re]) => re.test(t))
-  if (matched) look = matched[1]
+  if (selected) look = selected
+  else if (matched) look = matched[1]
   const base = LOOKS[look]
   // Estilo explícito do cliente (globalStyle) manda: entra depois da trava.
-  const extra = explicitStyleSuffix && explicitStyleSuffix.trim() ? explicitStyleSuffix.trim().replace(/^,\s*/, '') : ''
+  const requestedExtra = explicitStyleSuffix && explicitStyleSuffix.trim() ? explicitStyleSuffix.trim().replace(/^,\s*/, '') : ''
+  const extra = selected ? requestedExtra.split(',').filter(part => !LOOK_RE.some(([pattern, kind]) => kind !== selected && pattern.test(semEstiloNegado(part)))).join(',').trim() : requestedExtra
   if (look === 'animated3d' && pedeTomEscuro(`${t}\n${explicit}`)) { // KINEO-3D-ESCURO-0911
     const extraEscuro = extra.replace(MOOD_ALEGRE_3D_G, ' ').split(',').map((s) => s.trim()).filter(Boolean) // KINEO-3D-ESCURO-0911
     return { look, lookPhrase: LOOK_3D_ESCURO, suffix: `, ${base.lock}, suspenseful, moody${extraEscuro.length ? `, ${extraEscuro.join(', ')}` : ''}` } // KINEO-3D-ESCURO-0911
