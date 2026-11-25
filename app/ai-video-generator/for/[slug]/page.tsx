@@ -3,7 +3,7 @@ import { getCitationTool } from '@/lib/seo/citationTools2411'
 import CitationFormatHero from '@/components/seo/CitationFormatHero'
 import { citationFormatPaint, CITATION_FORMAT_CSS, type CitationFormatSlug } from '@/lib/growth/citationFormatHero2411'
 import InternalCitationPreview from '@/components/seo/InternalCitationPreview'
-import { CITATION_PAGES_RELEASE, isCitationDraftSlug } from '@/lib/growth/citationPagesRelease'
+import { citationReleaseForSlug, isCitationDraftSlug } from '@/lib/growth/citationPagesRelease'
 import { BuyerBatch2Lead, BuyerBatch2Details } from '@/components/seo/BuyerQuestions2111'
 import { buyerBatch2, buyerBatch2ForIntent } from '@/lib/seo/buyerQuestions2111'
 // PROJETO 1 — GOOGLE (docs/PROJETO-1-GOOGLE-2026-09-17.md) — a página de intenção.
@@ -92,8 +92,9 @@ const CARD = { background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius:
 
 export default function IntentPage(props: { params: { slug: string } }) {
   if (isCitationDraftSlug(props.params.slug)) {
-    if (CITATION_PAGES_RELEASE === 'off') notFound()
-    if (CITATION_PAGES_RELEASE === 'internal') return <InternalCitationPreview>{IntentPageContent(props)}</InternalCitationPreview>
+    const release = citationReleaseForSlug(props.params.slug)
+    if (release === 'off') notFound()
+    if (release === 'internal') return <InternalCitationPreview>{IntentPageContent(props)}</InternalCitationPreview>
   }
   return IntentPageContent(props)
 }

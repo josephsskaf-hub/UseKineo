@@ -83,7 +83,7 @@ async function verify(rep={}){
   else assert.ok(render(current,AD).includes('Product'),'AD public rendered')
   if(state!=='public')assert.equal(current(AD).generateMetadata().robots?.index,false,'META ad draft noindex')
   const toolUrls=json(l(RELEASE).CITATION_TOOL_DRAFT_SLUGS??[]).map(s=>'https://www.usekineo.com/ai-video-generator/for/'+s)
-  assert.deepEqual(map.filter(x=>toolUrls.includes(x.url)).map(x=>x.url).sort(),state==='public'?[...toolUrls].sort():[],'SITEMAP ten tool state visibility')
+  assert.deepEqual(map.filter(x=>toolUrls.includes(x.url)).map(x=>x.url).sort(),[],'SITEMAP ten tool state visibility')
   if(state==='public')for(const entry of map.filter(x=>toolUrls.includes(x.url)))assert.equal(entry.lastModified,'2026-11-24T12:00:00.000Z','SITEMAP ten tool substantive date')
   const fresh=map.filter(x=>expectedUrls.includes(x.url))
   assert.deepEqual(fresh.map(x=>x.url).sort(),state==='public'?[...expectedUrls].sort():[],'SITEMAP state visibility')
@@ -108,18 +108,18 @@ const sub=(f,a,b)=>{const s=source(f);assert.equal(s.split(a).length,2,'mutation
 const mutants=[
  ['default back to internal',()=>sub(RELEASE,"CITATION_PAGES_RELEASE: CitationPagesRelease = 'public'","CITATION_PAGES_RELEASE: CitationPagesRelease = 'internal'"),'DEFAULT pages public'],
  ['default back to off',()=>sub(RELEASE,"CITATION_PAGES_RELEASE: CitationPagesRelease = 'public'","CITATION_PAGES_RELEASE: CitationPagesRelease = 'off'"),'DEFAULT pages public'],
- ['catalog drops drafts in public',()=>sub(CAT,"!isCitationDraftSlug(p.slug) || CITATION_PAGES_RELEASE === 'public'","!isCitationDraftSlug(p.slug)"),'INDEX public old slugs plus three drafts'],
+ ['catalog drops drafts in public',()=>sub(CAT,"!isCitationDraftSlug(p.slug) || citationReleaseForSlug(p.slug) === 'public'","!isCitationDraftSlug(p.slug)"),'INDEX public old slugs plus three drafts'],
  ['hub link leaks in internal',()=>sub(PILLAR,"CITATION_PAGES_RELEASE === 'public' ? [...related,","CITATION_PAGES_RELEASE !== 'off' ? [...related,"),'HUB link only in public'],
  ['hub link leaks in off',()=>sub(PILLAR,"CITATION_PAGES_RELEASE === 'public' ? [...related,","true ? [...related,"),'HUB link only in public'],
  ['hub link missing in public',()=>sub(PILLAR,"CITATION_PAGES_RELEASE === 'public' ? [...related,","false ? [...related,"),'HUB link present in public'],
  ['hub label wrong language',()=>sub(PILLAR,"label: pt ? 'Anúncio pela foto do produto' : 'Product photo ads'","label: 'Product photo ads'"),'HUB label in hub language'],
  ['hub changes other text',()=>sub(PILLAR,"<Related heading={c.relatedHeading} links={CITATION_PAGES_RELEASE","<Related heading={c.relatedHeading + (CITATION_PAGES_RELEASE === 'public' ? ' ' : '')} links={CITATION_PAGES_RELEASE"),'HUB only the anchor added'],
- ['rewrite in off',()=>sub(RELEASE,"if (CITATION_PAGES_RELEASE !== 'internal') return null",'if (false) return null'),'PREVIEW rewrite only in internal mode'],
- ['preview bypass state',()=>sub(PREVIEW,"CITATION_PAGES_RELEASE !== 'internal' || !isCitationDraftSlug(params.slug)",'!isCitationDraftSlug(params.slug)'),'PREVIEW direct route closed outside internal'],
+ ['rewrite in off',()=>sub(RELEASE,"if (citationReleaseForSlug(slug) !== 'internal') return null",'if (false) return null'),'PREVIEW rewrite only in internal mode'],
+ ['preview bypass state',()=>sub(PREVIEW,"citationReleaseForSlug(params.slug) !== 'internal' || !isCitationDraftSlug(params.slug)",'!isCitationDraftSlug(params.slug)'),'PREVIEW direct route closed outside internal'],
  ['off bypass',()=>sub(ACCESS,"release === 'public'","release === 'off' || release === 'public'"),'GATE off everyone'],
  ['internal broad patterns',()=>({[ACCESS]:source(ACCESS).replaceAll('contaDaCasaExata','isInternalEmail')}),'GATE lookalikes denied'],
  ['unconfirmed allowed',()=>sub(ACCESS,'!!user?.email_confirmed_at && contaDaCasaExata(user.email)','contaDaCasaExata(user?.email)'),'GATE unconfirmed denied'],
- ['catalog leaks drafts',()=>sub(CAT,"!isCitationDraftSlug(p.slug) || CITATION_PAGES_RELEASE === 'public'",'true'),'INDEX off exactly old slugs'],
+ ['catalog leaks drafts',()=>sub(CAT,"!isCitationDraftSlug(p.slug) || citationReleaseForSlug(p.slug) === 'public'",'true'),'INDEX off exactly old slugs'],
  ['static params leak draft',()=>sub(INTENT,'return INTENT_SLUGS.map','return [...INTENT_SLUGS, "cartoon-videos"].map'),'STATIC off exactly old params'],
  ['sitemap exposes ad while off',()=>sub(MAP,"CITATION_PAGES_RELEASE === 'public' ? [{ url: `${BASE}${FOTO_PRODUTO_PATH}`","true ? [{ url: `${BASE}${FOTO_PRODUTO_PATH}`"),'SITEMAP off exactly old entries'],
  ['auth error ignored',()=>sub(AUTH,'if (!error) user = data.user','user = data.user'),'AUTH denied external invalid or unconfirmed'],

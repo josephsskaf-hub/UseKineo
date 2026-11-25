@@ -6,7 +6,7 @@ import {offlineModules,React,renderToStaticMarkup,source} from './gpt24h-offline
 const require=createRequire(import.meta.url),renderer=require(process.env.KINEO_CITATION_TEST_RENDERER||'C:/Users/josep/AppData/Local/Temp/citacoes-caixa-v2-react/node_modules/react-test-renderer/index.js')
 const RELEASE='lib/growth/citationPagesRelease.ts',CAT='lib/seo/intentPages.ts',PAGE='app/ai-video-generator/for/[slug]/page.tsx',DATA='lib/seo/citationTools2411.ts',FORM='components/seo/CitationToolForm2411.tsx',ENTRY='app/api/citations/tool-entry/route.ts'
 const baseline=JSON.parse(source('scripts/test-support/citacoes-tarde-referencia-2411.json'))
-assert.equal(createHash('sha256').update(JSON.stringify(baseline.sources)).digest('hex'),'1df6cea5e5906d2f9fcf796f2e4a576ad69bb1f93fbcb7ccd72ed0e3f7cccb3c','immutable approved baseline')
+assert.equal(createHash('sha256').update(JSON.stringify(baseline.sources)).digest('hex'),'5cc68d60bf0861ab61e6657209a57161949bbb20eceb2c4ce69b8c52ee3e89a5','immutable approved baseline')
 const plain=({children})=>React.createElement('div',null,children)
 const mocks=Object.fromEntries(['Footer','AgencyVolumeBridge','ExitIntentOffer','LocalizedScriptHandoff','StickyFreeShortCTA','Kineo1RetiredNotice','PaidSeedanceBridge','ScriptToSeedanceBridge','BuyCreatorCta','NicheHouseFilm','GeoRodada3Sections'].map(n=>['components/'+n+'.tsx',{__esModule:true,default:plain}]))
 mocks['lib/analytics.ts']={trackEvent:()=>{},trackClosedEvent:()=>{},rememberSignupCampaign:()=>{}}
@@ -20,15 +20,15 @@ mocks['app/alternatives/[competitor]/page.tsx']={COMPETITOR_SLUGS:[]}
 mocks['lib/publicSurfacePolicy.ts']={CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED:false}
 const gh=source('lib/gptHandoff.ts'),deps={'lib/gptHandoff.ts':gh.replace("import { createHash } from 'node:crypto'","const createHash=()=>{throw Error('No hash in offline SSR')}")}
 const make=(rep={},extra={})=>offlineModules({mocks:{...mocks,...extra},replacements:{...deps,...rep}})
-const state=(mode,rep={})=>({...rep,[RELEASE]:(rep[RELEASE]??source(RELEASE)).replace("CITATION_PAGES_RELEASE: CitationPagesRelease = 'off'","CITATION_PAGES_RELEASE: CitationPagesRelease = '"+mode+"'")})
+const state=(mode,rep={})=>({...rep,[RELEASE]:(rep[RELEASE]??source(RELEASE)).replace("CITATION_TOOLS_RELEASE: CitationPagesRelease = 'off'","CITATION_TOOLS_RELEASE: CitationPagesRelease = '"+mode+"'")})
 const json=x=>JSON.parse(JSON.stringify(x)),render=(l,slug)=>renderToStaticMarkup(React.createElement(l(PAGE).default,{params:{slug}}))
 const old=make(baseline.sources),live=make(),slugs=json(live(RELEASE).CITATION_TOOL_DRAFT_SLUGS),oldSlugs=json(old(CAT).INTENT_SLUGS)
 assert.equal(slugs.length,10,'TEN explicit new tools')
 assert.equal(new Set(slugs).size,10,'UNIQUE new slugs')
-assert.deepEqual(json(live(CAT).INTENT_SLUGS),oldSlugs,'OFF preserves all 129 public slugs')
+assert.deepEqual(json(live(CAT).INTENT_SLUGS),oldSlugs,'OFF preserves all 132 public slugs')
 for(const slug of oldSlugs)assert.equal(render(live,slug),render(old,slug),'PRESERVED entire published HTML '+slug)
 assert.deepEqual(json(live('app/sitemap.ts').default()),json(old('app/sitemap.ts').default()),'OFF exact sitemap')
-const publicCurrent=make(state('public')),publicBaseline=make(state('public',baseline.sources))
+const publicCurrent=make(state('public')),publicBaseline=old
 assert.equal(publicCurrent(CAT).INTENT_SLUGS.length,142,'PUBLIC exact catalog size')
 assert.equal(new Set(publicCurrent(CAT).INTENT_SLUGS).size,142,'PUBLIC unique catalog')
 for(const slug of oldSlugs)assert.equal(render(publicCurrent,slug),render(publicBaseline,slug),'PRESERVED published HTML in public '+slug)
@@ -53,6 +53,29 @@ for(const mode of ['off','internal','public']){
   }
  }
 }
+// Formats already have public URLs. Rolling out tools must never toggle those URLs.
+assert.equal(live(RELEASE).CITATION_PAGES_RELEASE, 'public')
+assert.equal(live(RELEASE).CITATION_TOOLS_RELEASE, 'off')
+for (const formatMode of ['off', 'internal', 'public']) {
+  for (const toolMode of ['off', 'internal', 'public']) {
+    const flags = state(toolMode)
+    flags[RELEASE] = flags[RELEASE].replace("CITATION_PAGES_RELEASE: CitationPagesRelease = 'public'", "CITATION_PAGES_RELEASE: CitationPagesRelease = '" + formatMode + "'")
+    const loader = make(flags)
+    const release = loader(RELEASE)
+    const catalog = loader(CAT).INTENT_SLUGS
+    for (const [group, mode] of [[release.CITATION_DRAFT_SLUGS, formatMode], [slugs, toolMode]]) {
+      for (const slug of group) {
+        assert.equal(catalog.includes(slug), mode === 'public', 'independent static catalog: ' + slug)
+        assert.equal(release.citationFormatPreviewPath('/ai-video-generator/for/' + slug), mode === 'internal' ? '/internal/citation-formats/' + slug : null, 'independent preview rewrite: ' + slug)
+        const preview = () => loader('app/internal/citation-formats/[slug]/page.tsx').default({params:{slug}})
+        if (mode !== 'internal') assert.throws(preview, /NEXT_NOT_FOUND/, 'direct internal path closed: ' + slug)
+        else assert.equal(preview().type, loader(PAGE).default, 'direct preview guarded by intent page: ' + slug)
+      }
+    }
+  }
+}
+console.log('PASS nine independent release combinations')
+
 const sample='The blue lantern rings twice before the little fox returns home.'
 const rendererPath=process.env.KINEO_CITATION_TEST_RENDERER||'C:/Users/josep/AppData/Local/Temp/citacoes-caixa-v2-react/node_modules/react-test-renderer/index.js'
 const mountedSupport=source('scripts/gpt24h-offline-support.mjs').replace("resolve(dirname(fileURLToPath(import.meta.url)), '..')","process.cwd()").replace("const require = createRequire(resolve(root, 'package.json'))", "const local=createRequire(resolve(root,'package.json'));const rr=createRequire("+JSON.stringify(rendererPath)+");const require=n=>n==='react'||n.startsWith('react/')?rr(n):local(n)")
@@ -112,9 +135,9 @@ async function entryChecks(rep={},all=true){
 }
 await entryChecks()
 for(const [label,rep,message]of[
- ['entry off opens',()=>sub(ENTRY,"if(CITATION_PAGES_RELEASE==='off')return fail(404)",'if(false)return fail(404)'),'ENTRY eligibility'],
- ['entry internal bypass',()=>sub(ENTRY,"CITATION_PAGES_RELEASE==='internal' && !citationPageVisible(user,'internal')",'false'),'ENTRY eligibility'],
+ ['entry off opens',()=>sub(ENTRY,"if(CITATION_TOOLS_RELEASE==='off')return fail(404)",'if(false)return fail(404)'),'ENTRY eligibility'],
+ ['entry internal bypass',()=>sub(ENTRY,"CITATION_TOOLS_RELEASE==='internal' && !citationPageVisible(user,'internal')",'false'),'ENTRY eligibility'],
  ['entry wrong Studio',()=>sub(ENTRY,'user?destinoDaIdeia(canonical)', 'user?canonical'),'ENTRY first editable Studio'],
  ['entry language lost',()=>sub(ENTRY,'language:tool.language','language:undefined'),'ENTRY catalog language authoritative'],
 ]){await assert.rejects(()=>entryChecks(rep(),false),e=>e.message.includes(message),label);console.log('PASS mutant '+label)}
-console.log('PASS 129 entire HTML controls, exact off sitemap, 10 tools × 3 release states, mounted text/mode/length, 360 actual GET cases and 7 rejected mutants')
+console.log('PASS 132 entire HTML controls, exact off sitemap, 10 tools × 3 release states, mounted text/mode/length, 360 actual GET cases and 7 rejected mutants')

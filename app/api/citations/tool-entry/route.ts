@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { CITATION_PAGES_RELEASE } from '@/lib/growth/citationPagesRelease'
+import { CITATION_TOOLS_RELEASE } from '@/lib/growth/citationPagesRelease'
 import { citationPageVisible } from '@/lib/growth/citationPagesAccess'
 import { getCitationTool } from '@/lib/seo/citationTools2411'
 import { buildAuthenticatedCreationRedirect, CREATION_HANDOFF_PROMPT_MAX_CHARS } from '@/lib/creationHandoff'
@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 const HEADERS = { 'Cache-Control': 'private, no-store, max-age=0', Vary: 'Cookie, Authorization' }
 export async function GET(request: Request) {
  const fail=(status:number)=>NextResponse.json({available:false},{status,headers:HEADERS})
- if(CITATION_PAGES_RELEASE==='off')return fail(404)
+ if(CITATION_TOOLS_RELEASE==='off')return fail(404)
  const params=new URL(request.url).searchParams
  const tool=getCitationTool(params.get('slug')??'')
  const prompt=(params.get('prompt')??'').replace(/\r\n/g,'\n').trim()
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
  try{
   const {data:{user},error}=await createClient().auth.getUser()
   if(error && error.name!=='AuthSessionMissingError')return fail(503)
-  if(CITATION_PAGES_RELEASE==='internal' && !citationPageVisible(user,'internal'))return fail(404)
+  if(CITATION_TOOLS_RELEASE==='internal' && !citationPageVisible(user,'internal'))return fail(404)
   const campaign='intent_'+tool.slug
   const canonical=buildAuthenticatedCreationRedirect({prompt,campaign,createIntent:'trial_best',scriptMode,language:tool.language})
   if(!canonical)return fail(400)

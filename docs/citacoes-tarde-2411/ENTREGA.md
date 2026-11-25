@@ -1,4 +1,7 @@
 # Citações · fila da tarde · candidata local
+
+**Integração local de 25/11** · base `9270f6e05`. Os formatos já aprovados permanecem em `CITATION_PAGES_RELEASE=public`. As dez ferramentas, a sua rota de entrada e a inclusão no sitemap obedecem a `CITATION_TOOLS_RELEASE=off`. O relato abaixo documenta a candidata de 24/11, anterior à publicação dos formatos. O teste atual compara os 132 HTMLs e o sitemap da base e verifica as nove combinações independentes de estado dos dois lotes.
+
 **LOCAL / CANDIDATA PARA REVISÃO · 24/11/2026.** Base af1a464db4f2af63c48193388916e1eda31cde79, sobre Formatos 6224c7846184386fe9f0372b31ae434ce30d5588 e origin/main c854849c816ba1643093681a2c815520cc5872a9. SHA da candidata e veredito ficam no quadro; nenhuma publicação ou push.
 - Dez ferramentas novas em /ai-video-generator/for/, com dois modos, idioma, texto próprio, FAQ, tabela, fatos da fonte canônica e revisão no Studio. [Escolha por evidência e limites](README.md).
 - CITATION_PAGES_RELEASE é constante em lib/growth/citationPagesRelease.ts:3, valor **off no commit**. Para ensaio, trocar por internal ou public e fazer build. Não é variável de ambiente. Internal confirma a casa exata no servidor; public só depois do revisor e da aprovação das dez fotos. A chave também controla os três formatos antigos e o anúncio: para abrir só o lote anteriormente aprovado, usar a branch Formatos entregue.

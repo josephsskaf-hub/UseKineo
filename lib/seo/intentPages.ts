@@ -1,5 +1,5 @@
 import { CITATION_TOOLS } from './citationTools2411'
-import { CITATION_PAGES_RELEASE, isCitationDraftSlug } from '../growth/citationPagesRelease'
+import { citationReleaseForSlug, isCitationDraftSlug } from '../growth/citationPagesRelease'
 import { FREE_FILM_ENGINE_NAME } from '../freeFilmEngine' // KINEO-LLMS-K4-2910
 // PROJETO 1 — GOOGLE (docs/PROJETO-1-GOOGLE-2026-09-17.md) — o catálogo das páginas de intenção.
 //
@@ -310,7 +310,7 @@ const ALL_INTENT_PAGES: readonly IntentPage[] = [
 ]
 
 // Only public URLs enter hubs, related links, static params and the sitemap.
-export const INTENT_PAGES: readonly IntentPage[] = ALL_INTENT_PAGES.filter(p => !isCitationDraftSlug(p.slug) || CITATION_PAGES_RELEASE === 'public')
+export const INTENT_PAGES: readonly IntentPage[] = ALL_INTENT_PAGES.filter(p => !isCitationDraftSlug(p.slug) || citationReleaseForSlug(p.slug) === 'public')
 export function getDraftCitationIntentPage(slug: string): IntentPage | undefined {
   return isCitationDraftSlug(slug) ? ALL_INTENT_PAGES.find(p => p.slug === slug) : undefined
 }

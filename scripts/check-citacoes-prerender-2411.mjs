@@ -10,7 +10,9 @@ const prefix = '/ai-video-generator/for/'
 const dynamicRoute = prefix + '[slug]'
 const privatePrefix = '/internal/citation-formats'
 const releaseFile = 'lib/growth/citationPagesRelease.ts'
-const release = process.argv[3] ?? 'off'
+const release = process.argv[3] ?? 'public'
+const toolsRelease = process.argv[4] ?? 'off'
+assert.ok(['off', 'internal', 'public'].includes(toolsRelease), 'Invalid tools release')
 assert.ok(['off', 'internal', 'public'].includes(release), 'Pass off, internal or public as the build release mode')
 
 const buildDir = resolve(process.argv[2] ?? join(root, '.next'))
@@ -20,13 +22,14 @@ const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
 const manifestMarkup = readFileSync(join(buildDir, 'server/app', prefix, 'story-videos.html'), 'utf8')
 const releaseSource = source(releaseFile)
 const releaseOverride = releaseSource.replace(/(CITATION_PAGES_RELEASE: CitationPagesRelease = )'(?:off|internal|public)'/, '$1' + "'" + release + "'")
-const loader = offlineModules({ replacements: { [releaseFile]: releaseOverride } })
+const flags = releaseOverride.replace(/(CITATION_TOOLS_RELEASE: CitationPagesRelease = )'(?:off|internal|public)'/, (_match, prefix) => prefix + "'" + toolsRelease + "'")
+const loader = offlineModules({ replacements: { [releaseFile]: flags } })
 const { INTENT_SLUGS } = loader('lib/seo/intentPages.ts')
 const { CITATION_DRAFT_SLUGS, CITATION_TOOL_DRAFT_SLUGS } = loader(releaseFile)
 const { STORY_VIDEO_ENGINE } = loader('lib/growth/storyVideoPage.ts')
 const { STARTER_MONTH, STARTER_CREDITS, creditsPerReferenceVideo } = loader('lib/marketingPrice.ts')
 const expectedRoutes = Array.from(INTENT_SLUGS, slug => prefix + slug).sort()
-assert.equal(expectedRoutes.length, release === 'public' ? 132 + CITATION_TOOL_DRAFT_SLUGS.length : 129, 'Known intent catalog size')
+assert.equal(expectedRoutes.length, 129 + (release === 'public' ? CITATION_DRAFT_SLUGS.length : 0) + (toolsRelease === 'public' ? CITATION_TOOL_DRAFT_SLUGS.length : 0), 'Known intent catalog size')
 const storyIntro = 'Kineo turns an idea or a narration script into a vertical story with generated scenes, voice, captions and music using ' + STORY_VIDEO_ENGINE + '. A 60-second story costs ' + creditsPerReferenceVideo('cinematic_ai') + ' credits, with paid plans starting at ' + STARTER_MONTH + ' for ' + STARTER_CREDITS + ' monthly credits.'
 
 function verifyConfig(text) {
@@ -52,7 +55,10 @@ function verifyManifest(data) {
   assert.ok(expectedRoutes.every(url => data.routes[url].initialRevalidateSeconds === false), 'Intent pages must remain static without per-request regeneration')
   assert.equal(data.dynamicRoutes[dynamicRoute]?.fallback, false, 'Unknown intent slugs have no dynamic fallback')
   assert.ok(!Object.keys(data.routes).some(url => url.startsWith(privatePrefix)), 'Private preview is absent from prerendered routes')
-  for (const slug of [...CITATION_DRAFT_SLUGS,...CITATION_TOOL_DRAFT_SLUGS]) {
+  for (const slug of CITATION_TOOL_DRAFT_SLUGS) {
+    assert.equal(Object.hasOwn(data.routes, prefix + slug), toolsRelease === 'public', 'Only public mode prerenders tools')
+  }
+  for (const slug of CITATION_DRAFT_SLUGS) {
     assert.equal(Object.hasOwn(data.routes, prefix + slug), release === 'public', 'Only public mode prerenders drafts')
   }
 }
