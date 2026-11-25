@@ -1,6 +1,6 @@
 // KINEO-SONDA-MOTORES-2311 — guardião OFFLINE do modo "sonda" de app/api/admin/engine-test/route.ts.
 // EXECUTA a rota (transpilada e rodada num vm) com a fal, o login e o banco trocados por dublês: nenhuma rede, chave, envio ou escrita real.
-// Prova: pedido válido dos 3 endpoints chega à fal idêntico; quem não é administrador não envia nada; entrada fora da regra é recusada sem
+// Prova: pedido válido dos 5 endpoints (KINEO-SONDA-DOIS-MOTORES-2511: + Vidu Q4 e H3 Max Turbo com referência) chega à fal idêntico; quem não é administrador não envia nada; entrada fora da regra é recusada sem
 // envio; o teto de US$ 20,75 nas 24 h (15,00 + 5,75 aprovados pelo dono em 23/11) recusa sem envio, inclusive quando a soma não pode ser lida; os modos antigos respondem como antes.
 // Depois roda a MESMA bateria contra mutantes da rota: cada mutante tem de derrubar pelo menos uma asserção.
 import assert from 'node:assert/strict'
@@ -277,6 +277,66 @@ async function runSuite(source) {
 
 // A bateria usa ROUTE por fechamento; para os mutantes, troca a fonte e roda de novo.
 let CURRENT = ROUTE
+// ── KINEO-SONDA-DOIS-MOTORES-2511: Vidu Q4 e H3 Max Turbo com referência (dono 25/11, opção A, teto US$ 4,00) ──
+const VIDU = 'fal-ai/vidu/q4/reference-to-video', H3 = 'minimax/h3-max-turbo/reference-to-video'
+const vidu = (extra = {}) => ({ prompt: '0-3s: [@reference_image_1] climbs the lighthouse stairs. Hard cut. 3-7s: [@reference_image_2] answers the radio.', duration: 15, resolution: '720p', aspect_ratio: '9:16', reference_image_urls: [OUR_IMG, FAL_IMG], audio: false, ...extra })
+const h3 = (extra = {}) => ({ prompt: '0-3s: Image 1 climbs the lighthouse stairs. Hard cut. 3-7s: Image 2 answers the radio.', duration: 15, resolution: '768P', aspect_ratio: '9:16', reference_image_urls: [OUR_IMG, FAL_IMG], prompt_expansion_mode: 'disabled', ...extra })
+const EM_PROMO = Date.now() < Date.UTC(2026, 11, 1)
+for (const [endpoint, input, est] of [[VIDU, vidu(), EM_PROMO ? 0.9975 : 1.425], [H3, h3(), 1.331], [H3, h3({ reference_image_urls: [OUR_IMG], prompt: 'Image 1 walks.' , duration: 10 }), 0.8655]]) {
+  test(`válido ${endpoint} (${input.duration} s, ${input.reference_image_urls.length} foto) chega à fal com a entrada idêntica e o custo da ficha`, async () => {
+    const h = harness(ROUTE, { db: fakeDb({ rows: [ev(1.5)] }) })
+    const r = await h.post('probe=1', probe(endpoint, input))
+    assert.equal(r.status, 200, JSON.stringify(r.body))
+    assert.deepEqual(h.fal.submits, [{ model: endpoint, input }])
+    assert.deepEqual(r.body, { model: endpoint, request_id: REQ_ID, est_usd: est, day_total_usd: Math.round((1.5 + est) * 10000) / 10000 })
+    assert.deepEqual(h.db.inserts[0], { table: 'events', row: { user_id: ADMIN.id, name: 'admin_engine_probe', path: '/api/admin/engine-test', metadata: { endpoint, seconds: input.duration, est_usd: est, request_id: REQ_ID } } })
+  })
+}
+test('Vidu depois do desconto (01/12): US$ 0,095/s', async () => {
+  const depois = CURRENT.replace('const VIDU_Q4_PROMO_ATE_2511 = Date.UTC(2026, 11, 1)', 'const VIDU_Q4_PROMO_ATE_2511 = Date.UTC(2020, 0, 1)')
+  assert.notEqual(depois, CURRENT)
+  const h = origHarness(depois)
+  const r = await h.post('probe=1', probe(VIDU, vidu()))
+  assert.equal(r.status, 200, JSON.stringify(r.body)); assert.equal(r.body.est_usd, 1.425)
+})
+test('os dois novos no MESMO teto do dia: passar de US$ 20,75 recusa sem envio', async () => {
+  await refusedWithoutSend(harness(ROUTE, { db: fakeDb({ rows: [ev(20)] }) }), 'probe=1', probe(VIDU, vidu()), 429, 'daily_cap')
+  await refusedWithoutSend(harness(ROUTE, { db: fakeDb({ rows: [ev(19.5)] }) }), 'probe=1', probe(H3, h3()), 429, 'daily_cap')
+})
+test('Vidu e H3: cliente 403, nada enviado', async () => {
+  for (const [e, i] of [[VIDU, vidu()], [H3, h3()]]) { const h = harness(ROUTE, { user: STRANGER }); await refusedWithoutSend(h, 'probe=1', probe(e, i), 403); assert.equal(h.db.reads.length, 0) }
+})
+test('fora da lista segue recusado (os irmãos image-to-video e text-to-video)', async () => {
+  for (const e of ['fal-ai/vidu/q4/image-to-video', 'fal-ai/vidu/q4/reference-to-video/extra', 'minimax/h3-max-turbo/image-to-video', 'minimax/h3-max-turbo/text-to-video']) await refusedWithoutSend(harness(ROUTE), 'probe=1', probe(e, vidu()), 400, 'unknown_endpoint')
+})
+for (const [nome, e, input, erro] of [
+  ['Vidu com a chave antiga image_urls', VIDU, (() => { const i = vidu(); delete i.reference_image_urls; return { ...i, image_urls: [OUR_IMG] } })(), 'unknown_input_key'],
+  ['Vidu sem audio', VIDU, (() => { const i = vidu(); delete i.audio; return i })(), 'missing_input_key'],
+  ['Vidu com audio', VIDU, vidu({ audio: true }), 'bad_audio'],
+  ['Vidu com o filtro de segurança desligado', VIDU, vidu({ enable_safety_checker: false }), 'unknown_input_key'],
+  ['Vidu 1080p', VIDU, vidu({ resolution: '1080p' }), 'bad_resolution'],
+  ['Vidu 768P', VIDU, vidu({ resolution: '768P' }), 'bad_resolution'],
+  ['Vidu 16 s', VIDU, vidu({ duration: 16 }), 'bad_duration'],
+  ['Vidu 16:9', VIDU, vidu({ aspect_ratio: '16:9' }), 'bad_aspect_ratio'],
+  ['Vidu sem citar a foto', VIDU, vidu({ prompt: 'Image 1 climbs the stairs.' }), 'prompt_sem_a_foto'],
+  ['Vidu com multi_prompt', VIDU, vidu({ multi_prompt: [{ prompt: 'x', duration: 15 }] }), 'unknown_input_key'],
+  ['Vidu 4 fotos', VIDU, vidu({ reference_image_urls: [OUR_IMG, FAL_IMG, OUR_IMG, FAL_IMG] }), 'image_not_allowed'],
+  ['Vidu foto de outro domínio', VIDU, vidu({ reference_image_urls: [OUR_IMG, 'https://evil.example.com/x.png'] }), 'image_not_allowed'],
+  ['H3 sem prompt_expansion_mode', H3, (() => { const i = h3(); delete i.prompt_expansion_mode; return i })(), 'missing_input_key'],
+  ['H3 com expansão balanced', H3, h3({ prompt_expansion_mode: 'balanced' }), 'bad_prompt_expansion_mode'],
+  ['H3 720p', H3, h3({ resolution: '720p' }), 'bad_resolution'],
+  ['H3 1080P', H3, h3({ resolution: '1080P' }), 'bad_resolution'],
+  ['H3 7,5 s', H3, h3({ duration: 7.5 }), 'bad_duration'],
+  ['H3 sem citar a foto', H3, h3({ prompt: '[@reference_image_1] climbs.' }), 'prompt_sem_a_foto'],
+  ['H3 com vídeo de referência', H3, h3({ reference_video_urls: [FAL_IMG] }), 'unknown_input_key'],
+  ['H3 com audio (chave do Vidu)', H3, h3({ audio: false }), 'unknown_input_key'],
+  ['H3 sem fotos', H3, h3({ reference_image_urls: [] }), 'image_not_allowed'],
+]) test(nome + ': 400 sem envio', async () => { await refusedWithoutSend(harness(ROUTE), 'probe=1', probe(e, input), 400, erro) })
+test('GET da sonda com o Vidu: o vídeo volta', async () => {
+  const h = harness(ROUTE)
+  const r = await h.get(`engine=probe&endpoint=${encodeURIComponent(VIDU)}&request_id=${REQ_ID}`)
+  assert.deepEqual(r, { status: 200, body: { status: 'COMPLETED', model: VIDU, video_url: 'https://v3.fal.media/files/out.mp4' } })
+})
 const origHarness = harness
 // eslint-disable-next-line no-func-assign
 harness = (_src, opts) => origHarness(CURRENT, opts)
@@ -300,6 +360,21 @@ const MUTANTS = [
   ['janela sem limite de tempo', ".gte('created_at', since)", ''],
   ['gravar o evento com outro nome', 'name: PROBE_EVENT, path', "name: 'admin_engine_test', path"],
   ['erro do fornecedor no GET vira 500', "return NextResponse.json({ status: 'failed', error: falDetail(e).slice(0, 300) })", "return NextResponse.json({ error: 'x' }, { status: 500 })"],
+  // KINEO-SONDA-DOIS-MOTORES-2511
+  ['o perfil novo cai na regra antiga', '  if (endpoint.perfil) return probePerfilInputError(endpoint.perfil, input) // KINEO-SONDA-DOIS-MOTORES-2511', ''],
+  ['perfil aceita chave desconhecida', "  if (chaves.some((k) => !p.chaves.includes(k))) return 'unknown_input_key'\n", ''],
+  ['perfil aceita chave faltando', "  if (p.chaves.some((k) => !Object.prototype.hasOwnProperty.call(input, k))) return 'missing_input_key'\n", ''],
+  ['perfil sem os valores fixos (audio, expansão)', "  for (const [k, v] of Object.entries(p.fixas)) if (input[k] !== v) return 'bad_' + k\n", ''],
+  ['perfil sem a resolução', "  if (input.resolution !== p.resolution) return 'bad_resolution'\n", ''],
+  ['perfil até 16 s', '  if (typeof d !== \'number\' || !Number.isInteger(d) || d < 3 || d > 15) return \'bad_duration\'\n  if (input.resolution !== p.resolution)', '  if (typeof d !== \'number\' || d < 3 || d > 16) return \'bad_duration\'\n  if (input.resolution !== p.resolution)'],
+  ['perfil até 12 fotos', "imgs.length < 1 || imgs.length > 3 || !imgs.every((u) => imageAllowed(u, storageBase))) return 'image_not_allowed'\n  if (!probeText(input.prompt, PROBE_PROMPT_MAX))", "imgs.length < 1 || imgs.length > 12 || !imgs.every((u) => imageAllowed(u, storageBase))) return 'image_not_allowed'\n  if (!probeText(input.prompt, PROBE_PROMPT_MAX))"],
+  ['perfil sem conferir a citação da foto', "  return (input.prompt as string).includes(p.citaFoto) ? null : 'prompt_sem_a_foto'", '  return null'],
+  ['Vidu sempre no preço do desconto', 'agora < VIDU_Q4_PROMO_ATE_2511 ? VIDU_Q4_REF_USD_PER_S_720P_PROMO_2511 : VIDU_Q4_REF_USD_PER_S_720P_2511', 'VIDU_Q4_REF_USD_PER_S_720P_PROMO_2511'],
+  ['Vidu sempre no preço cheio', 'agora < VIDU_Q4_PROMO_ATE_2511 ? VIDU_Q4_REF_USD_PER_S_720P_PROMO_2511 : VIDU_Q4_REF_USD_PER_S_720P_2511', 'VIDU_Q4_REF_USD_PER_S_720P_2511'],
+  ['H3 sem a reserva das fotos', ' + (input.reference_image_urls as unknown[]).length * H3_REF_RESERVA_USD_POR_FOTO_2511', ''],
+  ['H3 no preço de 1080P', 'const H3_MAX_TURBO_REF_USD_PER_S_768P_2511 = 0.08', 'const H3_MAX_TURBO_REF_USD_PER_S_768P_2511 = 0.16'],
+  ['H3 deixa a expansão do texto', "fixas: { prompt_expansion_mode: 'disabled' }", "fixas: {}"],
+  ['Vidu com áudio', "fixas: { audio: false }", 'fixas: { audio: true }'],
   ['sonda engole o modo antigo', "if (req.nextUrl.searchParams.get('probe') === '1') return probePost(req)", 'return probePost(req)'],
 ]
 

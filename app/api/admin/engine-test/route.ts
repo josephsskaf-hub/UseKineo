@@ -98,10 +98,56 @@ const PROBE_WINDOW_MS = 24 * 60 * 60 * 1000 // "dia" = 24 h corridas antes do pe
 const KLING4_REF_USD_PER_S_720P_2311 = 0.157
 const KLING4_FLASH_REF_USD_PER_S_720P_2311 = 0.094
 const GEMINI_OMNI_FLASH_REF_USD_PER_S_720P_2311 = 0.0819
-const PROBE_ENDPOINTS: Record<string, { usdPerSecond: number; multiPrompt: boolean }> = {
+// KINEO-SONDA-DOIS-MOTORES-2511 [dono 25/11: teste de motor substituto, opção A, teto US$ 4,00] — Vidu Q4 e H3 Max Turbo com referência. Ficha pública lida
+// em 25/11 (fal.ai/models/<id>/llms.txt):
+//   · Vidu Q4: reference_image_urls (até 12), duration 3–16 (inteiro), resolution "720p", aspect_ratio "9:16", audio (false = mudo, o preço não muda),
+//     a foto citada no texto como [@reference_image_1]. Preço a 720p: US$ 0,0665/s com o desconto de 30% "até 30/11/2026"; depois, US$ 0,095/s;
+//   · H3 Max Turbo: reference_image_urls (até 12 arquivos somando imagem, vídeo e áudio), duration até 15, resolution "768P", aspect_ratio "9:16",
+//     prompt_expansion_mode (obrigatório; "disabled" = o texto vai como escrevemos), a foto citada como "Image 1". Preço a 768P: US$ 0,08/s, mais
+//     US$ 0,016 por mil tokens de referência acima dos 4.096 incluídos. A ficha não diz quantos tokens uma foto custa: a estimativa reserva 4.096
+//     tokens por foto (US$ 0,0655 cada), um teto e não a conta exata.
+// Entram no MESMO teto diário (PROBE_DAILY_CAP_USD) e com as mesmas travas: só administrador, foto só do nosso storage ou da fal, até 3 fotos, 3 a 15 s.
+const VIDU_Q4_REF_USD_PER_S_720P_PROMO_2511 = 0.0665
+const VIDU_Q4_REF_USD_PER_S_720P_2511 = 0.095
+const VIDU_Q4_PROMO_ATE_2511 = Date.UTC(2026, 11, 1) // o desconto vale "até 30/11/2026"; a partir de 01/12 (UTC), o preço cheio
+const H3_MAX_TURBO_REF_USD_PER_S_768P_2511 = 0.08
+const H3_REF_RESERVA_USD_POR_FOTO_2511 = 0.0655 // 4.096 tokens × US$ 0,016/mil, por foto: a ficha não dá os tokens por foto
+type PerfilDaSonda2511 = 'vidu_q4' | 'h3_max_turbo'
+const PROBE_ENDPOINTS: Record<string, { usdPerSecond: number; multiPrompt: boolean; perfil?: PerfilDaSonda2511 }> = {
   'kling/v4/reference-to-video': { usdPerSecond: KLING4_REF_USD_PER_S_720P_2311, multiPrompt: true },
   'kling/v4/flash/reference-to-video': { usdPerSecond: KLING4_FLASH_REF_USD_PER_S_720P_2311, multiPrompt: false },
   'google/gemini-omni-flash/v1.2/reference-to-video': { usdPerSecond: GEMINI_OMNI_FLASH_REF_USD_PER_S_720P_2311, multiPrompt: false },
+  'fal-ai/vidu/q4/reference-to-video': { usdPerSecond: VIDU_Q4_REF_USD_PER_S_720P_PROMO_2511, multiPrompt: false, perfil: 'vidu_q4' }, // KINEO-SONDA-DOIS-MOTORES-2511
+  'minimax/h3-max-turbo/reference-to-video': { usdPerSecond: H3_MAX_TURBO_REF_USD_PER_S_768P_2511, multiPrompt: false, perfil: 'h3_max_turbo' }, // KINEO-SONDA-DOIS-MOTORES-2511
+}
+// KINEO-SONDA-DOIS-MOTORES-2511 — a entrada de cada perfil novo: as chaves exatas da ficha, todas obrigatórias (o padrão do fornecedor podia custar mais ou
+// mudar o texto), e o texto cita a 1ª foto do jeito daquele motor (sem isso a foto não amarra ninguém e o render pago se perde).
+const PERFIS_DA_SONDA_2511: Record<PerfilDaSonda2511, { chaves: readonly string[]; resolution: string; fixas: Record<string, unknown>; citaFoto: string }> = {
+  vidu_q4: { chaves: ['prompt', 'duration', 'resolution', 'aspect_ratio', 'reference_image_urls', 'audio'], resolution: '720p', fixas: { audio: false }, citaFoto: '[@reference_image_1]' },
+  h3_max_turbo: { chaves: ['prompt', 'duration', 'resolution', 'aspect_ratio', 'reference_image_urls', 'prompt_expansion_mode'], resolution: '768P', fixas: { prompt_expansion_mode: 'disabled' }, citaFoto: 'Image 1' },
+}
+function probePerfilInputError(perfil: PerfilDaSonda2511, input: Record<string, unknown>): string | null {
+  const p = PERFIS_DA_SONDA_2511[perfil]
+  const chaves = Object.keys(input)
+  if (chaves.some((k) => !p.chaves.includes(k))) return 'unknown_input_key'
+  if (p.chaves.some((k) => !Object.prototype.hasOwnProperty.call(input, k))) return 'missing_input_key'
+  const d = input.duration
+  if (typeof d !== 'number' || !Number.isInteger(d) || d < 3 || d > 15) return 'bad_duration'
+  if (input.resolution !== p.resolution) return 'bad_resolution'
+  if (input.aspect_ratio !== '9:16') return 'bad_aspect_ratio'
+  for (const [k, v] of Object.entries(p.fixas)) if (input[k] !== v) return 'bad_' + k
+  const imgs = input.reference_image_urls
+  const storageBase = `${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''}/storage/v1/object/public/`
+  if (!Array.isArray(imgs) || imgs.length < 1 || imgs.length > 3 || !imgs.every((u) => imageAllowed(u, storageBase))) return 'image_not_allowed'
+  if (!probeText(input.prompt, PROBE_PROMPT_MAX)) return 'bad_prompt'
+  return (input.prompt as string).includes(p.citaFoto) ? null : 'prompt_sem_a_foto'
+}
+/** O custo estimado da sonda, por endpoint e data: o Vidu muda de preço em 01/12; o H3 soma a reserva das fotos. */
+function probeEstUsd(model: string, endpoint: { usdPerSecond: number; perfil?: PerfilDaSonda2511 }, input: Record<string, unknown>, agora: number): number {
+  const seconds = input.duration as number
+  if (endpoint.perfil === 'vidu_q4') return seconds * (agora < VIDU_Q4_PROMO_ATE_2511 ? VIDU_Q4_REF_USD_PER_S_720P_PROMO_2511 : VIDU_Q4_REF_USD_PER_S_720P_2511)
+  if (endpoint.perfil === 'h3_max_turbo') return seconds * H3_MAX_TURBO_REF_USD_PER_S_768P_2511 + (input.reference_image_urls as unknown[]).length * H3_REF_RESERVA_USD_POR_FOTO_2511
+  return seconds * endpoint.usdPerSecond
 }
 const PROBE_INPUT_KEYS = new Set(['prompt', 'multi_prompt', 'duration', 'resolution', 'aspect_ratio', 'image_urls'])
 const PROBE_PROMPT_MAX = 4000
@@ -123,8 +169,9 @@ function probeText(raw: unknown, max: number): boolean {
   return typeof raw === 'string' && raw.trim().length > 0 && raw.length <= max && !PROBE_CONTROL.test(raw)
 }
 
-function probeInputError(endpoint: { multiPrompt: boolean }, input: unknown): string | null {
+function probeInputError(endpoint: { multiPrompt: boolean; perfil?: PerfilDaSonda2511 }, input: unknown): string | null {
   if (!isPlainObject(input)) return 'bad_input'
+  if (endpoint.perfil) return probePerfilInputError(endpoint.perfil, input) // KINEO-SONDA-DOIS-MOTORES-2511
   if (Object.keys(input).some((k) => !PROBE_INPUT_KEYS.has(k))) return 'unknown_input_key'
   const d = input.duration
   if (typeof d !== 'number' || !Number.isInteger(d) || d < 3 || d > 15) return 'bad_duration'
@@ -180,7 +227,7 @@ async function probePost(req: NextRequest) {
   if (bad) return NextResponse.json({ error: bad }, { status: 400 })
   const input = body?.input as Record<string, unknown>
   const seconds = input.duration as number
-  const estUnits = toUnits(seconds * endpoint.usdPerSecond)
+  const estUnits = toUnits(probeEstUsd(model, endpoint, input, Date.now())) // KINEO-SONDA-DOIS-MOTORES-2511 (os 3 de antes: segundos × preço, como era)
   const db = serviceClient()
   if (!db) return NextResponse.json({ error: 'spend_unreadable' }, { status: 503 })
   const spent = await probeSpentUnits(db, new Date(Date.now() - PROBE_WINDOW_MS).toISOString())
