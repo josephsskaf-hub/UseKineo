@@ -27,6 +27,11 @@ import { ESPECIES_DA_FOLHA, PERSONAGEM_FOLHA_USD, PESSOAS_DA_FOLHA } from '@/lib
 // Interruptor FORMA_DA_FOLHA_2511: 'off' = byte a byte o de antes (nada perguntado, nada decidido); 'sonda' = [CEO 25/11, volta 2] só a sonda da casa
 // (lib/cinematic/sondaDaFolha2511) pergunta e decide a forma — o filme (casa e cliente) é byte a byte o de antes: pedido, leitura, corpo à OpenAI e
 // relato; 'on' = o filme também.
+// Volta 3 [CEO 25/11, sonda 04:02: o leitor respondeu "corpo yes, outra no" nas 4 folhas, inclusive nas 2 com cabeça de bicho — 0 de 2]: a pergunta abstrata
+// sai. No lugar, perguntas CONCRETAS sobre a cabeça, sem dizer qual ser se espera ("head_check": com que ser a cabeça parece, orelha de bicho, nariz,
+// focinho, pelo), e só para os seres em que o código sabe o que é estranho: robô (orelha de bicho, nariz, focinho, pelo, cabeça de bicho = outro ser) e
+// gente (orelha de bicho, focinho, cabeça de bicho). Bicho e outras criaturas não são julgados. Brinquedo, fantasia, figura e robô humanoide também não.
+// Continua 'sonda' (fora do filme) até a sonda de leitura provar nas 4 folhas que já existem no bucket.
 // [revisora 24/11, VOLTA, docs/revisoes-2311/CEO-JUIZ-DA-FOLHA-2411.md §11] v3: (1) só conta, e só vai à folha nova, o traço do modelo que EXISTE palavra por palavra na
 // descrição do autor e não é negação; o resto é descartado e contado; (2) sem descrição do AUTOR (Slocum; o Elias do cedd1250: a canônica é biografia/ação),
 // o eixo traços não julga — só um personagem e o meio; (3) folha sem personagem reprova ('nenhum'); (4) o custo grava a folha nova e o relato grava a 1ª leitura;
@@ -42,10 +47,11 @@ export const JUIZ_DA_FOLHA_TIMEOUT_MS = 8_000
 export type MeioDaFolha = 'photo_or_realistic_render' | 'cartoon_3d' | 'cartoon_2d' | 'other'
 export type CategoriaDoTraco = 'species' | 'shape' | 'size' | 'color' | 'feature' | 'clothing'
 export type LeituraDaFolha = { meio: MeioDaFolha; personagens: number; tracos: Array<{ traco: string; categoria: CategoriaDoTraco; visivel: 'yes' | 'no' | 'unclear' }>
-  forma?: { corpo: 'yes' | 'no' | 'unclear'; outra: 'yes' | 'no' | 'unclear' } | null /* KINEO-FORMA-DA-FOLHA-2511 */ }
+  forma?: { parecido: string; orelhas: SimNao; nariz: SimNao; focinho: SimNao; pelo: SimNao } | null /* KINEO-FORMA-DA-FOLHA-2511 volta 3 */ }
+export type SimNao = 'yes' | 'no' | 'unclear'
 export type MotivoDosTracos = 'mais_de_um' | 'nenhum' | 'forma_especie' | 'traco'
 /** O veredito POR EIXO: traços do autor e meio do filme. */
-export type FormaDaFolha = 'ok' | 'nao_e' | 'outra_especie' | 'nao_julgada'
+export type FormaDaFolha = 'ok' | 'outra_especie' | 'nao_julgada'
 export type VereditoDaFolha = { tracos: 'ok' | MotivoDosTracos; meio: 'ok' | 'meio'; ausentes: string[]; descartados: number; forma: FormaDaFolha; especie: string | null }
 export const formaPassa = (v: Pick<VereditoDaFolha, 'forma'>): boolean => v.forma === 'ok' || v.forma === 'nao_julgada'
 export const folhaPassa = (v: VereditoDaFolha): boolean => v.tracos === 'ok' && v.meio === 'ok' && formaPassa(v)
@@ -56,14 +62,23 @@ export const formaNaSonda = (modo: ModoFormaDaFolha2511 = FORMA_DA_FOLHA_2511): 
 const SER_RE = new RegExp(`(?<![\\p{L}\\p{N}])(${ESPECIES_DA_FOLHA.animais}|${ESPECIES_DA_FOLHA.criaturas})(?:s|es)?(?![\\p{L}\\p{N}])`, 'giu')
 const GENTE_RE = new RegExp(`(?<![\\p{L}\\p{N}])(?:${PESSOAS_DA_FOLHA})(?:s|es)?(?![\\p{L}\\p{N}])`, 'iu')
 const HIBRIDO_RE = /(?<![\p{L}\p{N}])(?:like|half|part|hybrid|mixed|mix|cross|crossbreed)(?![\p{L}\p{N}])/iu // "cat-like", "half man", "part dragon"
-/** O ÚNICO ser que a descrição do autor nomeia ("robot"; gente = "person"), ou null: sem descrição, com negação, híbrido, dois seres, nenhum ser. */
+// [revisora 25/11 §5] brinquedo, figura, fantasia e robô com rosto de gente: o corpo não é "de verdade" daquele ser, ou o rosto é humano por definição
+const NAO_JULGA_FORMA_RE = /(?<![\p{L}\p{N}])(?:teddy|plush|toy|stuffed|doll|gingerbread|tin|snowman|snow|statue|figurine|puppet|costume|mask|humanoid|android|cyborg|human)(?![\p{L}\p{N}])/iu
+/** Os seres em que o código sabe o que é estranho na cabeça (volta 3): robô e gente. */
+const SERES_DA_FORMA = new Set(['robot', 'person'])
+/** O ÚNICO ser que a descrição do autor nomeia, quando ele é robô ou gente ("robot", "person"); null: sem descrição, com negação, híbrido, brinquedo ou
+ *  figura, dois seres, nenhum ser, ou outro ser (bicho e outras criaturas não são julgados). */
 export function especieDaDescricao(descricao: string, modo: ModoFormaDaFolha2511 = FORMA_DA_FOLHA_2511): string | null {
   const d = String(descricao ?? '')
-  if (modo !== 'on' || !d.trim() || temNegacao(d) || HIBRIDO_RE.test(d)) return null
+  if (modo !== 'on' || !d.trim() || temNegacao(d) || HIBRIDO_RE.test(d) || NAO_JULGA_FORMA_RE.test(d)) return null
   const seres = new Set(Array.from(d.matchAll(SER_RE), (m) => m[1].toLowerCase()))
   if (GENTE_RE.test(d)) seres.add('person')
-  return seres.size === 1 ? [...seres][0] : null
+  const ser = seres.size === 1 ? [...seres][0] : null
+  return ser && SERES_DA_FORMA.has(ser) ? ser : null
 }
+const BICHO_RE = new RegExp(`^(?:${ESPECIES_DA_FOLHA.animais})(?:s|es)?$`, 'i')
+/** A cabeça parece um bicho: alguma palavra do "resembles" é da lista de bichos. */
+export const pareceBicho = (parecido: string): boolean => String(parecido ?? '').toLowerCase().split(/[^\p{L}]+/u).some((w) => BICHO_RE.test(w))
 
 const MEIOS: readonly MeioDaFolha[] = ['photo_or_realistic_render', 'cartoon_3d', 'cartoon_2d', 'other']
 const CATEGORIAS: readonly CategoriaDoTraco[] = ['species', 'shape', 'size', 'color', 'feature', 'clothing']
@@ -103,7 +118,7 @@ export function pedidoAoJuizDaFolha(descricao: string, url: string, especie: str
   const sistema = 'You describe one character reference image. Answer only with JSON: {"medium": one of ' + MEIOS.map((m) => `"${m}"`).join(', ') +
     ', "characters": number of distinct characters drawn, "traits": [{"trait": string, "category": one of ' + CATEGORIAS.map((c) => `"${c}"`).join(', ') +
     ', "visible": "yes" | "no" | "unclear"}]}. For "traits", split the author description into its separate traits (each kind of being, body shape, size, colour, named feature and garment), copy each trait in the author\'s own words, and say whether the image shows it.' +
-    (especie ? ` Also answer "kind_check": {"body_and_head_match": "yes" | "no" | "unclear", "other_kind_parts": "yes" | "no" | "unclear"}. "body_and_head_match" says whether the character's body and head are those of a ${especie}. "other_kind_parts" says whether the character's own body (not clothing, not objects) has any part that belongs to a kind of being other than a ${especie}.` : '') // KINEO-FORMA-DA-FOLHA-2511
+    (especie ? ' Also answer "head_check": {"resembles": string, "animal_ears": "yes" | "no" | "unclear", "nose": "yes" | "no" | "unclear", "snout_or_muzzle": "yes" | "no" | "unclear", "fur": "yes" | "no" | "unclear"}, about the character\'s own head and body only, never clothing, headwear, accessories or objects: "resembles" is the one kind of being the head looks most like, in one word; "animal_ears" says whether the head has ears shaped like an animal\'s; "nose" says whether the face has a nose; "snout_or_muzzle" says whether the face sticks out into a snout or muzzle; "fur" says whether the head or body is covered in fur.' : '') // KINEO-FORMA-DA-FOLHA-2511 volta 3: o ser esperado NÃO vai no pedido
   const texto = `Author description of the character: ${descricao || '(none)'}`
   return { messages: [{ role: 'system', content: sistema }, { role: 'user', content: [{ type: 'text', text: texto }, { type: 'image_url', image_url: { url, detail: 'low' } }] }], imagens: 1, caracteres: sistema.length + texto.length }
 }
@@ -122,9 +137,11 @@ export function lerLeituraDaFolha(raw: string, exigeForma = false /* KINEO-FORMA
     const visivel: LeituraDaFolha['tracos'][number]['visivel'] | null = r?.visible === 'yes' || r?.visible === 'no' || r?.visible === 'unclear' ? r.visible : null
     return r && categoria && visivel && limpa(r.trait) ? [{ traco: limpa(r.trait).slice(0, 80), categoria, visivel }] : []
   })
-  const k = o.kind_check && typeof o.kind_check === 'object' ? (o.kind_check as Record<string, unknown>) : null
-  const sn = (x: unknown): 'yes' | 'no' | 'unclear' | null => (x === 'yes' || x === 'no' || x === 'unclear' ? x : null)
-  const forma = k && sn(k.body_and_head_match) && sn(k.other_kind_parts) ? { corpo: sn(k.body_and_head_match)!, outra: sn(k.other_kind_parts)! } : null
+  const k = o.head_check && typeof o.head_check === 'object' ? (o.head_check as Record<string, unknown>) : null
+  const sn = (x: unknown): SimNao | null => (x === 'yes' || x === 'no' || x === 'unclear' ? x : null)
+  const parecido = k && typeof k.resembles === 'string' && limpa(k.resembles) ? limpa(k.resembles).toLowerCase().slice(0, 40) : null
+  const [orelhas, nariz, focinho, pelo] = k ? [sn(k.animal_ears), sn(k.nose), sn(k.snout_or_muzzle), sn(k.fur)] : [null, null, null, null]
+  const forma = parecido && orelhas && nariz && focinho && pelo ? { parecido, orelhas, nariz, focinho, pelo } : null
   if (exigeForma && !forma) return null
   return exigeForma ? { meio, personagens, tracos, forma } : { meio, personagens, tracos }
 }
@@ -138,7 +155,9 @@ export function decidirDaFolha(l: LeituraDaFolha, filmeFotorreal: boolean, descr
   const cartum = l.meio === 'cartoon_3d' || l.meio === 'cartoon_2d'
   const meio: VereditoDaFolha['meio'] = (filmeFotorreal ? cartum : l.meio === 'photo_or_realistic_render') ? 'meio' : 'ok'
   const especie = especieDaDescricao(descricao, modoForma) // KINEO-FORMA-DA-FOLHA-2511
-  const formaV: FormaDaFolha = !especie || !l.forma ? 'nao_julgada' : l.forma.corpo === 'no' ? 'nao_e' : l.forma.outra === 'yes' ? 'outra_especie' : 'ok'
+  const f = l.forma
+  const estranha = !!f && (f.orelhas === 'yes' || f.focinho === 'yes' || pareceBicho(f.parecido) || (especie === 'robot' && (f.nariz === 'yes' || f.pelo === 'yes')))
+  const formaV: FormaDaFolha = !especie || !f ? 'nao_julgada' : estranha ? 'outra_especie' : 'ok'
   return { tracos, meio, ausentes: tracos === 'forma_especie' ? forma : tracos === 'traco' ? outros : [], descartados: l.tracos.length - doAutor.length, forma: formaV, especie }
 }
 
