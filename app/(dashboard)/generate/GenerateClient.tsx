@@ -355,6 +355,7 @@ import {
 } from '@/lib/proximoEpisodioFila'
 import useReadyBeacon from '@/components/video/useReadyBeacon'
 import { PremiereStage, type PremiereItem } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110
+import FirstFilmWaitOffer, { firstFilmWaitOfferVisible } from '@/components/premiere/FirstFilmWaitOffer'
 import PublishEarnCta from '@/components/PublishEarnCta' // KINEO-PUBLICAR-GANHAR-3110 — "Publish your film — get 10 credits each time someone makes their own version"
 import useWaitAbandon from '@/components/video/useWaitAbandon'
 // KINEO-COMPLETAR-ROTEIRO-2026-08-22 — a mesma constante que o servidor usa
@@ -17509,6 +17510,13 @@ export default function GenerateClient({
                   : "Usually ready in 5–10 minutes. Stay on this page and your film plays right here the moment it's done — if you need to leave, we'll email you the link."}
               />
 
+
+              {firstFilmWaitOfferVisible({
+                mode,
+                filmsDelivered,
+                confirmedFree: activationAccountStatus === 'free' && notPaidProven,
+                activePlan: hasPaid || isStarter || isCreator || isStudio || (planTier !== null && planTier !== 'free'),
+              }) && <FirstFilmWaitOffer currency={postVideoCurrency} region={postVideoRegion} />}
 
               {/* Push #087 — Fast Mode gets its own 4-step indicator that
                   matches the actual Pexels + TTS + assemble pipeline.
