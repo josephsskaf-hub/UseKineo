@@ -2990,6 +2990,7 @@ async function buildAndRedirect(
     sessionParams.success_url = `${appUrl}/film-complete?intent=${filmCompleteIntent.id}&session_id={CHECKOUT_SESSION_ID}`
     sessionParams.cancel_url = `${appUrl}/film-complete?intent=${filmCompleteIntent.id}&cancelled=1`
     if (req.nextUrl.searchParams.get('film_offer') === FILM_READY_CREATOR_VERSION) {
+      checkoutMetadata.film_offer_version = FILM_READY_CREATOR_VERSION
       sessionParams.cancel_url += `&offer=${FILM_READY_CREATOR_VERSION}&plan=${tier === 'basic' ? 'creator' : 'starter'}`
     }
   }

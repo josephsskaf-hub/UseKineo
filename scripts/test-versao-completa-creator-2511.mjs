@@ -73,10 +73,12 @@ function fixture(creator) {
     const resume = page.slice(page.indexOf('  const resumeExperiment'),page.indexOf('  const offer ='))
     const anchor = page.match(/<a href=\{(`\/api\/film-complete\/checkout\?intent=[^`]+`)\}/)
     assert(anchor && resume)
+    const checkoutMetadata = {}
     const params = vm.runInNewContext(cancel.trimEnd().replace(/\}\s*$/, '')+'\nsessionParams.cancel_url',{
-      req:{nextUrl:checkout},sessionParams:{},appUrl:'https://example.test',filmCompleteIntent:intent,
+      checkoutMetadata,req:{nextUrl:checkout},sessionParams:{},appUrl:'https://example.test',filmCompleteIntent:intent,
       tier:checkout.searchParams.get('tier'),FILM_READY_CREATOR_VERSION:load(shared).FILM_READY_CREATOR_VERSION,
     })
+    assert.equal(checkoutMetadata.film_offer_version,checkout.searchParams.get('film_offer') ?? undefined)
     return vm.runInNewContext(resume+';\n'+anchor[1].replace('intentId!', 'intentId'),{
       params:new URL(params).searchParams,cancelled:true,intentId:filmId,FILM_READY_CREATOR_VERSION:load(shared).FILM_READY_CREATOR_VERSION,
     })
