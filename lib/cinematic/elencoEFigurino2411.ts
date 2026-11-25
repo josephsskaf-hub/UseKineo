@@ -423,6 +423,11 @@ function identidadeDeObra(nome: string, textos: ReadonlyArray<{ texto: string }>
   }))
 }
 
+/** KINEO-DUAS-PESSOAS-CLIENTE-2511 (volta, V2) — o nome é de obra (a lista ou o texto que o situa numa obra)? A régua das duas pessoas do cliente lê. */
+export function identidadeDeObra2511(nome: string, textos: ReadonlyArray<{ texto: string }>): boolean {
+  try { return identidadeDeObra(String(nome ?? ''), textos.map((t) => ({ texto: String(t?.texto ?? '') }))) } catch { return true } // erro = barra (falha fechada)
+}
+
 /** Resolve fictional names once per film. Only visual text is passed to the returned function. */
 export function prepararPapeisVisuais2411(pedidoOriginal: unknown, roteiro: string): ((plano: string, teto?: number) => string) | null {
   const pedido = textoDoPedidoOriginal(pedidoOriginal)

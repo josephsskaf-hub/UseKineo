@@ -5,6 +5,10 @@
 import type { FilmQualitySnapshot } from '@/lib/filmComplete/qualityInheritance'
 import { contaDaCasaExata } from '@/lib/internalAccounts'
 import { KLING4_REFERENCE_MODEL, kling4TrialClipTotal, type Kling4ReferenciaUnica } from '@/lib/kling4Trial'
+import { mentionsRealPerson } from '@/lib/hollywood/realPeople' // KINEO-DUAS-PESSOAS-CLIENTE-2511 (volta, V2) — a lista de pessoas reais da casa
+import { figuraConhecida } from '@/lib/cinematic/personagemAjuste' // KINEO-DUAS-PESSOAS-CLIENTE-2511 (volta, V2) — a tabela de figuras da casa
+import { figuraConhecidaJuiz } from '@/lib/cinematic/juizFicha' // KINEO-DUAS-PESSOAS-CLIENTE-2511 (volta, V2)
+import { identidadeDeObra2511 } from '@/lib/cinematic/elencoEFigurino2411' // KINEO-DUAS-PESSOAS-CLIENTE-2511 (volta, V2) — o nome de obra (Lara Croft…)
 
 export const REFERENCIA_UNICA_2411_VERSAO = 'KINEO-REFERENCIA-UNICA-2411'
 export type ModoReferenciaUnica2411 = 'off' | 'internal' | 'public_humano' | 'public'
@@ -48,7 +52,7 @@ export type AdmissaoReferenciaUnica2411 = { referencia: ReferenciaUnica2411; cli
 /** A admissão inteira, num lugar: 'off' = null; a casa = a referência sem guarda (como em 'internal'); cliente em 'internal' = null (o de hoje, sem
  *  campo novo); cliente em 'public_humano' = a referência só se motivoClienteSemReferencia2411 der null, senão o motivo; 'public' = todos sem guarda. */
 export function admitirReferenciaUnica2411(modo: ModoReferenciaUnica2411, email: string | null | undefined, snapshot: FilmQualitySnapshot | null | undefined,
-  filme: { estilizado: boolean }, duasDoCliente: ModoDuasPessoasDoCliente2511 = DUAS_PESSOAS_DO_CLIENTE_2511): AdmissaoReferenciaUnica2411 {
+  filme: { estilizado: boolean; textoDoFilme?: string /* KINEO-DUAS-PESSOAS-CLIENTE-2511 (volta) — o roteiro e o pedido */ }, duasDoCliente: ModoDuasPessoasDoCliente2511 = DUAS_PESSOAS_DO_CLIENTE_2511): AdmissaoReferenciaUnica2411 {
   if (referenciaUnicaLigada(modo, email)) { const r = referenciaUnicaDoFilme(snapshot); return r ? { referencia: comSegundaReferencia2411(r, snapshot, duasReferenciasLigadas(DUAS_REFERENCIAS_2411, email)) } : null } // KINEO-DUAS-REFERENCIAS-2411
   if (modo !== 'public_humano') return null
   const motivo = motivoClienteSemReferencia2411(snapshot, filme)
@@ -93,35 +97,100 @@ export const FRASE_SEGUNDA_PESSOA = 'Keep the face and outfit of @Image2.'
 // KINEO-DUAS-PESSOAS-CLIENTE-2511 [CEO 25/11 16:25: "abrir a referência de DUAS pessoas (humano fotorreal) para o cliente … o que fica de fora (desenho,
 // criatura, menor, três ou mais). Não abrir desenho nem criatura: não têm prova."] Prova: o dono deu ~10 ao filme de duas fichas no Kling 4 e 10 ao Gemini
 // com duas fichas (25/11). RÉGUA DE ADMISSÃO do cliente (todas juntas; uma falha = o motivo, e o filme fica no pedido de hoje, sem referência):
-//   1. o elenco tem EXATAMENTE 2 personagens (3 ou mais = 'duas_tres_ou_mais'), um só protagonista;
+//   1. o elenco tem EXATAMENTE 2 personagens (3 ou mais = 'duas_tres_ou_mais'), um só protagonista; [volta da revisora, N2] nome de folha ou de imagem-chave
+//      que não está no elenco (a 3ª pessoa sem canônica que o leitor do retrato descartou) também é 'duas_tres_ou_mais';
 //   2. os DOIS são 'humano' (bicho, criatura ou outro = 'duas_nao_humano');
 //   3. os DOIS têm folha https no retrato, o protagonista pela folha (não pela imagem-chave) = 'duas_sem_folha';
 //   4. o filme é fotorreal (estilizado === false; desenho, anime, 3D, desenho infantil ou campo torto = 'duas_estilizado');
-//   5. nenhum dos dois é menor: o elenco não tem campo de idade, então lê nome, núcleo e canônica (o que o autor escreveu) e barra palavra de
-//      criança ou adolescente (inglês e português), idade escrita abaixo de 18 e faixa de idade que começa abaixo de 18 = 'duas_menor'. Falha fechada:
-//      na dúvida, barra ("girl" ou "son" de um adulto também barra; o filme sai sem referência, como ontem);
-//   6. o 2º sai de comSegundaReferencia2411 (a mesma da casa: nomes que não se contêm, folhas diferentes); sem o 2º = 'duas_nomes'.
+//   5. [VOLTA da revisora 2c5749dd, V1 · CEO 25/11 17:20: "inverter a régua … prefiro abrir para menos gente a errar aqui"] ADULTO PROVADO em cada um:
+//      só entra quem tem SINAL POSITIVO de adulto no que é dele (nome, núcleo e canônica): idade de 18 ou mais escrita ("50-60", "a 30-year-old",
+//      "aged 40", "in her 30s", "40 anos") ou palavra de adulto de LISTA FECHADA (EN e PT). Sem o sinal = 'duas_menor' (língua desconhecida, idade por
+//      extenso, "jovem" sem idade: tudo barra). E qualquer palavra ou idade de menor em QUALQUER texto lido (nome, núcleo e canônica dos dois, o roteiro e o
+//      pedido do cliente) barra, mesmo com o sinal de adulto. A lista de menor é a segunda trava, não a régua;
+//   6. [VOLTA da revisora, V2] nenhum dos dois é figura conhecida ou personagem de obra: a tabela de figuras da casa (figuraConhecida/figuraConhecidaJuiz),
+//      a lista de pessoas reais (mentionsRealPerson: Obama, Swift…) no nome e na canônica, e o nome de obra (Lara Croft, Spider-Man… e "a character from
+//      the game X") = 'duas_figura_conhecida'. Pessoa real citada no roteiro ou no pedido também barra (o nome iria ao motor);
+//   7. o 2º sai de comSegundaReferencia2411 (a mesma da casa: nomes que não se contêm, folhas diferentes); sem o 2º = 'duas_nomes'.
 // Chave: 'internal' = só a casa (o de ontem); 'public_humano' = o cliente pela régua acima. Voltar: 'internal'.
 export type ModoDuasPessoasDoCliente2511 = 'internal' | 'public_humano'
 export const DUAS_PESSOAS_DO_CLIENTE_2511: ModoDuasPessoasDoCliente2511 = 'public_humano'
-export type MotivoClienteSemDuasPessoas2511 = 'duas_tres_ou_mais' | 'duas_nao_humano' | 'duas_sem_folha' | 'duas_estilizado' | 'duas_menor' | 'duas_nomes'
-const MENOR_PALAVRA_2511 = /(?<![\p{L}\p{N}])(?:child|children|kid|kids|boy|boys|girl|girls|baby|babies|toddler|toddlers|infant|infants|newborn|teen|teens|teenager|teenagers|teenage|adolescent|adolescents|minor|minors|schoolboy|schoolgirl|schoolchild|schoolkid|preteen|tween|youngster|son|daughter|criança|crianças|menino|meninos|menina|meninas|bebê|bebês|bebe|adolescente|adolescentes|garoto|garotos|garota|garotas|filho|filha|neto|neta)(?![\p{L}\p{N}])/iu
-const MENOR_IDADE_2511 = /(?<![\p{L}\p{N}])(?:1[0-7]|[0-9])\s*-?\s*(?:(?:years?|yrs?)[\s-]*old|y\.?o\.?(?![\p{L}])|anos\s+de\s+idade)|(?<![\p{L}])(?:de|com|tem)\s+(?:1[0-7]|[0-9])\s+anos(?![\p{L}])|(?<![\p{L}])aged?\s+(?:1[0-7]|[0-9])(?![\p{N}])|(?<![\p{L}\p{N}])(?:1[0-7]|[0-9])\s*(?:-|–|to)\s*\d{1,2}(?![\p{N}])/iu
-/** Algum texto do personagem diz criança, adolescente ou idade abaixo de 18? (falha fechada: texto que não é string não absolve) */
-export function pareceMenor2511(c: { nome?: unknown; nucleo?: unknown; canonica?: unknown }): boolean {
-  const textos = [c.nome, c.nucleo, c.canonica].filter((t): t is string => typeof t === 'string')
-  return textos.some((t) => MENOR_PALAVRA_2511.test(t) || MENOR_IDADE_2511.test(t))
+export type MotivoClienteSemDuasPessoas2511 = 'duas_tres_ou_mais' | 'duas_nao_humano' | 'duas_sem_folha' | 'duas_estilizado' | 'duas_menor' | 'duas_figura_conhecida' | 'duas_nomes'
+const SEM_LETRA_ANTES = '(?<![\\p{L}\\p{N}])', SEM_LETRA_DEPOIS = '(?![\\p{L}\\p{N}])'
+// ── 5a. o SINAL de adulto (lista FECHADA; só o que é do personagem) ──
+const ADULTO_PALAVRA_2511 = new RegExp(SEM_LETRA_ANTES + '(?:man|men|woman|women|gentleman|gentlemen|lady|ladies|adult|adults|husband|wife|widow|widower|father|mother|grandfather|grandmother|grandpa|grandma|grandparent|uncle|aunt|' +
+  'officer|doctor|nurse|surgeon|soldier|sergeant|lieutenant|colonel|detective|inspector|sheriff|captain|commander|astronaut|pilot|professor|teacher|chef|cook|keeper|sailor|fisherman|farmer|' +
+  'scientist|engineer|lawyer|judge|priest|nun|monk|retiree|businessman|businesswoman|ceo|mayor|senator|banker|journalist|reporter|firefighter|mechanic|carpenter|miner|nurse|' +
+  'homem|homens|mulher|mulheres|senhor|senhora|adulto|adulta|adultos|adultas|marido|esposa|viúvo|viúva|avô|avó|tio|tia|policial|médico|médica|enfermeiro|enfermeira|soldado|' +
+  'sargento|tenente|coronel|detetive|delegado|delegada|capitão|capitã|comandante|astronauta|piloto|professora|cozinheiro|cozinheira|marinheiro|pescador|fazendeiro|fazendeira|' +
+  'cientista|engenheiro|engenheira|advogado|advogada|juiz|juíza|padre|freira|monge|aposentado|aposentada|empresário|empresária|prefeito|prefeita|jornalista|bombeiro|bombeira|mecânico|mineiro)' + SEM_LETRA_DEPOIS, 'iu')
+const IDADE_ADULTA = '(?:1[89]|[2-9][0-9])'
+const ADULTO_IDADE_2511 = new RegExp(SEM_LETRA_ANTES + IDADE_ADULTA + '(?:\\s*(?:-|–|to|a)\\s*[0-9]{2,3}s?' + SEM_LETRA_DEPOIS + '|[\\s-]*(?:years?|yrs?)[\\s-]*old|\\s*anos' + SEM_LETRA_DEPOIS + ')' +
+  '|' + SEM_LETRA_ANTES + '(?:aged?|age)\\s+' + IDADE_ADULTA + SEM_LETRA_DEPOIS +
+  '|' + SEM_LETRA_ANTES + 'in\\s+(?:his|her|their)\\s+(?:late\\s+|early\\s+|mid[\\s-]*)?(?:twenties|thirties|forties|fifties|sixties|seventies|eighties|nineties|[2-9]0s)' + SEM_LETRA_DEPOIS, 'iu')
+// ── 5b. o sinal de MENOR (segunda trava; em todo texto lido) ──
+const POUCOS = 'one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|um|uma|dois|duas|três|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|catorze|quatorze|quinze|dezesseis|dezessete|uno|dos|cuatro|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciséis|dieciseis|diecisiete'
+const MENOS_DE_18 = '(?:1[0-7]|[0-9]|' + POUCOS + ')'
+const MENOR_PALAVRA_2511 = new RegExp(SEM_LETRA_ANTES + '(?:child|children|childhood|kid|kids|kiddo|boy|boys|girl|girls|baby|babies|toddler|toddlers|infant|infants|newborn|teen\\p{L}*|adolescent\\p{L}*|minor|minors|' +
+  'underage|juvenile|juveniles|youth|youths|youngster|youngsters|schoolboy|schoolgirl|schoolchild|schoolchildren|schoolkid|pupil|pupils|preteen\\p{L}*|pre-teen\\p{L}*|tween|tweens|son|sons|daughter|daughters|' +
+  'kindergarten\\p{L}*|preschool\\p{L}*|(?:high|middle|grade|elementary|primary|junior\\s+high)[\\s-]*school\\p{L}*|[0-9]{1,2}(?:st|nd|rd|th)[\\s-]*grade\\p{L}*|grader|graders|under[\\s-]*(?:18|eighteen)|' +
+  'crian\\p{L}*|menin\\p{L}*|garot\\p{L}*|beb[eê]|beb[eê]s|bebezinh\\p{L}*|nenê|neném|adolescen\\p{L}*|aluno|alunos|aluna|alunas|colegial|filho|filhos|filha|filhas|neto|netos|neta|netas|' +
+  'ensino\\s+(?:m[eé]dio|fundamental)|ni[ñn]a|ni[ñn]as|ni[ñn]o|ni[ñn]os|chico|chicos|chica|chicas|hija|hijas|hijo|hijos|muchach\\p{L}*|' +
+  'fille|filles|garçon|garçons|enfant|enfants|ado|ados|écoli\\p{L}*|collégien\\p{L}*|lycéen\\p{L}*|' +
+  'larka|larke|larki|larkiyan|bacha|bachay|bachi|bachchi|bachcha|beti|beta|baccha)' + SEM_LETRA_DEPOIS, 'iu')
+const MENOR_ALEMAO_2511 = /(?<![\p{L}\p{N}])(?:Kind|Kinder|Junge|Jungen|Mädchen|Tochter|Töchter|Sohn|Söhne|Schüler\p{L}*|\p{L}*jährige\p{L}*)(?![\p{L}\p{N}])/u // substantivo alemão: com maiúscula ("a kind man" não é "Kind")
+const MENOR_IDADE_2511 = new RegExp(SEM_LETRA_ANTES + MENOS_DE_18 + '(?:[\\s-]*(?:years?|yrs?)[\\s-]*(?:old|of\\s+age)|[\\s-]*y\\s*/?\\s*o' + SEM_LETRA_DEPOIS + '|\\s*(?:anos|años|ans|jahre?)' + SEM_LETRA_DEPOIS + '|-?j[äa]hrig\\p{L}*)' +
+  '|' + SEM_LETRA_ANTES + '(?:aged?|age|idade(?:\\s+de)?)\\s*:?\\s*' + MENOS_DE_18 + SEM_LETRA_DEPOIS +
+  '|' + SEM_LETRA_ANTES + '(?:1[0-7]|[0-9])\\s*(?:-|–|to|a)\\s*[0-9]{1,2}' + SEM_LETRA_DEPOIS, 'iu')
+/** Algum texto diz criança, adolescente ou idade abaixo de 18 (qualquer língua que a lista conhece)? É a SEGUNDA trava: a régua é o adulto provado. */
+export function textoDizMenor2511(texto: unknown): boolean {
+  const t = typeof texto === 'string' ? texto : ''
+  return MENOR_PALAVRA_2511.test(t) || MENOR_ALEMAO_2511.test(t) || MENOR_IDADE_2511.test(t)
 }
-/** A régua das duas pessoas para o CLIENTE (o bloco acima): a referência com o 2º, ou o motivo. */
-export function admitirDuasPessoasDoCliente2511(snapshot: FilmQualitySnapshot | null | undefined, filme: { estilizado: boolean }):
+/** O que é DO personagem (nome, núcleo, canônica), junto. */
+const textoDoPersonagem2511 = (c: { nome?: unknown; nucleo?: unknown; canonica?: unknown }): string =>
+  [c.nome, c.nucleo, c.canonica].filter((t): t is string => typeof t === 'string').join(' \n ')
+/** O personagem tem sinal POSITIVO de adulto no que é dele (idade de 18 ou mais escrita, ou palavra de adulto da lista fechada)? */
+export function adultoProvado2511(c: { nome?: unknown; nucleo?: unknown; canonica?: unknown }): boolean {
+  const t = textoDoPersonagem2511(c)
+  return ADULTO_IDADE_2511.test(t) || ADULTO_PALAVRA_2511.test(t)
+}
+/** [mantido para a leitura do guardião antigo] o personagem diz menor? */
+export function pareceMenor2511(c: { nome?: unknown; nucleo?: unknown; canonica?: unknown }): boolean {
+  return textoDizMenor2511(textoDoPersonagem2511(c))
+}
+/** [VOLTA da revisora, V2] personagens de marca pelo nome CIVIL ou de herói que a lista de obras da casa (elencoEFigurino2411 NOMES_DE_OBRA) não tem.
+ *  Só nome completo ou nome que não é nome comum ("Anna", "Ken", "Mario", "Elsa" sozinhos ficam de fora: a lista de obras os pega com o texto da obra). */
+const FICCAO_DE_MARCA_2511 = new RegExp(SEM_LETRA_ANTES + '(?:peter\\s+parker|miles\\s+morales|bruce\\s+wayne|batman|clark\\s+kent|superman|lois\\s+lane|tony\\s+stark|iron\\s*man|steve\\s+rogers|' +
+  'captain\\s+america|bruce\\s+banner|hulk|natasha\\s+romanoff|black\\s+widow|wonder\\s+woman|diana\\s+prince|wolverine|deadpool|thanos|joker|harley\\s+quinn|catwoman|' +
+  'aquaman|black\\s+panther|doctor\\s+strange|spider[\\s-]*man|spider[\\s-]*woman|luke\\s+skywalker|han\\s+solo|princess\\s+leia|leia\\s+organa|yoda|obi[\\s-]*wan(?:\\s+kenobi)?|' +
+  'frodo(?:\\s+baggins)?|gandalf|aragorn|legolas|katniss(?:\\s+everdeen)?|jack\\s+sparrow|john\\s+wick|rocky\\s+balboa|rambo|forrest\\s+gump|hannibal\\s+lecter|' +
+  'walter\\s+white|jon\\s+snow|daenerys(?:\\s+targaryen)?|tyrion(?:\\s+lannister)?|ron\\s+weasley|dumbledore|severus\\s+snape|elsa\\s+of\\s+arendelle|moana|' +
+  'cinderella|snow\\s+white|ariel\\s+the\\s+mermaid|barbie|ken\\s+carson|luigi|princess\\s+peach|princess\\s+zelda|kratos|master\\s+chief|geralt(?:\\s+of\\s+rivia)?|' +
+  'ash\\s+ketchum|naruto(?:\\s+uzumaki)?|monkey\\s+d\\.?\\s+luffy|son\\s+goku|vegeta|homer\\s+simpson|bart\\s+simpson|sponge\\s*bob|ronald\\s+mcdonald|buzz\\s+lightyear|woody\\s+pride)' + SEM_LETRA_DEPOIS, 'iu')
+/** [VOLTA da revisora, V2] figura conhecida, pessoa real ou personagem de obra: a tabela da casa (mito e história), a lista de pessoas reais e o nome de obra. */
+export function figuraNaReferencia2511(c: { nome?: unknown; nucleo?: unknown; canonica?: unknown }, textoDoFilme: string): boolean {
+  const nomes = [c.nome, c.nucleo].filter((t): t is string => typeof t === 'string' && !!t.trim())
+  if (nomes.some((n) => !!figuraConhecida(n) || !!figuraConhecidaJuiz(n) || mentionsRealPerson(n))) return true
+  if (typeof c.canonica === 'string' && mentionsRealPerson(c.canonica)) return true
+  if ([...nomes, typeof c.canonica === 'string' ? c.canonica : '', textoDoFilme].some((t) => FICCAO_DE_MARCA_2511.test(t))) return true
+  const textos = [{ texto: textoDoFilme }, { texto: typeof c.canonica === 'string' ? c.canonica : '' }]
+  return nomes.some((n) => identidadeDeObra2511(n, textos))
+}
+/** A régua das duas pessoas para o CLIENTE (o bloco acima): a referência com o 2º, ou o motivo. textoDoFilme = o roteiro e o pedido (lidos para menor e pessoa real). */
+export function admitirDuasPessoasDoCliente2511(snapshot: FilmQualitySnapshot | null | undefined, filme: { estilizado: boolean; textoDoFilme?: string }):
   { referencia: ReferenciaUnica2411 } | { motivo: MotivoClienteSemDuasPessoas2511 } {
   if (!retratoNoFormato(snapshot)) return { motivo: 'duas_sem_folha' }
   if (snapshot.characters.length !== 2) return { motivo: 'duas_tres_ou_mais' }
+  const doElenco = new Set(snapshot.characters.map((c) => c.nome))
+  if (snapshot.characterReferences.some((r) => !doElenco.has(r.nome)) || snapshot.approvedStills.some((s) => s.characterNames.some((n) => !doElenco.has(n)))) return { motivo: 'duas_tres_ou_mais' } // N2
   if (snapshot.characters.filter((c) => c.protagonista === true).length !== 1) return { motivo: 'duas_sem_folha' }
   if (!snapshot.characters.every((c) => c.tipo === 'humano')) return { motivo: 'duas_nao_humano' }
   if (!snapshot.characters.every((c) => snapshot.characterReferences.some((r) => r.nome === c.nome && https(r.url)))) return { motivo: 'duas_sem_folha' }
   if (filme.estilizado !== false) return { motivo: 'duas_estilizado' } // na dúvida (campo ausente ou torto), estilizado
-  if (snapshot.characters.some((c) => pareceMenor2511(c))) return { motivo: 'duas_menor' }
+  const textoDoFilme = typeof filme.textoDoFilme === 'string' ? filme.textoDoFilme : ''
+  if (!snapshot.characters.every((c) => adultoProvado2511(c))) return { motivo: 'duas_menor' } // 5: sem o sinal de adulto = barra
+  if (snapshot.characters.some((c) => textoDizMenor2511(textoDoPersonagem2511(c))) || textoDizMenor2511(textoDoFilme)) return { motivo: 'duas_menor' } // 5: a segunda trava, em todo texto lido
+  if (snapshot.characters.some((c) => figuraNaReferencia2511(c, textoDoFilme)) || mentionsRealPerson(textoDoFilme)) return { motivo: 'duas_figura_conhecida' } // 6
   const r = referenciaUnicaDoFilme(snapshot)
   if (!r || r.origem === 'imagem_chave' || r.tipo !== 'humano') return { motivo: 'duas_sem_folha' }
   const duas = comSegundaReferencia2411(r, snapshot, true)

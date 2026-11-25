@@ -76,29 +76,62 @@ async function suite(change) {
   assert.equal(f.admitirDuasPessoasDoCliente2511(retrato([ELIAS, { ...MARA, tipo: 'animal' }]), FOTO).motivo, 'duas_nao_humano')
   assert.equal(f.admitirDuasPessoasDoCliente2511(retrato([ELIAS, MARA], [{ nome: 'Elias', url: FOLHA_E }]), FOTO).motivo, 'duas_sem_folha', 'a 2ª sem folha na régua')
 
-  // D. menor (cliente barra; a casa não passa por esta régua)
-  const menores = [
-    ['girl', 'Mara, a shy girl who loves the radio'], ['boy', 'Mara, the boy next door'], ['teenager', 'Mara, a teenager with long hair'], ['teen', 'a quiet teen'],
-    ['child', 'Mara, a child of the coast'], ['kid', 'Mara, the kid at the harbor'], ['baby', 'a baby in a basket'], ['daughter', "Elias's daughter Mara"],
-    ['12-year-old', 'Mara, a 12-year-old radio fan'], ['9 years old', 'Mara, 9 years old'], ['aged 9', 'Mara, aged 9'], ['faixa 10-15', 'appearance anchors: 10-15, long hair'], ['faixa 6-9', 'appearance anchors: 6-9, short hair'],
-    ['16 yo', 'Mara, 16 yo'], ['criança', 'Mara, uma criança curiosa'], ['menina de 10 anos', 'Mara, menina de 10 anos'], ['com 8 anos', 'Mara, com 8 anos'], ['bebê', 'o bebê Mara'], ['adolescente', 'Mara, adolescente'],
-  ]
-  for (const [nome, canonica] of menores) {
-    assert.equal(motivo(retrato([ELIAS, { ...MARA, canonica }])), 'duas_menor', 'menor: ' + nome)
-    assert.equal(f.pareceMenor2511({ canonica }), true, 'pareceMenor: ' + nome)
+  // N2 [revisora] a 3ª pessoa sem canônica que o leitor do retrato descartou: a folha dela, ou a imagem-chave com o nome dela, fica no retrato
+  assert.equal(motivo(retrato([ELIAS, MARA], [{ nome: 'Elias', url: FOLHA_E }, { nome: 'Mara', url: FOLHA_M }, { nome: 'Tom', url: FOLHA_T }])), 'duas_tres_ou_mais', 'N2: a folha de quem não está no elenco')
+  assert.equal(motivo(retrato([ELIAS, MARA], undefined, [{ url: 'https://example.org/offline/k-tom.png', characterNames: ['Tom'] }])), 'duas_tres_ou_mais', 'N2: a imagem-chave de quem não está no elenco')
+
+  // D. V1 [VOLTA da revisora] ADULTO PROVADO: sem sinal positivo de adulto = duas_menor (qualquer língua); a lista de menor é a segunda trava, em todo texto lido
+  const MARA_SEM_IDADE = 'Mara, caught a faint call on the radio, exactly as the author wrote; long wavy brown hair'
+  const SEM_SINAL = ['Mara, caught a faint call on the radio', 'Mara, una ragazzina con le trecce', 'Mara, a seventeen-ish dreamer', 'Mara, a jovem do rádio', 'Mara, wears a size 8-10 coat', MARA_SEM_IDADE]
+  for (const canonica of SEM_SINAL) {
+    assert.equal(f.adultoProvado2511({ nome: 'Mara', nucleo: 'Mara', canonica }), false, 'sem sinal de adulto: ' + canonica)
+    assert.equal(motivo(retrato([ELIAS, { ...MARA, canonica }])), 'duas_menor', 'sem sinal de adulto barra: ' + canonica)
   }
-  assert.equal(motivo(retrato([{ ...ELIAS, canonica: 'Elias, a 14-year-old keeper' }, MARA])), 'duas_menor', 'o protagonista menor também barra')
-  assert.equal(motivo(retrato([ELIAS, { ...MARA, nome: 'Little Girl', nucleo: 'Little Girl' }], [{ nome: 'Elias', url: FOLHA_E }, { nome: 'Little Girl', url: FOLHA_M }])), 'duas_menor', 'o nome também conta')
-  for (const canonica of ['Mara, a 30-year-old radio operator', 'Mara, 18 years old', 'Mara, worked the radio for 5 years', 'appearance anchors: 20-30', 'Mara, uma mulher de 40 anos', 'Mara, há 5 anos no rádio', 'Mara, a cowboy fan with a kidney stone']) {
-    assert.equal(f.pareceMenor2511({ canonica }), false, 'adulto: ' + canonica)
+  assert.equal(motivo(retrato([{ ...ELIAS, canonica: 'Elias, kept the old lighthouse alone' }, MARA])), 'duas_menor', 'o protagonista sem sinal de adulto também barra')
+  const ADULTOS = ['Mara, a 30-year-old radio operator', 'Mara, 18 years old', 'appearance anchors: 20-30', 'Mara, uma mulher de 40 anos', 'Mara, a woman who worked the radio for five years',
+    'Mara, a young woman with short dark hair', 'Mara, the radio officer', 'Mara, in her 30-35s', 'Mara, in her late thirties', 'Mara, aged 45', 'Mara, a médica do porto', 'Mara, a woman who is a cowboy fan with a kidney stone']
+  for (const canonica of ADULTOS) {
+    assert.equal(f.adultoProvado2511({ nome: 'Mara', nucleo: 'Mara', canonica }), true, 'adulto: ' + canonica)
     assert.ok('referencia' in adm(CLIENTE, retrato([ELIAS, { ...MARA, canonica }])), 'adulto liga: ' + canonica)
   }
+  // a segunda trava: palavra ou idade de menor, mesmo COM sinal de adulto, em nome, núcleo, canônica, roteiro ou pedido
+  const MENORES = [
+    ['girl', 'a girl'], ['boy', 'the boy next door'], ['teenaged', 'a teenaged skater'], ['in her teens', 'in her teens'], ['child', 'a child of the coast'], ['kid', 'the kid at the harbor'],
+    ['12-year-old', 'a 12-year-old'], ['seventeen-year-old', 'a seventeen-year-old'], ['twelve years old', 'twelve years old'], ['aged 9', 'aged 9'], ['age 15', 'age 15'], ['13 y/o', 'a 13 y/o'], ['13yo', 'a 13yo'],
+    ['faixa 10-15', 'anchors: 10-15'], ['faixa 6-9', 'anchors: 6-9'], ['underage', 'an underage runaway'], ['under 18', 'under 18'], ['juvenile', 'a juvenile'], ['youth', 'a youth'],
+    ['high schooler', 'a high schooler'], ['middle school student', 'a middle school student'], ['8th grader', 'an 8th grader'], ['daughter', "Elias's daughter"],
+    ['13 anos', 'Lia, 13 anos'], ['dezesseis anos', 'de dezesseis anos'], ['aluna', 'uma aluna'], ['garotinha', 'uma garotinha'], ['menininho', 'um menininho'], ['criancinha', 'uma criancinha'], ['ensino médio', 'estudante do ensino médio'],
+    ['niña', 'una niña'], ['chica de 12 años', 'una chica de 12 años'], ['Mädchen', 'ein Mädchen'], ['Kind', 'ein Kind'], ['12-jährige', 'eine 12-jährige'], ['fille', 'une fille'], ['ado', 'un ado'], ['12 ans', 'de 12 ans'],
+    ['larki', 'ek larki'], ['beti', 'Elias ki beti'],
+  ]
+  for (const [nome, trecho] of MENORES) {
+    const canonica = 'Mara, a 30-year-old woman; ' + trecho
+    assert.equal(f.textoDizMenor2511(trecho), true, 'menor: ' + nome)
+    assert.equal(motivo(retrato([ELIAS, { ...MARA, canonica }])), 'duas_menor', 'menor com sinal de adulto ainda barra: ' + nome)
+  }
+  assert.equal(f.textoDizMenor2511('a kind man who stays for five years'), false, '"kind" (adjetivo) e "for five years" não são menor')
+  assert.equal(motivo(retrato([ELIAS, { ...MARA, nome: 'Little Girl', nucleo: 'Little Girl' }], [{ nome: 'Elias', url: FOLHA_E }, { nome: 'Little Girl', url: FOLHA_M }])), 'duas_menor', 'o nome também conta')
+  assert.equal(motivo(retrato(), { estilizado: false, textoDoFilme: 'Mara, then twelve years old, runs to the pier.' }), 'duas_menor', 'a idade só no ROTEIRO barra')
+  assert.equal(motivo(retrato(), { estilizado: false, textoDoFilme: 'Make a film about my daughter and me at the lighthouse.' }), 'duas_menor', 'o menor só no PEDIDO barra')
+  assert.ok('referencia' in adm(CLIENTE, retrato(), { estilizado: false, textoDoFilme: 'Elias climbs the stairs. Mara listens to the radio. They watch the boat reach the harbor.' }), 'roteiro limpo: liga')
   assert.ok(adm(CASA, retrato([ELIAS, { ...MARA, canonica: 'Mara, a 12-year-old girl' }])).referencia.segundo, 'a casa não passa pela régua do cliente (como ontem)')
 
-  // E. a rota e o claim
-  assert.ok(/admitirReferenciaUnica2411\(REFERENCIA_UNICA_2411, user\.email, [^\n]*\{ estilizado: [^\n]*\}\)/.test(route) && route.split('admitirReferenciaUnica2411(').length - 1 === 1, 'a rota chama a admissão uma vez, com 4 argumentos (vale a chave do módulo)')
-  { const motivoRelato = f.relatoClienteSemReferencia2411({ referenciaUnicaRecusa: 'duas_menor' })
-    igual(motivoRelato, { versao: 'KINEO-REFERENCIA-UNICA-HUMANO-2411', motivo: 'duas_menor' }, 'o claim: só a versão e o código') }
+  // E. V2 [VOLTA da revisora] figura conhecida, pessoa real ou personagem de marca: nos DOIS, pelo nome e pela canônica; pessoa real também no roteiro e no pedido
+  const ADULTA = 'a 40-year-old woman with short hair'
+  for (const n of ['Barack Obama', 'Taylor Swift', 'Peter Parker', 'Lara Croft', 'Krishna', 'Bruce Wayne', 'Tony Stark']) {
+    assert.equal(motivo(retrato([ELIAS, { ...MARA, nome: n, nucleo: n, canonica: ADULTA }], [{ nome: 'Elias', url: FOLHA_E }, { nome: n, url: FOLHA_M }])), 'duas_figura_conhecida', 'o 2º famoso: ' + n)
+    assert.equal(motivo(retrato([{ ...ELIAS, nome: n, nucleo: n, canonica: 'a 50-year-old man' }, MARA], [{ nome: n, url: FOLHA_E }, { nome: 'Mara', url: FOLHA_M }])), 'duas_figura_conhecida', 'o protagonista famoso: ' + n)
+  }
+  assert.equal(motivo(retrato([ELIAS, { ...MARA, canonica: 'Mara, a 30-year-old woman who looks like Taylor Swift' }])), 'duas_figura_conhecida', 'pessoa real na canônica')
+  assert.equal(motivo(retrato([ELIAS, { ...MARA, nome: 'Velin', nucleo: 'Velin', canonica: ADULTA }], [{ nome: 'Elias', url: FOLHA_E }, { nome: 'Velin', url: FOLHA_M }]), { estilizado: false, textoDoFilme: 'Velin, a character from the game Moon Bridge, enters.' }), 'duas_figura_conhecida', 'o texto situa o nome numa obra')
+  assert.equal(motivo(retrato(), { estilizado: false, textoDoFilme: 'Elias meets Barack Obama at the pier.' }), 'duas_figura_conhecida', 'pessoa real só no roteiro')
+  assert.ok('referencia' in adm(CLIENTE, retrato([ELIAS, { ...MARA, nome: 'Mario Rossi', nucleo: 'Mario Rossi', canonica: ADULTA }], [{ nome: 'Elias', url: FOLHA_E }, { nome: 'Mario Rossi', url: FOLHA_M }])), 'nome comum (Mario Rossi) liga')
+
+  // F. a rota e o claim
+  assert.ok(/admitirReferenciaUnica2411\(REFERENCIA_UNICA_2411, user\.email, [^\n]*\{ estilizado: [^\n]*\}\)/.test(route) && route.split('admitirReferenciaUnica2411(').length - 1 === 1, 'a rota chama a admissão uma vez')
+  assert.ok(route.includes("textoDoFilme: [typeof prompt === 'string' ? prompt : '', typeof pedidoDoCliente === 'string' ? pedidoDoCliente : ''].join('\\n')"), 'a rota passa o roteiro e o pedido à régua')
+  { const motivoRelato = f.relatoClienteSemReferencia2411({ referenciaUnicaRecusa: 'duas_figura_conhecida' })
+    igual(motivoRelato, { versao: 'KINEO-REFERENCIA-UNICA-HUMANO-2411', motivo: 'duas_figura_conhecida' }, 'o claim: só a versão e o código') }
 }
 
 await suite(null)
@@ -109,28 +142,42 @@ const mutants = [
   [feature, "return 'referencia' in duas ? { referencia: duas.referencia, cliente: true } : { motivo: duas.motivo }", "return 'referencia' in duas ? { referencia: duas.referencia } : { motivo: duas.motivo }"],
   [feature, "return 'referencia' in duas ? { referencia: duas.referencia, cliente: true } : { motivo: duas.motivo }", "return 'referencia' in duas ? { referencia: duas.referencia, cliente: true } : { motivo }"],
   [feature, "  if (snapshot.characters.length !== 2) return { motivo: 'duas_tres_ou_mais' }\n", ''],
+  [feature, "  if (snapshot.characterReferences.some((r) => !doElenco.has(r.nome)) || snapshot.approvedStills.some((s) => s.characterNames.some((n) => !doElenco.has(n)))) return { motivo: 'duas_tres_ou_mais' } // N2\n", ''],
+  [feature, "snapshot.characterReferences.some((r) => !doElenco.has(r.nome)) || snapshot.approvedStills.some(", "snapshot.approvedStills.some("],
   // (equivalente: sem a linha dos protagonistas, referenciaUnicaDoFilme dá null com dois protagonistas e a régua devolve o mesmo duas_sem_folha)
   [feature, "  if (!snapshot.characters.every((c) => c.tipo === 'humano')) return { motivo: 'duas_nao_humano' }\n", ''],
   [feature, "  if (!snapshot.characters.every((c) => snapshot.characterReferences.some((r) => r.nome === c.nome && https(r.url)))) return { motivo: 'duas_sem_folha' }\n", ''],
   [feature, "  if (filme.estilizado !== false) return { motivo: 'duas_estilizado' }", "  if (filme.estilizado === true) return { motivo: 'duas_estilizado' }"],
-  [feature, "  if (snapshot.characters.some((c) => pareceMenor2511(c))) return { motivo: 'duas_menor' }\n", ''],
-  [feature, "  if (snapshot.characters.some((c) => pareceMenor2511(c))) return { motivo: 'duas_menor' }\n", "  if (snapshot.characters.some((c) => c.protagonista !== true && pareceMenor2511(c))) return { motivo: 'duas_menor' }\n"],
-  [feature, "  const textos = [c.nome, c.nucleo, c.canonica]", "  const textos = [c.canonica]"],
-  [feature, "|girl|girls|", "|"],
-  [feature, "|criança|crianças|", "|"],
-  [feature, "|teen|teens|teenager|teenagers|teenage|", "|"],
-  [feature, "(?:(?:years?|yrs?)[\\s-]*old|", "(?:(?:years?|yrs?)|"],
-  [feature, "|(?<![\\p{L}])aged?\\s+(?:1[0-7]|[0-9])(?![\\p{N}])|", "|"],
-  [feature, "(?:1[0-7]|[0-9])\\s*(?:-|–|to)\\s*\\d{1,2}(?![\\p{N}])", "(?:1[0-7])\\s*(?:-|–|to)\\s*\\d{1,2}(?![\\p{N}])"],
-  [feature, "(?<![\\p{L}])(?:de|com|tem)\\s+(?:1[0-7]|[0-9])\\s+anos(?![\\p{L}])", "(?<![\\p{L}])(?:tem)\\s+(?:1[0-7]|[0-9])\\s+anos(?![\\p{L}])"],
-  [feature, "const MENOR_PALAVRA_2511 = /(?<![\\p{L}\\p{N}])", "const MENOR_PALAVRA_2511 = /(?:)"],
-  // (equivalente: origem 'imagem_chave' e tipo fora de 'humano' já saem nas regras 2 e 3; a linha fica como segunda trava)
+  // N3 [revisora] o FECHAMENTO: sem o adulto provado, a palavra desconhecida passa
+  [feature, "  if (!snapshot.characters.every((c) => adultoProvado2511(c))) return { motivo: 'duas_menor' } // 5: sem o sinal de adulto = barra\n", ''],
+  [feature, "if (!snapshot.characters.every((c) => adultoProvado2511(c)))", "if (!snapshot.characters.some((c) => adultoProvado2511(c)))"],
+  [feature, "  return ADULTO_IDADE_2511.test(t) || ADULTO_PALAVRA_2511.test(t)\n", "  return true\n"],
+  // (equivalente: idade de 10 a 17 escrita como sinal de adulto também é sinal de MENOR, e a segunda trava barra; a faixa fica como 1ª trava)
+  [feature, "  if (snapshot.characters.some((c) => textoDizMenor2511(textoDoPersonagem2511(c))) || textoDizMenor2511(textoDoFilme)) return { motivo: 'duas_menor' }", "  if (snapshot.characters.some((c) => textoDizMenor2511(textoDoPersonagem2511(c)))) return { motivo: 'duas_menor' }"],
+  [feature, "  if (snapshot.characters.some((c) => textoDizMenor2511(textoDoPersonagem2511(c))) || textoDizMenor2511(textoDoFilme)) return { motivo: 'duas_menor' }", "  if (textoDizMenor2511(textoDoFilme)) return { motivo: 'duas_menor' }"],
+  [feature, "  [c.nome, c.nucleo, c.canonica].filter(", "  [c.canonica].filter("],
+  [feature, "|teen\\\\p{L}*|", "|teen|"],
+  [feature, "'crian\\\\p{L}*|menin\\\\p{L}*|garot\\\\p{L}*|", "'criança|menino|garota|"],
+  [feature, "'(?:[\\\\s-]*(?:years?|yrs?)[\\\\s-]*(?:old|of\\\\s+age)|", "'(?:[\\\\s-]*(?:years?|yrs?)|"],
+  [feature, "const MENOS_DE_18 = '(?:1[0-7]|[0-9]|' + POUCOS + ')'", "const MENOS_DE_18 = '(?:1[0-7]|[0-9])'"],
+  [feature, "  return MENOR_PALAVRA_2511.test(t) || MENOR_ALEMAO_2511.test(t) || MENOR_IDADE_2511.test(t)\n", "  return MENOR_PALAVRA_2511.test(t) || MENOR_IDADE_2511.test(t)\n"],
+  [feature, "const MENOR_ALEMAO_2511 = /(?<![\\p{L}\\p{N}])(?:Kind|", "const MENOR_ALEMAO_2511 = /(?<![\\p{L}\\p{N}])(?:kind|"],
+  // V2
+  [feature, "  if (snapshot.characters.some((c) => figuraNaReferencia2511(c, textoDoFilme)) || mentionsRealPerson(textoDoFilme)) return { motivo: 'duas_figura_conhecida' } // 6\n", ''],
+  [feature, "  if (snapshot.characters.some((c) => figuraNaReferencia2511(c, textoDoFilme)) || mentionsRealPerson(textoDoFilme))", "  if (snapshot.characters.some((c) => c.protagonista !== true && figuraNaReferencia2511(c, textoDoFilme)) || mentionsRealPerson(textoDoFilme))"],
+  [feature, "figuraNaReferencia2511(c, textoDoFilme)) || mentionsRealPerson(textoDoFilme)) return", "figuraNaReferencia2511(c, textoDoFilme))) return"],
+  [feature, "  if (nomes.some((n) => !!figuraConhecida(n) || !!figuraConhecidaJuiz(n) || mentionsRealPerson(n))) return true\n", "  if (nomes.some((n) => !!figuraConhecida(n) || !!figuraConhecidaJuiz(n))) return true\n"],
+  [feature, "  if (nomes.some((n) => !!figuraConhecida(n) || !!figuraConhecidaJuiz(n) || mentionsRealPerson(n))) return true\n", "  if (nomes.some((n) => mentionsRealPerson(n))) return true\n"],
+  [feature, "  if (typeof c.canonica === 'string' && mentionsRealPerson(c.canonica)) return true\n", ''],
+  [feature, "  if ([...nomes, typeof c.canonica === 'string' ? c.canonica : '', textoDoFilme].some((t) => FICCAO_DE_MARCA_2511.test(t))) return true\n", ''],
+  [feature, "  return nomes.some((n) => identidadeDeObra2511(n, textos))\n", "  return false\n"],
   [feature, "  if (!duas.segundo || duas.segundo.frase !== FRASE_SEGUNDA_PESSOA) return { motivo: 'duas_nomes' }\n", ''],
+  [routeFile, "textoDoFilme: [typeof prompt === 'string' ? prompt : '', typeof pedidoDoCliente === 'string' ? pedidoDoCliente : ''].join('\\n')", "textoDoFilme: ''"],
 ]
 let mortos = 0
 for (const mutant of mutants) {
   assert.ok(local(mutant[0]).split(mutant[1]).length === 2, 'mutante não aplica (ou aplica mais de uma vez): ' + mutant[1])
-  await assert.rejects(suite(mutant), err => err instanceof assert.AssertionError || err instanceof TypeError, 'SOBREVIVEU: ' + mutant[1] + ' → ' + mutant[2])
+  await assert.rejects(suite(mutant), err => err instanceof assert.AssertionError, 'SOBREVIVEU: ' + mutant[1] + ' → ' + mutant[2]) // N1 [revisora]: só AssertionError conta como morto
   mortos++
 }
-console.log(`PASS KINEO-DUAS-PESSOAS-CLIENTE-2511: chave 'public_humano' (em 'internal' o cliente = o de ontem; a casa não muda); cliente com exatamente 2 pessoas fotorreais, as duas com folha, nenhum menor = a referência da casa com @Image2; 3 ou mais, bicho, criatura, desenho, estilo torto, menor (palavra, idade e faixa, inglês e português), imagem-chave, nomes que se contêm e a mesma folha = o pedido de hoje + o código do motivo; ${mortos}/${mutants.length} mutantes mortos.`)
+console.log(`PASS KINEO-DUAS-PESSOAS-CLIENTE-2511 (volta): chave 'public_humano' (em 'internal' o cliente = o de ontem; a casa não muda); cliente com exatamente 2 pessoas fotorreais com folha, ADULTO PROVADO nos dois (idade ≥ 18 ou palavra de adulto) e nenhum sinal de menor no elenco, no roteiro ou no pedido, sem figura conhecida, pessoa real ou personagem de marca = a referência da casa com @Image2; o resto = o pedido de hoje + o código; ${mortos}/${mutants.length} mutantes mortos.`)

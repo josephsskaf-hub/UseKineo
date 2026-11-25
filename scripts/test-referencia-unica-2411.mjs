@@ -672,8 +672,8 @@ const mutants = [
   [feature, '  if (referenciaUnicaLigada(modo, email)) { const r', "  if (modo === 'public' && referenciaUnicaLigada(modo, email)) { const r"], // a casa passa pela guarda
   [feature, "typeof timing.referenciaUnicaRecusa === 'string' ?", 'false ?'], // o claim nunca diz o motivo
   [feature, '  if (!timing.referenciaUnica) return typeof', "  if (typeof timing.referenciaUnicaRecusa === 'string') return typeof"], // motivo ao lado da referência usada
-  [routeFile, '{ estilizado: isStylizedLook(styleAnchor) || desenhoInfantil.ativo }', '{ estilizado: isStylizedLook(styleAnchor) }'], // o desenho infantil passa
-  [routeFile, '{ estilizado: isStylizedLook(styleAnchor) || desenhoInfantil.ativo }', '{ estilizado: false }'], // o estilo do filme ignorado
+  [routeFile, '{ estilizado: isStylizedLook(styleAnchor) || desenhoInfantil.ativo, textoDoFilme:', '{ estilizado: isStylizedLook(styleAnchor), textoDoFilme:'] /* KINEO-DUAS-PESSOAS-CLIENTE-2511 (volta): a âncora nova */, // o desenho infantil passa
+  [routeFile, '{ estilizado: isStylizedLook(styleAnchor) || desenhoInfantil.ativo, textoDoFilme:', '{ estilizado: false, textoDoFilme:'] /* KINEO-DUAS-PESSOAS-CLIENTE-2511 (volta) */, // o estilo do filme ignorado
   [routeFile, '        else if (ru2411) kling4Timing.referenciaUnicaRecusa = ru2411.motivo\n', ''], // a rota não grava o motivo
   [routeFile, 'admitirReferenciaUnica2411(REFERENCIA_UNICA_2411, user.email, retratoSemFolhaReprovada2411(', "admitirReferenciaUnica2411(REFERENCIA_UNICA_2411, 'josephsskaf@gmail.com', retratoSemFolhaReprovada2411("], // todo mundo vira casa
   [feature, 'p.slice(0, -(f + CAUDA_DA_BOCA_2411).length) + CAUDA_DA_BOCA_2411', 'p'], // KINEO-DUAS-REFERENCIAS-2411: o semANossa recebe a frase em `f`
