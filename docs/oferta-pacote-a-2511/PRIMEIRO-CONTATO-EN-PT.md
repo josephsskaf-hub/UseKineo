@@ -34,4 +34,4 @@ Joseph
 Kineo AI
 ```
 
-**QUESTÃO PENDENTE:** empresa/destinatário comercial a selecionar; revalidar a peça escolhida antes da personalização, com o estado Ativo documentado para as 30 empresas em 25/11 no recibo de Canais 91272467e. Disponibilidade do piloto, aprovação do lote e qualquer envio permanecem com a CEO. Os exemplos próprios não são provas de resultados de clientes.
+**QUESTÃO PENDENTE:** empresa/destinatário comercial a selecionar; revalidar a peça escolhida antes da personalização, com o estado Ativo documentado para as 30 empresas em 25/11 no recibo de Canais 0eae0d52a. Disponibilidade do piloto, aprovação do lote e qualquer envio permanecem com a CEO. Os exemplos próprios não são provas de resultados de clientes.

@@ -1,9 +1,9 @@
 {
   "date": "2026-11-25",
-  "sourceSha": "91272467e983d8719200f604ec49dcf695aa1fab",
+  "sourceSha": "0eae0d52a734d2661c02e540467468f43e0f7833",
   "sourceBase": "6804eb7937e92fc10967ecc57b03b6537ac0ff25",
   "sourceJsonSha256": "9b23b6ea627e44f2e464d930b030438068cac41bb30dde65291157bd23bd0687",
-  "sourceListSha256": "1899133f286c493f797cb457d63715a5dde21b79581277238b2bdc0b16ac6cee",
+  "sourceListSha256": "fc7ee5ca07167c841b91849c93aa82340cd3479856a58da57155cf25e2f103e5",
   "companies": 30,
   "uniqueAdIds": 30,
   "activeVideoCardsDated": 30,
@@ -23,5 +23,7 @@
   ],
   "productComparison": "c8bcd7b31; no code or visual changes",
   "impressions": "unknown",
-  "commercialInterest": "unknown"
+  "commercialInterest": "unknown",
+  "previousSourceSha": "91272467e983d8719200f604ec49dcf695aa1fab",
+  "countryUpdate": "Five list lines reviewed; declared US base / legal address / historical entity distinguished; Native current operational headquarters unknown; Meta JSON byte-identical to 91272467e"
 }
