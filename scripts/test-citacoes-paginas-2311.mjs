@@ -21,13 +21,17 @@ const old=make(previous),json=x=>JSON.parse(JSON.stringify(x)),oldMap=json(old(M
 const render=(l,f,p={})=>renderToStaticMarkup(React.createElement(l(f).default,p)),schemas=h=>[...h.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(x=>JSON.parse(x[1]))
 const controls=['urdu','story-videos','faceless-videos','documentary-shorts','instagram-reels'],oldHtml=new Map(controls.map(slug=>[slug,render(old,INTENT,{params:{slug}})]))
 // KINEO-CITACOES-PUBLIC-2411: o padrão agora é 'public'; a troca de estado casa qualquer valor para nunca virar no-op calado.
-const release=(rep,state)=>{const t=(rep[RELEASE]??source(RELEASE)).replace(/(CITATION_PAGES_RELEASE: CitationPagesRelease = )'(?:off|internal|public)'/,`$1'${state}'`);assert.ok(t.includes(`CITATION_PAGES_RELEASE: CitationPagesRelease = '${state}'`),'RELEASE override anchor');return{...rep,[RELEASE]:t}}
+// KINEO-FERRAMENTAS-NO-AR-2511 [CEO 25/11]: as 10 páginas de ferramenta abriram ao público (CITATION_TOOLS_RELEASE 'public'). Este guardião protege a chave das PÁGINAS (CITATION_PAGES_RELEASE):
+// ele isola a chave das ferramentas em 'off' em todo estado que monta, e assim cada afirmação continua EXATAMENTE a de antes (sem afrouxar). A chave das
+// ferramentas tem o guardião dela (test-citacoes-ferramentas-tarde-2411), que prende o estado do ar e os três estados.
+const release=(rep,state)=>{const t=(rep[RELEASE]??source(RELEASE)).replace(/(CITATION_PAGES_RELEASE: CitationPagesRelease = )'(?:off|internal|public)'/,`$1'${state}'`).replace(/(CITATION_TOOLS_RELEASE: CitationPagesRelease = )'(?:off|internal|public)'/,`$1'off'`);assert.ok(t.includes(`CITATION_PAGES_RELEASE: CitationPagesRelease = '${state}'`),'RELEASE override anchor');assert.ok(t.includes(`CITATION_TOOLS_RELEASE: CitationPagesRelease = 'off'`),'TOOLS RELEASE isolated anchor');return{...rep,[RELEASE]:t}}
 // Hub UGC antes da virada (origin/main 55e4855f6): base exata para provar que public só acrescenta a âncora do anúncio pela foto.
 const PILLAR='components/ugc/UgcPages.tsx',hubBefore=execFileSync('git',['show','55e4855f6:'+PILLAR],{encoding:'utf8'})
 const hubAnchor=/<a href="\/ai-ugc-ads\/product-photo-ads">([\s\S]*?)<\/a>/g
 const denied=async fn=>{try{await fn();return false}catch(e){if(e.message==='NEXT_NOT_FOUND')return true;throw e}}
+const semFerramentas=rep=>{const t=(rep[RELEASE]??source(RELEASE)).replace(/(CITATION_TOOLS_RELEASE: CitationPagesRelease = )'(?:off|internal|public)'/,`$1'off'`);assert.ok(t.includes(`CITATION_TOOLS_RELEASE: CitationPagesRelease = 'off'`),'TOOLS RELEASE isolated anchor (live)');return{...rep,[RELEASE]:t}}
 async function verify(rep={}){
- const l=make(rep),a=l(ACCESS),house=l('lib/internalAccounts.ts').INTERNAL_EXACT_EMAILS,slugs=json(a.CITATION_DRAFT_SLUGS)
+ const l=make(semFerramentas(rep)),a=l(ACCESS),house=l('lib/internalAccounts.ts').INTERNAL_EXACT_EMAILS,slugs=json(a.CITATION_DRAFT_SLUGS)
  assert.equal(a.CITATION_PAGES_RELEASE,'public','DEFAULT pages public')
  for(const email of [null,'buyer@example.com',...house]){
   const user=email?{email,email_confirmed_at:'yes'}:null
