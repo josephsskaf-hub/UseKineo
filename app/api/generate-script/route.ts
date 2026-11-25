@@ -6,7 +6,7 @@ import { minCoverageFor } from '@/lib/narrationFit' // KINEO-K4-NARRACAO-CABE-01
 // KINEO-REGUA-DO-ESCRITOR-2026-09-17 — o escritor dimensiona na régua do motor que VAI falar (a mesma do portão).
 import { minWordsFor, maxWordsFor, writerRateFor } from '@/lib/scriptWriterRate'
 import { openai, OPENAI_SCRIPT_TIMEOUT_MS } from '@/lib/openai'
-import { ESCRITOR_DE_DIALOGO_2511, escritorDeDialogoLigado, escreverDialogo2511, lerVoiceMode, DIALOGO_ESCRITO_EVENTO, ROTEIRO_ESCRITO_EVENTO } from '@/lib/cinematic/escritorDeDialogo2511' // KINEO-ESCRITOR-DE-DIALOGO-2511
+import { QUEM_FALA_NO_ROTEIRO, escritorDeDialogoLigado, escreverDialogo2511, lerVoiceMode, DIALOGO_ESCRITO_EVENTO, ROTEIRO_ESCRITO_EVENTO } from '@/lib/cinematic/escritorDeDialogo2511' // KINEO-ESCRITOR-DE-DIALOGO-2511
 import { writeServerEvent } from '@/lib/serverEvents'
 import { buildRefusalEvent } from '@/lib/stageRefusal'
 import {
@@ -429,7 +429,7 @@ export async function POST(req: NextRequest) {
     // (lib/cinematic/escritorDeDialogo2511). Só com a chave (nasce 'internal' = a casa exata), em inglês (a única língua provada) e com IDEIA (o texto que já
     // chega com marcadores segue como hoje). Fora da régua, falhou ou demorou = segue abaixo, o roteiro narrado de hoje. voice_mode ausente ou 'narrator' =
     // nenhuma linha nova roda. Depois da moderação do tema (acima): a política vale igual. ═══
-    if (lerVoiceMode(body.voice_mode) === 'characters' && filmeCurto && language === 'en' && !hasViralMarkers(topic) && escritorDeDialogoLigado(ESCRITOR_DE_DIALOGO_2511, user.email)) {
+    if (lerVoiceMode(body.voice_mode) === 'characters' && filmeCurto && language === 'en' && !hasViralMarkers(topic) && escritorDeDialogoLigado(QUEM_FALA_NO_ROTEIRO, user.email)) {
       const dialogo2511 = await escreverDialogo2511({ ideia: topic, segundos: alvoSegundos, chamar: async (corpo) => {
         const c = await openai.chat.completions.create(corpo as unknown as Parameters<typeof openai.chat.completions.create>[0], { timeout: OPENAI_SCRIPT_TIMEOUT_MS, maxRetries: 0 }) as { choices?: Array<{ message?: { content?: string | null } }> }
         return c.choices?.[0]?.message?.content ?? null } })

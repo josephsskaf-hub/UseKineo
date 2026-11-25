@@ -15,7 +15,7 @@ export const DIALOGO_ESCRITO_EVENTO = 'dialogue_script_written'
 export const ROTEIRO_ESCRITO_EVENTO = 'script_written'
 /** A chave: 'internal' = só a lista EXATA da casa; 'public' = todos; 'off' = nada. Nasce 'internal' (CEO 25/11). */
 export type ModoEscritorDeDialogo2511 = 'off' | 'internal' | 'public'
-export const ESCRITOR_DE_DIALOGO_2511: ModoEscritorDeDialogo2511 = 'internal'
+export const QUEM_FALA_NO_ROTEIRO: ModoEscritorDeDialogo2511 = 'internal'
 export const escritorDeDialogoLigado = (modo: ModoEscritorDeDialogo2511, email: string | null | undefined): boolean =>
   modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))
 /** O campo combinado entre os dois braços (CEO 25/11 17:50): só a string exata 'characters' liga; o resto é 'narrator' (o de hoje). */
@@ -27,8 +27,8 @@ export const SECOES_DO_FILME_CURTO = ['HOOK', 'MICRO REWARD 1', 'MICRO REWARD 2'
 export const MAX_FALANTES = 2
 export const MAX_FALAS_POR_SECAO = 2
 export const MAX_PALAVRAS_POR_FALA = 10
-/** O total de fala do filme de 15 s (as falas, sem os nomes): o pedido mira 28 a 40; o código aceita 16 a 60 (abaixo disso não há filme falado de 15 s). */
-export const PALAVRAS_DO_FILME = { pedido: { min: 28, max: 40 }, aceito: { min: 16, max: 60 } } as const
+/** O total de fala do filme de 15 s (as falas, sem os nomes): o pedido mira 28 a 40; o código aceita 26 a 60: com os nomes (pelo menos 4 falas), o roteiro passa do piso de 29 palavras do avaliarRoteiroEscrito do caminho do servidor. */
+export const PALAVRAS_DO_FILME = { pedido: { min: 28, max: 40 }, aceito: { min: 26, max: 60 } } as const
 const NOME_MAX = 40, CUE_MAX = 80, FALA_MAX = 120, IDEIA_MAX = 2000
 /** Nomes que são voz de fora, não personagem: o modo é sem narrador. */
 const NAO_E_PERSONAGEM = /^(?:narrator|narration|voice|voiceover|voice over|voice-over|vo|v\.o\.|off|offscreen|off-screen|announcer|host|presenter|speaker|everyone|all|both|crowd|chorus|unknown|someone|stranger)$/i

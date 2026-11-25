@@ -1,0 +1,128 @@
+{
+  "nota": "KINEO-ESCRITOR-DE-DIALOGO-2511 — o ensaio do escritor de diálogo, para a CEO rodar pela conta da casa DEPOIS do deploy só-casa (chave QUEM_FALA_NO_ROTEIRO = internal). 10 ideias MINHAS (nenhum texto de cliente): 5 fotorreais e 5 de desenho (o estilo vem da tela; aqui só a ideia). Cada caso traz o corpo PRONTO do POST /api/generate-script. Guardar [{ id, resposta, elenco? }] e rodar: node scripts/ensaio-escritor-de-dialogo-2511.mjs respostas.json. Custo: 10 chamadas de texto ao gpt-4o (~US$ 0,02).",
+  "rota": "POST /api/generate-script",
+  "regua_escrita_antes": [
+    "a resposta veio com voiceMode = characters (saiu falado, não caiu no narrado)",
+    "exatamente 4 seções, na ordem HOOK, MICRO REWARD 1, MICRO REWARD 2, PAYOFF, cada uma com [Pexels: cue]",
+    "toda seção tem 1 ou 2 falas válidas no formato Nome: fala",
+    "no máximo 2 falantes no filme",
+    "cada fala com até 10 palavras",
+    "nenhuma fala atribuída a quem não está no elenco (com o elenco do dry-run do filme, quando houver)",
+    "nada de narrador nem voz de fora",
+    "o parser de hoje lê as 4 seções",
+    "a história continua a do pedido (olho humano)"
+  ],
+  "proposta_para_abrir": "9 de 10 falados dentro da régua e nenhuma história trocada",
+  "casos": [
+    {
+      "id": "f1",
+      "estilo": "fotorreal",
+      "corpo": {
+        "topic": "A lighthouse keeper named Elias and a radio operator named Mara guide a lost fishing boat home through a storm.",
+        "language": "en",
+        "targetSeconds": 15,
+        "engine": "kling4",
+        "voice_mode": "characters"
+      }
+    },
+    {
+      "id": "f2",
+      "estilo": "fotorreal",
+      "corpo": {
+        "topic": "Two old friends meet on a train platform after twenty years and one of them finally returns a borrowed watch.",
+        "language": "en",
+        "targetSeconds": 15,
+        "engine": "kling4",
+        "voice_mode": "characters"
+      }
+    },
+    {
+      "id": "f3",
+      "estilo": "fotorreal",
+      "corpo": {
+        "topic": "A night-shift nurse convinces a stubborn patient to call his daughter before the morning surgery.",
+        "language": "en",
+        "targetSeconds": 15,
+        "engine": "kling4",
+        "voice_mode": "characters"
+      }
+    },
+    {
+      "id": "f4",
+      "estilo": "fotorreal",
+      "corpo": {
+        "topic": "Rosa, a baker, finds a mysterious note inside a sealed flour sack and calls her brother Tomas to help solve it.",
+        "language": "en",
+        "targetSeconds": 15,
+        "engine": "kling4",
+        "voice_mode": "characters"
+      }
+    },
+    {
+      "id": "f5",
+      "estilo": "fotorreal",
+      "corpo": {
+        "topic": "A taxi driver realizes his passenger is the stranger who saved his life ten years ago.",
+        "language": "en",
+        "targetSeconds": 15,
+        "engine": "kling4",
+        "voice_mode": "characters"
+      }
+    },
+    {
+      "id": "d1",
+      "estilo": "desenho",
+      "corpo": {
+        "topic": "A tiny dragon named Ember is afraid of flying until a wise owl teaches her one brave trick.",
+        "language": "en",
+        "targetSeconds": 15,
+        "engine": "kling4",
+        "voice_mode": "characters"
+      }
+    },
+    {
+      "id": "d2",
+      "estilo": "desenho",
+      "corpo": {
+        "topic": "A robot and a cat on the moon argue about who ate the last space cookie.",
+        "language": "en",
+        "targetSeconds": 15,
+        "engine": "kling4",
+        "voice_mode": "characters"
+      }
+    },
+    {
+      "id": "d3",
+      "estilo": "desenho",
+      "corpo": {
+        "topic": "A grumpy cactus and a cheerful sunflower share one small window and learn to like each other.",
+        "language": "en",
+        "targetSeconds": 15,
+        "engine": "kling4",
+        "voice_mode": "characters"
+      }
+    },
+    {
+      "id": "d4",
+      "estilo": "desenho",
+      "corpo": {
+        "topic": "Two penguins plan a surprise birthday party for their friend the walrus, but the walrus is already there.",
+        "language": "en",
+        "targetSeconds": 15,
+        "engine": "kling4",
+        "voice_mode": "characters"
+      }
+    },
+    {
+      "id": "d5",
+      "estilo": "desenho",
+      "corpo": {
+        "topic": "A lost snowman in the desert asks a camel for directions back to the mountains.",
+        "language": "en",
+        "targetSeconds": 15,
+        "engine": "kling4",
+        "voice_mode": "characters"
+      }
+    }
+  ]
+}

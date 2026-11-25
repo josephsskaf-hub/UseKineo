@@ -9,7 +9,7 @@
 - **Quem escreve:** `lib/cinematic/escritorDeDialogo2511.ts`, numa chamada só ao `gpt-4o` (o modelo do escritor de hoje). A saída é json_schema estrito, e o **código** confere a régua e monta o texto.
 - **Fora da régua, falhou ou demorou:** segue o escritor de hoje, e o filme sai narrado. O rastro `dialogue_script_written` grava só números e o motivo.
 - **`voice_mode` ausente ou `'narrator'`:** nenhuma linha nova roda. O guardião prova que a rota só GANHA linhas: o diff contra a base não tem nenhuma linha removida.
-- **Chave:** `ESCRITOR_DE_DIALOGO_2511 = 'internal'`, só a lista exata da casa. Para abrir, `'public'`.
+- **Chave:** `QUEM_FALA_NO_ROTEIRO = 'internal'`, só a lista exata da casa. Para abrir, `'public'`.
 
 ## O formato que sai
 - **Cada seção:**
@@ -27,7 +27,15 @@
 - de 1 a 2 falantes no filme inteiro, com nome próprio, e nunca narrador, voz de fora ou nome repetido;
 - cada seção com 1 ou 2 falas, cada fala de 1 a 10 palavras, dita por quem foi declarado e sem o nome dentro;
 - `cue` de 2 palavras ou mais, sem colchete nem dois-pontos;
-- o filme com 16 a 60 palavras de fala; o pedido mira de 28 a 40.
+- o filme com 26 a 60 palavras de fala; o pedido mira de 28 a 40. Com os nomes (4 falas ou mais), o roteiro aceito sempre passa do piso de 29 palavras do `avaliarRoteiroEscrito`, que conta os nomes.
+
+## O risco do caminho do servidor (conferido, executado)
+O roteiro de diálogo passa intacto pelo que o caminho da ideia solta faz depois do escritor (`lib/meta95/ideiaNoEscritor.ts`):
+- `roteiroSemMetaTexto` (l. 224) não remove nenhuma linha `Nome: fala`;
+- `avaliarRoteiroEscrito` (l. 283) aprova com kling4, gemini e seedance a 15 s: 40 palavras contra o piso de 29, em 4 blocos;
+- `promptComRoteiro` (l. 303) mantém a fala, e `mesmaFalaQueORoteiro` (l. 309) dá true.
+
+O único cuidado é o piso, que conta os nomes. Daí o mínimo aceito de 26 palavras de fala.
 
 ## Por onde o `voice_mode` precisa viajar (pedidos)
 - **Ao GPT (tela):**
@@ -47,7 +55,7 @@
 - `novos-vermelhos`: o resultado vai na mensagem de entrega.
 
 ## O ensaio (precisa de deploy, porque o escritor chama o gpt-4o no servidor)
-- **Pacote:** `scripts/fixtures/escritor-de-dialogo-2511-ideias.json`, 10 ideias minhas (5 fotorreais e 5 de desenho).
+- **Pacote:** `scripts/fixtures/escritor-de-dialogo-2511-casos.json`, 10 ideias minhas (5 fotorreais e 5 de desenho). Cada caso traz o corpo PRONTO do POST, e a régua escrita antes vem no próprio arquivo.
 - **Como rodar,** na conta da casa e depois do deploy só-casa:
   - POST `/api/generate-script` com `{ topic, language: 'en', targetSeconds: 15, engine: 'kling4', voice_mode: 'characters' }`, um por ideia;
   - guardar `[{ id, resposta, elenco? }]`;
