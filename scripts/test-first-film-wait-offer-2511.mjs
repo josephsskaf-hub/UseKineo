@@ -35,8 +35,19 @@ const wait = generate.indexOf("{(phase === 'generating' || phase === 'fal_pollin
 const progress = generate.indexOf('<PremiereStage', wait)
 const offer = generate.indexOf('<FirstFilmWaitOffer ', progress)
 const end = generate.indexOf('</section>', progress)
-assert(wait >= 0 && progress > wait && offer > progress && end > offer, 'real wait branch only, after live progress')
+assert(wait >= 0 && progress > wait && offer > progress && end > offer, 'real wait branch only, in the premiere section')
 assert.equal(generate.split('<FirstFilmWaitOffer ').length, 2, 'one offer location')
+assert(generate.slice(progress, offer).includes('afterTitle={firstFilmWaitOfferVisible'), 'CTA comes before the scene previews')
+
+const stage = aba()
+const PremiereStage = stage.m('components/premiere/Premiere').PremiereStage
+const stageProps = { surface: 'film', title: 'A quiet station', items: [{ key: '1', label: 'Scene 1', status: 'waiting' }], progress: 42 }
+const stageOffer = React.createElement(stage.m('components/premiere/FirstFilmWaitOffer').default, { currency: null, region: 'standard' })
+stage.mount(React.createElement(PremiereStage, { ...stageProps, afterTitle: stageOffer }))
+assert(stage.html().indexOf('first-film-wait-offer') < stage.html().indexOf('Scene 1'), 'real premiere renders the CTA above media')
+assert(stage.html().includes('aria-valuenow="42"'), 'progress remains available')
+stage.mount(React.createElement(PremiereStage, stageProps))
+assert(!stage.html().includes('first-film-wait-offer'), 'existing premiere has no extra card')
 assert(generate.slice(progress, end).includes("confirmedFree: activationAccountStatus === 'free' && notPaidProven"), 'real entitlement evidence gates the offer')
 assert(generate.slice(progress, end).includes('filmsDelivered,'), 'uses delivery count provided by the server')
 console.log('first film wait: gate, native mount, canonical price, click, pending price, single wait location')

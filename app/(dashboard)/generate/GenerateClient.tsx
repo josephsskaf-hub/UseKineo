@@ -17502,6 +17502,12 @@ export default function GenerateClient({
                 items={premiereItems}
                 now={premiereNow}
                 progress={displayProgress}
+                afterTitle={firstFilmWaitOfferVisible({
+                  mode,
+                  filmsDelivered,
+                  confirmedFree: activationAccountStatus === 'free' && notPaidProven,
+                  activePlan: hasPaid || isStarter || isCreator || isStudio || (planTier !== null && planTier !== 'free'),
+                }) && <FirstFilmWaitOffer currency={postVideoCurrency} region={postVideoRegion} />}
                 footnote={(mode === 'fast' || mode === 'creator')
                   ? "Typically ready in ~3 min. Keeping this tab open is fastest — if you close it, we finish the film and email you the link."
                   /* KINEO-ESPERA-HONESTA-1111 — o filme leva 7,3 min (p50) e 10,1 min (p90) no Kling 4 grátis (14 dias, 11/11) e o texto
@@ -17510,13 +17516,6 @@ export default function GenerateClient({
                   : "Usually ready in 5–10 minutes. Stay on this page and your film plays right here the moment it's done — if you need to leave, we'll email you the link."}
               />
 
-
-              {firstFilmWaitOfferVisible({
-                mode,
-                filmsDelivered,
-                confirmedFree: activationAccountStatus === 'free' && notPaidProven,
-                activePlan: hasPaid || isStarter || isCreator || isStudio || (planTier !== null && planTier !== 'free'),
-              }) && <FirstFilmWaitOffer currency={postVideoCurrency} region={postVideoRegion} />}
 
               {/* Push #087 — Fast Mode gets its own 4-step indicator that
                   matches the actual Pexels + TTS + assemble pipeline.

@@ -157,6 +157,7 @@ export function PremiereStage(props: {
   notify?: boolean
   /** Palavra do cartão que falhou: "retrying" onde a tela refaz sozinha (Filme), "failed" onde não refaz. */
   failedLabel?: string
+  afterTitle?: ReactNode
   children?: ReactNode
 }) {
   const { surface, items, kind = 'video' } = props
@@ -177,6 +178,7 @@ export function PremiereStage(props: {
           <span className={`${s.count} ${ready === total ? s.countReady : ''}`}>{ready} of {total} ready</span>
         )}
       </div>
+      {props.afterTitle}
       {total > 0 && (
         // Todas as cenas numa fileira só (até 6; imagens largas até 4) — o cartão que sobra sozinho na 2ª linha parecia esquecido.
         <div
