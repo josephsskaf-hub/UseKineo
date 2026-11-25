@@ -48,12 +48,34 @@ const limpa = (s: unknown) => String(s ?? '').replace(/\s+/g, ' ').trim()
 export function descricaoParaOJuiz(ficha: { nome: string; canonica: string }): string {
   return limpa(descricaoDoAutor(ficha.canonica) ?? '')
 }
-const normaliza = (s: unknown) => ' ' + String(s ?? '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').replace(/\s+/g, ' ').trim() + ' '
-const NEGACAO_RE = / (?:no|not|without|never|non|nor) /
-/** O traço do modelo é do AUTOR: o texto dele existe, palavra por palavra, na descrição do autor, e não é negação. */
+// [revisora 25/11, VOLTA 2, §4 e §9] a negação é lida no TEXTO DO AUTOR, por oração: "not a dog, with no ears" não deixa "dog" nem "ears" virarem pedido.
+// Palavras e orações: a oração acaba na pontuação (, ; . : ! ? parênteses, colchetes, quebra de linha) e em "but" ("not a dog but a robot"); "and" e "or" NÃO
+// acabam ("without a hat and scarf", "no glasses or hat"). Uma negação em OUTRA oração não conta.
+const NEGACOES = new Set(['no', 'not', 'without', 'never', 'non', 'nor', 'none', 'neither', 'sem', 'não', 'nao', 'nem', 'nunca', 'sin', 'ni'])
+const ehNegacao = (w: string) => NEGACOES.has(w) || /n't$/.test(w) // doesn't, isn't, don't
+const FRONTEIRAS = new Set(['but', 'mas', 'pero'])
+const VAZIAS = new Set(['a', 'an', 'the', 'with', 'and', 'or', 'of', 'in', 'on', 'at', 'to', 'by', 'for', 'his', 'her', 'its', 'their', 'is', 'are'])
+const palavrasEOracoes = (s: unknown) => {
+  const ws: { w: string; oracao: number }[] = []
+  let oracao = 0
+  for (const m of String(s ?? '').toLowerCase().replace(/’/g, "'").matchAll(/[\p{L}\p{N}]+(?:'[\p{L}]+)*|[,;.:!?()[\]{}\n]/gu)) {
+    if (!/^[\p{L}\p{N}]/u.test(m[0]) || FRONTEIRAS.has(m[0])) oracao++; else ws.push({ w: m[0], oracao })
+  }
+  return ws
+}
+/** O traço do modelo é do AUTOR: as palavras dele existem, em sequência, na descrição do autor, numa oração em que NENHUMA negação vem antes delas;
+ *  o traço não é negação nem só palavra vazia ("with"). Negação longe, na mesma oração, também conta ("does not wear any kind of hat"): é o lado
+ *  seguro, o traço sai do julgamento. Dupla negação ("never without his red scarf") também sai. */
 export function tracoDoAutor(traco: string, descricao: string): boolean {
-  const k = normaliza(traco), autor = normaliza(descricao)
-  return k.trim().length > 0 && autor.trim().length > 0 && autor.includes(k) && !NEGACAO_RE.test(k)
+  const k = palavrasEOracoes(traco).map((x) => x.w), autor = palavrasEOracoes(descricao)
+  if (k.length === 0 || k.some(ehNegacao) || k.every((w) => VAZIAS.has(w))) return false
+  for (let i = 0; i + k.length <= autor.length; i++) {
+    if (!k.every((w, j) => autor[i + j].w === w)) continue
+    let negada = false
+    for (let j = i - 1; j >= 0 && autor[j].oracao === autor[i].oracao; j--) if (ehNegacao(autor[j].w)) { negada = true; break }
+    if (!negada) return true
+  }
+  return false
 }
 
 /** O pedido ao modelo: só observação, em JSON. Nenhum exemplo; nenhuma ordem de reprovar. */

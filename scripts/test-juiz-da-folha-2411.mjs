@@ -92,7 +92,36 @@ async function suite(change) {
   igual(j.decidirDaFolha(ler({ ...LEITURA_BOLT, traits: [...LEITURA_BOLT.traits, ...inventados] }), false, DB).ausentes, ['small', 'round'], 'a folha nova só leva palavras do autor')
   for (const [traco, deve] of [['small round', true], ['Big Blue Eyes', true], ['blue eye', false], ['round orange', true], ['robot with big', true], ['dog ears', false], ['not round', false], ['small', true], ['', false]]) assert.equal(j.tracoDoAutor(traco, DB), deve, traco)
   assert.equal(j.tracoDoAutor('small', ''), false, 'sem descrição: nenhum traço conta')
-  assert.equal(j.tracoDoAutor('no hat', 'a tall man with no hat and a red coat'), false, 'negação, mesmo escrita pelo autor, nunca vai ao FLUX'); assert.equal(j.tracoDoAutor('red coat', 'a tall man with no hat and a red coat'), true)
+  assert.equal(j.tracoDoAutor('no hat', 'a tall man with no hat and a red coat'), false, 'negação, mesmo escrita pelo autor, nunca vai ao FLUX')
+  // [revisora 25/11, VOLTA 2, §4/§9] a negação do AUTOR: a palavra recortada depois dela ("dog", "ears", "beard") não é traço; por oração
+  const NEG = [
+    ['small round orange robot, not a dog, with no ears and without a hat', [['dog', false], ['a dog', false], ['ears', false], ['hat', false], ['a hat', false], ['small round', true], ['orange robot', true], ['robot', true]]], // a entrada exata dela
+    ['tall man with no beard', [['beard', false], ['tall man', true], ['man', true]]],
+    ['a tall man without glasses', [['glasses', false], ['tall', true]]], // without
+    ['an old sailor who never wears a hat', [['hat', false], ['a hat', false], ['old sailor', true]]], // never, 2 palavras no meio
+    ['a woman with no glasses or hat', [['glasses', false], ['hat', false], ['woman', true]]], // no X or Y
+    ['a girl without a hat and scarf', [['scarf', false], ['hat', false], ['girl', true]]], // "and" não abre oração
+    ['a man who does not wear any kind of hat', [['hat', false], ['man', true]]], // negação longe, na mesma oração
+    ['a man who doesn’t wear glasses', [['glasses', false], ['man', true]]], // n't (apóstrofo curvo)
+    ['a tall man with no hat and a red coat', [['red coat', false], ['tall man', true]]], // mesma oração depois de "no": sai do julgamento (lado seguro)
+    ['No hat. Orange robot with big blue eyes', [['orange robot', true], ['big blue eyes', true], ['hat', false]]], // negação em OUTRA frase: não conta
+    ['no hat; red scarf', [['red scarf', true], ['hat', false]]], // outra oração (ponto e vírgula)
+    ['a tall man with no hat, and a red coat', [['red coat', true], ['hat', false]]], // outra oração (vírgula)
+    ['not a dog, a small round robot', [['small round robot', true], ['dog', false]]],
+    ['not a dog but a robot', [['robot', true], ['dog', false]]], // "but" abre oração
+    ['never without his red scarf', [['red scarf', false]]], // dupla negação: sai do julgamento (lado seguro)
+    ['homem alto, sem barba', [['barba', false], ['homem alto', true]]], // português
+    ['no hat at first, then a red hat', [['hat', true], ['red hat', true]]], // a 1ª ocorrência negada, a 2ª não: uma sem negação basta
+    ['small robot with blue eyes', [['with', false], ['a', false], ['with blue', true], ['no', false], ['not small', false]]], // palavra vazia sozinha; negação no traço
+  ]
+  for (const [autor, cs] of NEG) for (const [traco, deve] of cs) assert.equal(j.tracoDoAutor(traco, autor), deve, traco + ' em "' + autor + '"')
+  { // a folha CERTA do robô de um autor que nega: "dog: no", "ears: no", "hat: no" não reprovam e nada disso vai ao FLUX
+    const D = 'small round orange robot, not a dog, with no ears and without a hat'
+    const negados = ['dog', 'ears', 'hat', 'a hat'].map(trait => ({ trait, category: 'species', visible: 'no' }))
+    igual(j.decidirDaFolha(ler({ ...BOLT_CERTO, traits: [...BOLT_CERTO.traits.slice(0, 4), ...negados] }), false, D), { tracos: 'ok', meio: 'ok', ausentes: [], descartados: 4 }, 'negação do autor: a folha certa serve')
+    igual(j.decidirDaFolha(ler({ ...LEITURA_BOLT, traits: [...LEITURA_BOLT.traits.slice(0, 4), ...negados] }), false, D).ausentes, ['small', 'round'], 'o pedido da folha nova nunca leva "dog"')
+    igual(j.decidirDaFolha(ler({ medium: 'photo_or_realistic_render', characters: 1, traits: [{ trait: 'beard', category: 'feature', visible: 'no' }, { trait: 'tall', category: 'size', visible: 'yes' }] }), true, 'tall man with no beard'), { tracos: 'ok', meio: 'ok', ausentes: [], descartados: 1 }, '"with no beard": beard: no não pede barba')
+  }
   assert.equal(j.instrucaoDaFolhaNova(j.decidirDaFolha(ler({ ...LEITURA_BOLT, traits: [...LEITURA_BOLT.traits, ...inventados] }), false, DB), 'stylized 3D animated film look'), ' Exactly as the author wrote, clearly visible: small; round. Rendered in stylized 3D animated film look.')
   assert.equal(j.instrucaoDaFolhaNova(j.decidirDaFolha(ler({ ...BOLT_CERTO, characters: 0 }), false, DB), 'stylized 3D animated film look'), ' Exactly one character alone in the frame. Rendered in stylized 3D animated film look.')
   // (2) sem descrição do autor, a biografia lida como traço "no" não reprova (Slocum, Elias do cedd1250)
@@ -197,7 +226,18 @@ const mutants = [
   [modulo, ".filter((s) => !(Array.isArray(s?.characterNames) && s.characterNames.some((n) => reprovadas.has(n))))", ''],
   // v3 — os bloqueios e os vivos da revisora
   [modulo, 'const doAutor = l.tracos.filter((t) => tracoDoAutor(t.traco, descricao))', 'const doAutor = l.tracos'], // (1) o texto livre do modelo decide e vai à folha nova
-  [modulo, ' && !NEGACAO_RE.test(k)', ''], // (1) a negação conta como do autor
+  [modulo, ' || k.some(ehNegacao)', ''], // (1) a negação no traço conta como do autor
+  [modulo, 'if (ehNegacao(autor[j].w)) { negada = true; break }', ''], // [volta 3] a negação do autor antes da palavra não conta
+  [modulo, 'j >= 0 && autor[j].oracao === autor[i].oracao', 'j >= 0'], // [volta 3] negação de OUTRA oração conta
+  [modulo, 'j >= 0 && autor[j].oracao === autor[i].oracao', 'j >= i - 1 && j >= 0'], // [volta 3] só a palavra logo antes (negação longe escapa)
+  [modulo, '|[,;.:!?()[\\]{}\\n]/gu', '/gu'], // [volta 3] pontuação não separa oração
+  [modulo, "const FRONTEIRAS = new Set(['but', 'mas', 'pero'])", 'const FRONTEIRAS = new Set<string>()'], // [volta 3] "but" não abre oração
+  [modulo, "'without', ", ''], // [volta 3] (N11 da revisora) "without" deixa de ser negação
+  [modulo, " || /n't$/.test(w)", ''], // [volta 3] doesn't não nega
+  [modulo, ".replace(/’/g, \"'\")", ''], // [volta 3] apóstrofo curvo
+  [modulo, ", 'sem', ", ', '], // [volta 3] português
+  [modulo, ' || k.every((w) => VAZIAS.has(w))', ''], // [volta 3] "with" sozinho vira traço
+  [modulo, 'if (!negada) return true', 'return !negada'], // [volta 3] só a 1ª ocorrência conta
   [modulo, "  return limpa(descricaoDoAutor(ficha.canonica) ?? '')", "  return limpa(descricaoDoAutor(ficha.canonica) ?? String(ficha.canonica ?? '').split(';')[0])"], // (2) a biografia vira traço
   [modulo, "l.personagens < 1 ? 'nenhum' : ", ''], // (3) folha sem personagem passa
   [modulo, "v.tracos === 'mais_de_um' || v.tracos === 'nenhum' ?", "v.tracos === 'mais_de_um' ?"], // (3) a folha nova não pede o personagem
