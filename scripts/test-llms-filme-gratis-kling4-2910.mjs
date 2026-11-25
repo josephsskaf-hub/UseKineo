@@ -74,7 +74,10 @@ async function verify(live, overrides = {}, gemini = true) {
   if (live) {
     assert.doesNotMatch(llms, /free 15-second film \(Seedance 1\.5\)|free (?:first )?film (?:uses|runs on) Seedance 1\.5|trial film uses Seedance 1\.5/i)
     assert.match(offer.FREE_FILM_LABEL, /Kling 4\.0 \/ MiniMax H3 Turbo/) // KINEO-K4-NARRACAO-CABE-0111 — o rótulo nomeia os dois motores (antes: proibia citar o Seedance) · KINEO-COMPRA-SEM-SEEDANCE-1111 — o segundo é o H3 Turbo
-    assert.ok(load('lib/entryPolicy.ts').FREE_ENTRY_COPY.sentence.includes(`free 15-second film (${expected}), on Kling 4.0 when the story fits 15 seconds — with no card`)) // KINEO-K4-NARRACAO-CABE-0111 · KINEO-NOME-HONESTO-2511 (o nome derivado)
+    // KINEO-NOME-HONESTO-2511 [CEO 25/11: SIM] com o Gemini 'public' a cláusula diz quando cada motor entra; fora de 'public', a de antes byte a byte
+    const clausula = gemini ? ', on Gemini Omni Flash 1.2 with an approved reference photo, otherwise on Kling 4.0 when the story fits 15 seconds' : ', on Kling 4.0 when the story fits 15 seconds'
+    assert.equal(load('lib/freeFilmEngine.ts').FREE_FILM_ON_KLING4_CLAUSE, clausula, 'a cláusula derivada da chave')
+    assert.ok(load('lib/entryPolicy.ts').FREE_ENTRY_COPY.sentence.includes(`free 15-second film (${expected})${clausula} — with no card`)) // KINEO-K4-NARRACAO-CABE-0111 · KINEO-NOME-HONESTO-2511 (o nome derivado)
   }
 }
 

@@ -19,4 +19,8 @@ export const FREE_FILM_IS_KLING4 = KLING4_TRIAL_LIVE
 /** A condição, onde a frase já promete o Kling 4.0 grátis ("free on Kling 4.0" + isto). Vazia com o Kling 4 grátis desligado. */
 export const FREE_FILM_FITS_CLAUSE = KLING4_TRIAL_LIVE ? ' when the story fits 15 seconds' : ''
 /** Depois de "free 15-second film (Kling 4.0 / MiniMax H3 Turbo)": qual dos dois e quando. */
-export const FREE_FILM_ON_KLING4_CLAUSE = KLING4_TRIAL_LIVE ? ', on Kling 4.0 when the story fits 15 seconds' : ''
+// KINEO-NOME-HONESTO-2511 [CEO 25/11: "SIM para a frase nova"] — com o Gemini 'public', a cláusula diz QUANDO cada motor entra (o Gemini só com a foto de
+// referência admitida); fora de 'public' = a cláusula de antes, byte a byte.
+export const FREE_FILM_ON_KLING4_CLAUSE = KLING4_TRIAL_LIVE
+  ? FREE_FILM_TRIES_GEMINI ? `, on ${GEMINI_OMNI_NOME_PUBLICO_2511} with an approved reference photo, otherwise on Kling 4.0 when the story fits 15 seconds` : ', on Kling 4.0 when the story fits 15 seconds'
+  : ''
