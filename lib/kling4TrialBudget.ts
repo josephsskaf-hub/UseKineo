@@ -75,6 +75,28 @@ export async function releaseKling4Trial(admin: SupabaseClient, i: Identity): Pr
   } catch { return false }
 }
 
+/** One result/event per film; only the terminal async Kling-to-Seedance transition may correct its engine. */
+export async function recordKling4TrialFilm(admin: SupabaseClient, i: Identity & { engineUsed: Kling4TrialEngineUsed; costUsd: number }): Promise<boolean> {
+  if (!validIdentity(i) || !['kling4', 'seedance15_fallback', 'seedance15_cap'].includes(i.engineUsed)
+      || !(i.costUsd === 0 || (i.costUsd >= KLING4_TRIAL_COST_USD && i.costUsd <= KLING4_TRIAL_MAX_RESERVE_MILLIUSD / 1000))) return false // KINEO-K4-TETO-FILME-LONGO-1711: 0 ou 2,355 a 3,14
+  try {
+    const r = await admin.rpc('record_kling4_trial_film', {
+      p_job_id: i.jobId, p_user_id: i.userId, p_country: country(i.country),
+      p_engine_used: i.engineUsed, p_cost_milliusd: Math.round(i.costUsd * 1000),
+    })
+    const row = Array.isArray(r.data) ? r.data[0] : r.data
+    if (r.error || (row?.code !== 'ok' && row?.code !== 'unchanged')) return false
+    // A lambda may die after the fallback authority CAS and before correcting its initial Kling event.
+    // Common birth/compose replays repair that one-way transition without changing cost or country.
+    if (row.code === 'unchanged' && i.engineUsed === 'seedance15_fallback' && i.costUsd >= KLING4_TRIAL_COST_USD) { // KINEO-K4-TETO-FILME-LONGO-1711: >=
+      const transitioned = await admin.rpc('transition_kling4_trial_fallback', { p_job_id: i.jobId, p_user_id: i.userId })
+      const terminal = Array.isArray(transitioned.data) ? transitioned.data[0] : transitioned.data
+      return !transitioned.error && (terminal?.code === 'ok' || terminal?.code === 'unchanged')
+    }
+    return true
+  } catch { return false }
+}
+
 // ═══ KINEO-GEMINI-NA-ESTEIRA-2511 · o selo honesto no /admin e no relato de custo [revisora 25/11, conserto 1] ═══
 // O razão do teto (kling4_trial_films, record_kling4_trial_film) só conhece 'kling4'/'seedance15_*' e custo de 2,355 a 3,14: ele CONTINUA reservando o pior
 // caso (2,355), sem migration. O que o /admin e o relato de custo leem é o evento free_film_engine_used ("o evento do filme grátis manda",
@@ -122,27 +144,5 @@ export async function gravarSeloDoFilmeGratis2511(admin: SupabaseClient, i: { jo
     if (!novo || JSON.stringify(novo) === JSON.stringify(atual)) return !!novo
     const u = await admin.from('events').update({ metadata: novo }).eq('id', id).eq('name', 'free_film_engine_used').eq('user_id', i.userId)
     return !u.error
-  } catch { return false }
-}
-
-/** One result/event per film; only the terminal async Kling-to-Seedance transition may correct its engine. */
-export async function recordKling4TrialFilm(admin: SupabaseClient, i: Identity & { engineUsed: Kling4TrialEngineUsed; costUsd: number }): Promise<boolean> {
-  if (!validIdentity(i) || !['kling4', 'seedance15_fallback', 'seedance15_cap'].includes(i.engineUsed)
-      || !(i.costUsd === 0 || (i.costUsd >= KLING4_TRIAL_COST_USD && i.costUsd <= KLING4_TRIAL_MAX_RESERVE_MILLIUSD / 1000))) return false // KINEO-K4-TETO-FILME-LONGO-1711: 0 ou 2,355 a 3,14
-  try {
-    const r = await admin.rpc('record_kling4_trial_film', {
-      p_job_id: i.jobId, p_user_id: i.userId, p_country: country(i.country),
-      p_engine_used: i.engineUsed, p_cost_milliusd: Math.round(i.costUsd * 1000),
-    })
-    const row = Array.isArray(r.data) ? r.data[0] : r.data
-    if (r.error || (row?.code !== 'ok' && row?.code !== 'unchanged')) return false
-    // A lambda may die after the fallback authority CAS and before correcting its initial Kling event.
-    // Common birth/compose replays repair that one-way transition without changing cost or country.
-    if (row.code === 'unchanged' && i.engineUsed === 'seedance15_fallback' && i.costUsd >= KLING4_TRIAL_COST_USD) { // KINEO-K4-TETO-FILME-LONGO-1711: >=
-      const transitioned = await admin.rpc('transition_kling4_trial_fallback', { p_job_id: i.jobId, p_user_id: i.userId })
-      const terminal = Array.isArray(transitioned.data) ? transitioned.data[0] : transitioned.data
-      return !transitioned.error && (terminal?.code === 'ok' || terminal?.code === 'unchanged')
-    }
-    return true
   } catch { return false }
 }
