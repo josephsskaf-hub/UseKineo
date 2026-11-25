@@ -3829,7 +3829,7 @@ export async function POST(req: NextRequest) {
       const stored = await storeFree15Gate({ db: composeAdmin, secret: serviceRoleKey, userId: authenticatedUserId, renderId, state: {
         version: FREE15_GATE_VERSION, status: 'ready', source, captionElements, captionTiming: FREE15_CANONICAL_CAPTION_TIMING,
         ...(kling4TrialEngineFromClaim(cinematicBirthClaim?.response) !== null ? { minimumSeconds: 15 as const } : {}),
-        captionEvidence, attempted: false, reason: 'awaiting_final_assembly', updatedAt: Date.now(),
+        captionEvidence: typeof falaMontada2511 !== 'undefined' && falaMontada2511 ? { ...captionEvidence, status: 'not_applicable' as const } : captionEvidence /* KINEO-FALA-DOS-PERSONAGENS-2511: a TTS do falado não toca */, attempted: false, reason: 'awaiting_final_assembly', updatedAt: Date.now(),
         context: { asked: String(cinematicBirthClaim?.response?.prompt ?? body.topic ?? ''), narration: textoDoPortao2511, language },
       } })
       free15ContextStored = stored

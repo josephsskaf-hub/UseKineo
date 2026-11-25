@@ -29,6 +29,7 @@
 //      a fala e os blocos são EXATAMENTE os do roteiro (conferido aqui; se não forem, vai o roteiro sozinho).
 // Com marcadores, a rota segue o caminho verbatim — o mesmo do "IA no cliente" — e o filtro anti-invenção do caminho
 // clássico (que só roda com verbatim=false) não toca mais a fala. O filtro em si é de outra entrega (KINEO-META95-ASSUNTO-1910).
+import { falasDoRoteiroSemElenco2511, PALAVRAS_MIN_NO_FILME_FALADO_2511 } from '@/lib/cinematic/roteiroFalado2511' // KINEO-FALA-DOS-PERSONAGENS-2511 — o piso do falado (módulo sem import)
 import { parseUserScript, looksLikeBrief } from '@/lib/scriptParser'
 import { looksLikeModelRefusal } from '@/lib/modelRefusal'
 import { MIN_COVERAGE, minCoverageFor } from '@/lib/narrationFit' // KINEO-K4-NARRACAO-CABE-0111: + minCoverageFor
@@ -280,7 +281,7 @@ export function pisoDoPortao(args: { engine?: string | null; seconds: number; la
 }
 
 /** O roteiro marcado que o escritor devolveu entra no filme? (só o que a rota vai aceitar: nenhum 422 novo para a ideia solta) */
-export function avaliarRoteiroEscrito(args: { script: string; engine?: string | null; seconds: number; language?: string | null }): AvaliacaoDoRoteiro {
+export function avaliarRoteiroEscrito(args: { script: string; engine?: string | null; seconds: number; language?: string | null; falado?: boolean /* KINEO-FALA-DOS-PERSONAGENS-2511 */ }): AvaliacaoDoRoteiro {
   const parsed = parseUserScript(String(args.script ?? ''))
   const palavras = parsed.narration.split(/\s+/).filter(Boolean).length
   const piso = pisoDoPortao(args)
@@ -289,7 +290,10 @@ export function avaliarRoteiroEscrito(args: { script: string; engine?: string | 
   if (!parsed.hasMarkers || blocos === 0) return nao('sem_marcadores')
   if (looksLikeModelRefusal(parsed.narration)) return nao('recusa_do_modelo')
   if (frasesDaFala(parsed.narration).some((f) => ehMetaTextoDeFala(f))) return nao('meta_texto')
-  if (palavras < piso) return nao('curto')
+  // KINEO-FALA-DOS-PERSONAGENS-2511 [CEO 25/11] o roteiro FALADO (quem chama já conferiu voice_mode 'characters', a chave e o inglês) tem o piso PRÓPRIO: 12 palavras
+  // ditas em linhas "Nome: fala" (lib/cinematic/roteiroFalado2511). Sem isso, o piso do filme narrado, byte a byte.
+  const faladoNoPiso = args.falado === true && (() => { const f = falasDoRoteiroSemElenco2511(parsed.segments.map((s) => s.voiceover)); return !!f && f.palavras >= PALAVRAS_MIN_NO_FILME_FALADO_2511 })()
+  if (palavras < piso && !faladoNoPiso) return nao('curto')
   const engine = args.engine ?? MOTOR_PADRAO_DO_CINEMATIC
   const guardaSeedance = checarFalaDoFilmeCurto({ engine, seconds: args.seconds, verbatim: true, narration: parsed.narration, language: args.language ?? undefined })
   const guardaMotor = checarFalaCurtaDoMotor({ engine, seconds: args.seconds, verbatim: true, narration: parsed.narration, language: args.language ?? undefined })
@@ -333,7 +337,7 @@ export interface IdeiaNoEscritor {
  * Ideia solta → escritor marcado → roteiro verbatim. Nunca lança e nunca bloqueia: qualquer tropeço (escritor fora, recusa,
  * roteiro curto, longo, sem marcadores) devolve `usar: false` e a rota segue o caminho de antes, com o motivo no rastro.
  */
-export async function escreverIdeiaNoServidor(args: { prompt: string; scriptMode?: unknown; engine?: string | null; seconds: number; language: string; escritor: Escritor; registrar?: Registrar }): Promise<IdeiaNoEscritor> {
+export async function escreverIdeiaNoServidor(args: { prompt: string; scriptMode?: unknown; engine?: string | null; seconds: number; language: string; escritor: Escritor; registrar?: Registrar; falado?: boolean /* KINEO-FALA-DOS-PERSONAGENS-2511 */ }): Promise<IdeiaNoEscritor> {
   const prompt = String(args.prompt ?? '')
   const nada: IdeiaNoEscritor = { usar: false, prompt, outcome: 'not_idea', motivo: null, roteiro: null, metaRemovidas: [], tema: null }
   if (!ehIdeiaSolta({ prompt, scriptMode: args.scriptMode })) return nada
@@ -358,7 +362,7 @@ export async function escreverIdeiaNoServidor(args: { prompt: string; scriptMode
   const escrito = typeof corpo.script === 'string' ? corpo.script.trim() : ''
   if (!resposta || resposta.status !== 200 || !escrito) return fallback(`writer_http_${resposta?.status ?? 'none'}`, { writer_reason: typeof corpo.reason === 'string' ? corpo.reason : null })
   const limpo = roteiroSemMetaTexto(escrito)
-  const aval = avaliarRoteiroEscrito({ script: limpo.script, engine, seconds: args.seconds, language: args.language })
+  const aval = avaliarRoteiroEscrito({ script: limpo.script, engine, seconds: args.seconds, language: args.language, ...(args.falado === true ? { falado: true } : {}) })
   if (!aval.ok) return fallback(aval.motivo, { words: aval.palavras, floor: aval.piso, blocks: aval.blocos, meta_removed: limpo.removidas.length })
   const comIdeia = promptComRoteiro(prompt, limpo.script)
   const novoPrompt = mesmaFalaQueORoteiro(comIdeia, limpo.script) ? comIdeia : limpo.script

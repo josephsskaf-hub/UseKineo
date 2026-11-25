@@ -9,6 +9,8 @@
 // Formato aceito (1ª entrega: só o roteiro do autor, 'verbatim'): cada seção do roteiro traz uma ou mais linhas "Nome: fala" (aspas opcionais), o Nome é um
 // dos personagens COM referência (no máximo 2), até ~2,2 palavras por segundo do plano. Texto fora do formato, nome fora do elenco ou fala longa = narrado.
 import { contaDaCasaExata } from '@/lib/internalAccounts'
+// [CEO 25/11] o piso do filme FALADO (12 palavras), lido pelos dois portões de tamanho; mora no módulo sem import para o escritor do servidor ler sem a régua
+export { PALAVRAS_MIN_NO_FILME_FALADO_2511, falasDoRoteiroSemElenco2511, roteiroFaladoNoPortao2511 } from '@/lib/cinematic/roteiroFalado2511'
 import { falanteConhecido2511, falanteAdulto2511 } from '@/lib/cinematic/reguaDaPessoaNaFala2511' // [revisora 392f0a52, T1 e T2] quem fala
 
 export const FALA_DOS_PERSONAGENS_2511_VERSAO = 'fala_dos_personagens_2511_v1'

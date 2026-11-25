@@ -15,6 +15,7 @@ import { execSync } from 'node:child_process'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
+const PISO = 'lib/cinematic/roteiroFalado2511.ts', IDEIA = 'lib/meta95/ideiaNoEscritor.ts'
 const MOD = 'lib/cinematic/falaDosPersonagens2511.ts', ROUTE = 'app/api/generate-video-cinematic/route.ts', COMPOSE = 'app/api/compose/route.ts', BUILDER = 'lib/compose.ts'
 const BUDGET = 'lib/kling4TrialBudget.ts', CLAIM = 'lib/cinematic/claim.ts', GEM = 'lib/cinematic/geminiNaEsteira2511.ts'
 const lf = (t) => t.replace(/\r\n/g, '\n')
@@ -212,10 +213,69 @@ async function suite(change) {
   assert.ok(compose.includes("evidence: falaMontada2511 ? { ...captionEvidence, status: 'not_applicable' } : captionEvidence") && compose.includes("if (!(typeof falaMontada2511 !== 'undefined' && falaMontada2511) && quality === 'cinematic_ai'"), 'E as reconstruções da legenda pela narração não rodam no falado')
   assert.ok(compose.includes("const textoDoPortao2511 = falaMontada2511 ? falasDoMotor2511.flat().map((l) => l.texto).join(' ') : scaledScript") && compose.includes('narration: textoDoPortao2511'), 'E o portão do grátis conhece a fala')
   assert.ok(/export async function gravarConferenciaDaFala2511[\s\S]{0,700}fala\.modo !== 'falado'[\s\S]{0,200}if \(fala\.conferencia\) return \{ ok: true, claim: current \}/.test(claimSrc), 'E o claim: só no filme falado; a 1ª conferência fica')
+  // ── F. [CEO 25/11] o piso PRÓPRIO do falado nos dois portões de tamanho (12 palavras ditas), sem vazar para o narrado ──
+  const P2 = L('@/' + PISO), I = L('@/' + IDEIA), FD = L('@/' + MOD)
+  assert.equal(FD.PALAVRAS_MIN_NO_FILME_FALADO_2511, 12, 'F o piso do falado = 12, reexportado por falaDosPersonagens2511')
+  assert.equal(P2.PALAVRAS_MIN_NO_FILME_FALADO_2511, 12)
+  const roteiro = (falas) => falas.map((x, i) => `${['HOOK', 'MICRO REWARD 1', 'MICRO REWARD 2', 'PAYOFF'][i]}: [Pexels: ${['lighthouse at night', 'radio room', 'lamp room', 'harbor at dawn'][i]}]\n${x}`).join('\n\n')
+  // a receita da nota 10 (texto da casa): 30 palavras ditas, 4 seções, 2 falantes
+  const FALADO_30 = ['Mara: There is a boat out there. They cannot see the rocks.', 'Elias: Then we give them light. Hold on, Mara.', 'Mara: The lamp is turning again.', 'Mara: They made it. Elias: They always do.']
+  const FALADO_24 = ['Elias: The storm is coming in tonight.', 'Mara: I can hear a boat calling.', 'Elias: Then we will give them light.', 'Mara: They made it home safely now.']
+  const FALADO_16 = ['Elias: The storm is here.', 'Mara: I hear a boat.', 'Elias: Give them light.', 'Mara: They made it.']
+  const FALADO_11 = ['Elias: Storm tonight.', 'Mara: A boat.', 'Elias: Light it.', 'Mara: They made it home.']
+  const secoesDe = (falas) => parseUserScript(roteiro(falas)).segments.map((x) => x.voiceover)
+  const { parseUserScript } = L('@/lib/scriptParser.ts')
+  for (const [nome, falas, n] of [['24', FALADO_24, 24], ['30 (nota 10)', FALADO_30, 30]]) {
+    igual(P2.falasDoRoteiroSemElenco2511(secoesDe(falas))?.palavras, n, 'F conta as palavras ditas: ' + nome)
+    assert.equal(P2.roteiroFaladoNoPortao2511({ voiceMode: 'characters', ligada: true, ingles: true, secoes: secoesDe(falas) }), true, 'F o portão da rota deixa passar o falado de ' + nome)
+    for (const [k, v] of [['voiceMode', 'narrator'], ['voiceMode', undefined], ['ligada', false], ['ingles', false]]) assert.equal(P2.roteiroFaladoNoPortao2511({ voiceMode: 'characters', ligada: true, ingles: true, secoes: secoesDe(falas), [k]: v }), false, 'F sem ' + k + ' = o portão de sempre')
+    const a = I.avaliarRoteiroEscrito({ script: roteiro(falas), seconds: 15, language: 'en', falado: true })
+    assert.ok(a.ok === true, 'F o escritor aceita o falado de ' + nome + ' (' + JSON.stringify(a) + ')')
+    const { narrationFitAt, speechRateFor } = L('@/lib/speechRate.ts')
+    if (n < 30) assert.equal(narrationFitAt(parseUserScript(roteiro(falas)).narration, 15, speechRateFor({ family: 'classic', language: 'en' })).ok, false, 'F o MESMO roteiro sem a exceção leva o 422 da rota (a cobertura do narrado): ' + nome)
+  }
+  { igual(P2.falasDoRoteiroSemElenco2511(secoesDe(FALADO_16))?.palavras, 14)
+    assert.ok(I.avaliarRoteiroEscrito({ script: roteiro(FALADO_16), seconds: 15, language: 'en', falado: true }).ok === true, 'F o escritor aceita o falado de 14 (o piso é 12)')
+    const b = I.avaliarRoteiroEscrito({ script: roteiro(FALADO_16), seconds: 15, language: 'en' })
+    igual([b.ok, b.motivo], [false, 'curto'], 'F o MESMO roteiro de 14 sem o falado = o curto de hoje (o piso do narrado não vaza)') }
+  assert.equal(P2.roteiroFaladoNoPortao2511({ voiceMode: 'characters', ligada: true, ingles: true, secoes: secoesDe(FALADO_11) }), false, 'F 11 palavras: recusado no portão da rota')
+  igual([I.avaliarRoteiroEscrito({ script: roteiro(FALADO_11), seconds: 15, language: 'en', falado: true }).motivo], ['curto'], 'F 11 palavras: o escritor recusa')
+  for (const [nome, secoes] of [['narração sem rótulo', ['The storm is coming tonight and the old keeper climbs the stairs one last time.', 'Mara: I hear a boat calling out there.']],
+    ['rótulo de estrutura', ['Narrator: The storm is coming tonight, and the old keeper climbs the stairs.']], ['três falantes', ['Elias: The storm is coming tonight.', 'Mara: I hear a boat calling.', 'Tom: Then we give them light.']]]) {
+    assert.equal(P2.falasDoRoteiroSemElenco2511(secoes), null, 'F fora do formato: ' + nome)
+    assert.equal(P2.roteiroFaladoNoPortao2511({ voiceMode: 'characters', ligada: true, ingles: true, secoes }), false, 'F fora do formato = o portão de sempre: ' + nome) }
+  // o narrado mede a mesma fala e RECUSA (o 422 de hoje), e o falado escapa só pelo bloco novo
+  { const { narrationFitAt, speechRateFor } = L('@/lib/speechRate.ts')
+    assert.equal(narrationFitAt(parseUserScript(roteiro(FALADO_24)).narration, 15, speechRateFor({ family: 'classic', language: 'en' })).ok, false, 'F 24 palavras ditas (28 com os rótulos) levam o 422 do narrado sem a exceção; a receita de 30 (36 com os rótulos) já cobria os 15 s') }
+  { const iP = rota.indexOf('    const faladoPedido2511 = '), iE = rota.indexOf('    const ideiaNoEscritor = await escreverIdeiaNoServidor({ ...(faladoPedido2511 ? { falado: true } : {}), prompt,', iP)
+    assert.ok(iP > 0 && iE > iP, 'F o pedido falado nasce antes do escritor do servidor e vai a ele')
+    const linhaP = rota.slice(iP, rota.indexOf('\n', iP))
+    assert.ok(linhaP.includes("(body as { voice_mode?: unknown }).voice_mode === 'characters'") && linhaP.includes('falaDosPersonagensLigada(FALA_DOS_PERSONAGENS_2511, user.email)') && linhaP.includes("narrationLanguage.language === 'en'"), 'F voice_mode + chave + inglês')
+    const iG = rota.indexOf('    const faladoNoPortao2511 = '), iB = rota.indexOf('    if (verbatim && parsedScript.narration && !paidKling4 && !faladoNoPortao2511) {\n      let fit = narrationFitAt(', iG)
+    assert.ok(iG > iE && iB > iG, 'F a cobertura do narrado (o 422) não roda para o falado no formato')
+    const avalia = (corpo, email, lingua, falas) => Function('body', 'user', 'narrationLanguage', 'falaDosPersonagensLigada', 'FALA_DOS_PERSONAGENS_2511', 'roteiroFaladoNoPortao2511', 'parsedScript',
+      ts.transpile(linhaP + '\n' + rota.slice(iG, rota.indexOf('\n', iG)) + '\nreturn faladoNoPortao2511'))(corpo, { email }, { language: lingua }, f.falaDosPersonagensLigada, f.FALA_DOS_PERSONAGENS_2511, P2.roteiroFaladoNoPortao2511, parseUserScript(roteiro(FALADO_30)))
+    assert.equal(avalia({ voice_mode: 'characters' }, CASA, 'en'), true, 'F a rota (trecho real): a casa com voice_mode characters escapa do 422')
+    for (const [nome, corpo, email, lingua] of [['sem voice_mode', {}, CASA, 'en'], ['narrator', { voice_mode: 'narrator' }, CASA, 'en'], ['cliente (chave interna)', { voice_mode: 'characters' }, CLIENTE, 'en'], ['outra língua', { voice_mode: 'characters' }, CASA, 'pt']])
+      assert.equal(avalia(corpo, email, lingua), false, 'F a rota: ' + nome + ' = o 422 de hoje') }
+  assert.ok(local(IDEIA).includes("  const aval = avaliarRoteiroEscrito({ script: limpo.script, engine, seconds: args.seconds, language: args.language, ...(args.falado === true ? { falado: true } : {}) })"), 'F o escritor do servidor repassa o falado à avaliação')
+  assert.ok(compose.includes("captionEvidence: typeof falaMontada2511 !== 'undefined' && falaMontada2511 ? { ...captionEvidence, status: 'not_applicable' as const } : captionEvidence"), 'F o portão do grátis não lê a evidência da TTS que não toca')
 }
 
 await suite(null)
 const mutantes = [
+  [PISO, 'export const PALAVRAS_MIN_NO_FILME_FALADO_2511 = 12', 'export const PALAVRAS_MIN_NO_FILME_FALADO_2511 = 25'],
+  [PISO, '      if (NAO_E_FALANTE.test(nome)) return null\n', ''],
+  [PISO, '  if (!linhas || nomes.size > 2) return null', '  if (!linhas) return null'],
+  [PISO, "  if (a.voiceMode !== 'characters' || a.ligada !== true || a.ingles !== true) return false", "  if (a.ligada !== true || a.ingles !== true) return false"],
+  [PISO, "  if (a.voiceMode !== 'characters' || a.ligada !== true || a.ingles !== true) return false", "  if (a.voiceMode !== 'characters' || a.ingles !== true) return false"],
+  [PISO, '&& f.palavras >= PALAVRAS_MIN_NO_FILME_FALADO_2511 &&', '&&'],
+  [IDEIA, '  if (palavras < piso && !faladoNoPiso) return nao(\'curto\')', '  if (palavras < piso) return nao(\'curto\')'],
+  [IDEIA, '  const faladoNoPiso = args.falado === true && ', '  const faladoNoPiso = '],
+  [IDEIA, 'return !!f && f.palavras >= PALAVRAS_MIN_NO_FILME_FALADO_2511 })()', 'return !!f })()'],
+  [ROUTE, "    if (verbatim && parsedScript.narration && !paidKling4 && !faladoNoPortao2511) {", "    if (verbatim && parsedScript.narration && !paidKling4) {"],
+  [ROUTE, "const faladoPedido2511 = (body as { voice_mode?: unknown }).voice_mode === 'characters' && ", 'const faladoPedido2511 = '],
+  [ROUTE, "falaDosPersonagensLigada(FALA_DOS_PERSONAGENS_2511, user.email) && narrationLanguage.language === 'en'\n", 'falaDosPersonagensLigada(FALA_DOS_PERSONAGENS_2511, user.email)\n'],
   [MOD, "export const FALA_DOS_PERSONAGENS_2511: ModoFalaDosPersonagens2511 = 'internal'", "export const FALA_DOS_PERSONAGENS_2511: ModoFalaDosPersonagens2511 = 'public'"],
   [MOD, "modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))", "modo !== 'off'"],
   [MOD, "return v === 'characters' ? 'personagens' : 'narrador'", "return v ? 'personagens' : 'narrador'"],
