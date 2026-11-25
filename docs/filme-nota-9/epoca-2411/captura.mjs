@@ -79,7 +79,14 @@ export async function capture(world,borders,film,apply,mode,account) {
   const internal=load('@/lib/internalAccounts').INTERNAL_EXACT_EMAILS[0]
   const snapshot={characters:[cast],characterReferences:[{nome:cast.nome,url:'https://fixture.invalid/house'}],approvedStills:[]}
   const publicMode=ruz.REFERENCIA_UNICA_2411
-  const admission=borders.v('ru2411').run({
+  const admit=borders.v('ru2411')
+  // Old replays predate recovery of discarded sheets. The fixture already has a
+  // usable sheet; the current route can therefore run its real recovery with none to add.
+  const recovered=admit.source.includes('retratoDaReferencia2411(')
+    ? {...load('@/lib/cinematic/folhaDaReferencia2411'),folhasDaReferencia2411:[]}
+    : {}
+  const admission=admit.run({
+    ...recovered,
     admitirReferenciaUnica2411:ruz.admitirReferenciaUnica2411,REFERENCIA_UNICA_2411:publicMode,
     user:{email:account?internal:'outside@example.invalid'},qualitySnapshot:snapshot,
     styleAnchor,isStylizedLook:s=>s.look!=='photoreal',desenhoInfantil:{ativo:false}

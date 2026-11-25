@@ -58,6 +58,32 @@ const cases = {
     assert.deepEqual([...relato.secoes],['1888','1920','1935','1920'])
     assert.equal(m.prepararEpocaVisual({...entrada,pedido:'A visitor examines a camera manufactured in 1888.'}),null)
   },
+  relogio: m => {
+    const year = new Date().getUTCFullYear()
+    for (const pedido of ['On November 24, ' + year + ', the train arrives.', 'In ' + (year + 58) + ', a train arrives.']) {
+      assert.equal(m.prepararEpocaVisual({...entrada, pedido, secoes:[], falas:[pedido]}), null)
+    }
+  },
+  museu: m => {
+    for (const pedido of ['Inside a modern museum the curator displays an 1888 camera.', 'In the modern museum today, a visitor views a camera from 1888.', 'In a modern museum a visitor opens a drawer. The label reads: in 1888, the inventor patented the mechanism.']) {
+      assert.equal(m.prepararEpocaVisual({...entrada, pedido, secoes:[], falas:[pedido]}), null)
+    }
+  },
+  vazio: m => {
+    assert.equal(m.aplicarEpocaVisual('', '1888'), '')
+    assert.doesNotMatch(m.aplicarEpocaVisual('An empty room without people.', '1888'), /people in period-accurate clothing/i)
+  },
+  cabine: m => {
+    for (const subject of ['airplane', 'jet']) assert.match(m.aplicarEpocaVisual('The '+subject+' passes.', '1971'), /cabin fittings/)
+  },
+  orcamento: m => {
+    const autor = 'A jet passes. ' + '🌊'.repeat(375) + ' The last action.'
+    const curtoa = 'Period setting: 1971. ' + autor
+    const tamanho = Array.from(curtoa).length
+    assert.equal(m.aplicarEpocaVisual(autor,'1971',false,undefined,tamanho),curtoa)
+    assert.equal(m.aplicarEpocaVisual(autor,'1971',false,undefined,tamanho-1),autor)
+    assert.match(m.aplicarEpocaVisual(autor,'1971',false,undefined,512),/period airframe and cabin fittings/)
+  },
   variantes: m => {
     for (const [pedido, esperado] of [['London in the nineteenth century.','19th century'],['Uma rádio nos anos 70.','1970s'],["A radio in the '80s.",'1980s']]) {
       assert.equal(m.prepararEpocaVisual({...entrada,pedido,secoes:[],falas:['A radio.']})?.ficha,esperado)
@@ -80,6 +106,13 @@ const cases = {
 const normal=carregar(fonte)
 for(const run of Object.values(cases)) run(normal)
 const mutantes=[
+ ['relogio','Number(ano[1]) < anoAtual', 'true'],
+ ['museu',"agora(pedido) && !datas.some", "false && !datas.some"],
+ ['vazio',"!epoca || !prompt.trim()", "!epoca"],
+ ['vazio',"'authentic period materials for the described setting'","'People in period-accurate clothing'"],
+ ['cabine','plane|airplane|aeroplane|airliner|jet|cabin|aircraft','plane|airliner|cabin|aircraft'],
+ ['orcamento','return semMarca','return semMarca.slice(0,120)'],
+ ['orcamento',"periodo = 'Period setting: ' + epoca + '.'","periodo = ''"],
  ['externo','!internal ||','false ||'],
  ['desligado',"modo !== 'internal'","false"],
  ['semData','if (!geral) return null','if (false) return null'],

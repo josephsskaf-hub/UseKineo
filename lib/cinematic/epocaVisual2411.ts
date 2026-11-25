@@ -14,18 +14,23 @@ function dataDoTrecho(texto: string): string {
     // Provenance dates describe an exhibit, photograph or quotation. Its age
     // does not date the visitor, the set, or a shot made in another year.
     .replace(/\b(?:made|manufactured|built|constructed|produced|created|restored|dated|fabricad[oa]|constru[ií]d[oa]|produzid[oa]|criad[oa])\s+(?:(?:in|em|en|de)\s+)?(?:the\s+year\s+)?(?:1\d|20)\d{2}\b/giu, ' ')
+    .replace(/\b(?:camera|câmera|cámara|artifact|artefact|artifacto|artefato|artefacto|exhibit|photograph|relic|relics|objeto)\s+(?:from|of|de|dating (?:from|to))\s+(?:1\d|20)\d{2}\b/giu, ' ')
     .replace(/\b\d+\s*(?:[x×]|\bby\b|\bpor\b)\s*\d+\b|[$€£]\s*[\d,.]+|\b\d[\d,.]*\s*(?:px|p\b|fps|hz|km|kg|m|metres?|meters?|metros?|miles?|dollars?|euros?|reais|pesos|people|pessoas|years|anos|units?|copies|unidades|years?\s+old)\b/giu, ' ')
   const seculo = /\b(\d{1,2})(?:st|nd|rd|th)[ -]century\b|\bs[ée]culo\s+([ivx]+|\d{1,2})\b/iu.exec(t)
   const escrito = /\b([a-z]+(?:-[a-z]+)?)[ -]century\b/iu.exec(t)
   const numero = seculo ? Number(seculo[1] ?? seculo[2]) || ROMAN.indexOf(seculo[2].toUpperCase()) + 1
     : escrito ? WRITTEN_CENTURIES.indexOf(escrito[1].toLowerCase()) + 1 : 0
-  const seculoValido = numero >= 1 && numero <= 21
+  const seculoValido = numero >= 1 && numero <= Math.ceil(new Date().getUTCFullYear() / 100)
   const decada = /\b((?:1\d|20)\d0)(?:['’]?s)\b|\b(?:anos|d[ée]cada de)\s+((?:1\d|20)\d0)\b/iu.exec(t)
   const ano = /(?:^|(?:\b(?:in|by|since|circa|around|from|em|desde|de|ano|year|of|en)\s+)|(?:\b\d{1,2},\s*)|(?:\b(?:the|a|an|long|vintage)\s+))((?:1\d|20)\d{2})(?![\p{L}\d.,]\d|[\p{L}\d]|\s*[x×])/iu.exec(t)
   const antigo = /\b(\d{1,4})\s*(BCE|BC|AD|CE)\b/iu.exec(t)
-  if (antigo) return antigo[1] + ' ' + antigo[2].toUpperCase()
-  if (ano) return ano[1]
-  if (decada) return (decada[1] ?? decada[2]) + 's'
+  const anoAtual = new Date().getUTCFullYear()
+  if (antigo && (!/^(?:AD|CE)$/iu.test(antigo[2]) || Number(antigo[1]) < anoAtual)) return antigo[1] + ' ' + antigo[2].toUpperCase()
+  if (ano) return Number(ano[1]) < anoAtual ? ano[1] : ''
+  if (decada) {
+    const inicio = decada[1] ?? decada[2]
+    return Number(inicio) < anoAtual ? inicio + 's' : ''
+  }
   const curta = /\b(?:the\s+['’]?(\d0)s|(?:anos|d[ée]cada (?:de|dos))\s+['’]?(\d0))\b/iu.exec(t)
   if (curta) return String(1900 + Number(curta[1] ?? curta[2])) + 's'
   return seculoValido ? ordinal(numero) + ' century' : ''
@@ -41,11 +46,11 @@ interface Entrada {
 
 export function prepararEpocaVisual({ internal, pedido, secoes, falas, modo = EPOCA_VISUAL_2411 }: Entrada) {
   if (!internal || modo !== 'internal') return null
+  const agora = (t: string) => /\b(?:present[- ]day|modern[- ]day|nowadays|hoje em dia|nos dias (?:de hoje|atuais)|modern museum|contemporary museum|museum today|museu (?:atual|moderno)|museu de hoje)\b|(?:^|[.!?]\s+)(?:today|hoje|agora)\b/iu.test(t.trim())
   const geral = dataDoTrecho(pedido)
   if (!geral) return null
   // A merged scene starts with its first section. When the dispatch splits it again,
   // each shot recovers its own date, including changes of year within a film.
-  const agora = (t: string) => /\b(?:present[- ]day|modern[- ]day|nowadays|hoje em dia|nos dias (?:de hoje|atuais))\b|^(?:today|hoje|agora)\b/iu.test(t.trim())
   // A present-day museum can display an antique camera. Conversely, a narrator
   // speaking today can ask us to show the inventor's workshop in 1888.
   const datas = secoes.map(s => {
@@ -61,6 +66,9 @@ export function prepararEpocaVisual({ internal, pedido, secoes, falas, modo = EP
     }
     return agora(s.voiceover) ? 'present day' : voz
   })
+  // A modern museum can name the age of its exhibit in the same paragraph.
+  // Only an explicitly staged historical section may override that setting.
+  if (agora(pedido) && !datas.some(d => d && d !== 'present day')) return null
   const primeiro = datas.findIndex(Boolean)
   const antes = primeiro > 0 && datas[primeiro] === geral && /\b(?:again|once more|later|de novo|novamente|mais tarde)\b/iu.test(secoes[primeiro].voiceover)
   let epoca = datas[0] || (antes ? 'before ' + geral : geral)
@@ -84,8 +92,8 @@ const FIGURINO_ANTIGO = /People in the shot wear period-accurate [^.]+ with peri
 const FIXADOR_ANTIGO = /,?\s*period piece set strictly in [^:.]+:\s*(?:every person, building, street, vehicle and object belongs to that exact time[^.]*?as it really looked then|only the things this shot describes, each exactly as it looked at that time)/giu
 
 /** A sheet stays in its neutral studio. Scenes date only things that are already in frame. */
-export function aplicarEpocaVisual(prompt: string, epoca: string | undefined, folha = false, pista?: string): string {
-  if (!epoca) return prompt
+export function aplicarEpocaVisual(prompt: string, epoca: string | undefined, folha = false, pista?: string, teto?: number): string {
+  if (!epoca || !prompt.trim()) return prompt
   const ano = /^\d{4}$/.test(epoca) ? Number(epoca) : 0
   const terno = /\b(?:suit|tie|lapels?|terno|gravata)\b/iu.test(prompt)
   const tecido = terno && ano >= 1970 && ano < 1980 ? 'period lapel width, wool tailoring and shirt collar' : 'period cut, seams and fabric'
@@ -94,18 +102,26 @@ export function aplicarEpocaVisual(prompt: string, epoca: string | undefined, fo
       ? 'authentic period materials for the described setting'
       : [
           /\b(?:suit|dress|wearing|coat|clothes|outfit|uniform|tie)\b/iu.test(prompt) ? tecido : '',
-          /\b(?:plane|airliner|passenger jet|cabin|aircraft)\b/iu.test(prompt) ? 'period airframe and cabin fittings' : '',
+          /\b(?:plane|airplane|aeroplane|airliner|jet|cabin|aircraft)\b/iu.test(prompt) ? 'period airframe and cabin fittings' : '',
           /\b(?:train|railway|carriage|platform|station)\b/iu.test(prompt) ? 'period railway fittings' : '',
           /\b(?:ship|sailboat|sailing|sailor|boat|harbo[u]?r)\b/iu.test(prompt) ? 'period maritime construction' : '',
           /\b(?:street|building|house|room|window|city)\b/iu.test(prompt) ? 'period architecture and street details' : '',
         ].filter(Boolean).slice(0, 2).join(', ') || 'period materials and finishes on the objects shown'
-  const corpo = prompt.replace(MARCA, '').replace(FIGURINO_ANTIGO, '').replace(FIXADOR_ANTIGO, '').trim()
-  const periodo = 'Period setting: ' + epoca + ', ' + design + '.'
+  const semMarca = prompt.replace(MARCA, '').trim()
+  const corpo = semMarca.replace(FIGURINO_ANTIGO, '').replace(FIXADOR_ANTIGO, '').trim()
+  const escala = /^(?:(?:wide|medium|long|aerial|full|establishing) shot|close[- ]up)\.\s+/iu.exec(corpo)?.[0] ?? ''
+  const resto = corpo.slice(escala.length)
+  let periodo = 'Period setting: ' + epoca + ', ' + design + '.'
+  if (teto !== undefined) {
+    const livre = teto - Array.from(corpo).length - 1
+    if (Array.from(periodo).length > livre) periodo = 'Period setting: ' + epoca + '.'
+    if (Array.from(periodo).length > livre) return semMarca
+  }
   // Move an existing, already moderated action ahead of scenery. Never copy a raw
   // stock query into the dispatch or detach a word from its sentence (including negations).
   if (pista && corpo.length + periodo.length > 280) {
     const termos = new Set(pista.toLowerCase().match(/[\p{L}]{4,}/gu) ?? [])
-    const frases = corpo.split(/(?<=[.!?])\s+/u)
+    const frases = resto.split(/(?<=[.!?])\s+/u)
     let acao = -1
     let maior = 1
     for (let i = 0; i < frases.length; i++) {
@@ -115,8 +131,8 @@ export function aplicarEpocaVisual(prompt: string, epoca: string | undefined, fo
     }
     if (acao >= 0) {
       const frase = frases.splice(acao, 1)[0].trim()
-      return periodo + ' ' + frase + (/[.!?]$/u.test(frase) ? ' ' : '. ') + frases.join(' ').trim()
+      return escala + periodo + ' ' + frase + (/[.!?]$/u.test(frase) ? ' ' : '. ') + frases.join(' ').trim()
     }
   }
-  return periodo + ' ' + corpo
+  return escala + periodo + ' ' + resto
 }
