@@ -27,6 +27,7 @@ import { semHistoriaRealAllV41411 } from './test-support/desfaz-historia-real-al
 import { semLinhaDeEpoca1411 } from './test-support/desfaz-linha-de-epoca-1411.mjs' // KINEO-LINHA-DE-EPOCA-1411
 import { semLinhaDeEpocaV21411 } from './test-support/desfaz-linha-de-epoca-v2-1411.mjs' // KINEO-LINHA-DE-EPOCA-1411 v2
 import { semQuemEstaNaCenaV21411 } from './test-support/desfaz-quem-esta-na-cena-v2-1411.mjs' // KINEO-QUEM-ESTA-NA-CENA-1411 v2
+import { semQuemAparece2511 } from './test-support/desfaz-quem-aparece-2511.mjs' // KINEO-QUEM-APARECE-2511
 
 let ok = 0
 let falhas = 0
@@ -192,7 +193,7 @@ const base = carregaBase()
 
 // ── D. recibo exato da TRAVA 8.2 ────────────────────────────────────────────────────────────────────────────────────────
 {
-  const hoje = semEspecieNaoEGente1111(semNomeSemCorpo1111(semNomeNaoCruzaPonto1111(semElencoProvaDeGente1211(semIdeiaFichaAssunto1211(semHistoriaReal1411(semBichoComNome1411(semFichaDoAutorManda1411(semFichaDoAutorMandaV21411(semHistoriaRealAll1411(semHistoriaRealAllV21411(semHistoriaRealAllV31411(semHistoriaRealAllV41411(semLinhaDeEpoca1411(semLinhaDeEpocaV21411(semQuemEstaNaCenaV21411(readFileSync(join(raiz, EPOCA), 'utf8'), EPOCA), EPOCA), EPOCA), EPOCA), EPOCA), EPOCA), EPOCA), EPOCA), EPOCA), EPOCA), EPOCA) /* KINEO-HISTORIA-REAL-1411 · KINEO-BICHO-COM-NOME-1411 · KINEO-FICHA-DO-AUTOR-MANDA-1411 (e a v2) — as camadas de 14/11 saem primeiro, cada uma pelo recibo exato (hash antes/depois) */, EPOCA) /* KINEO-IDEIA-FICHA-ASSUNTO-1211 — a camada de 12/11 noite sai antes */, EPOCA) /* KINEO-ELENCO-PROVA-DE-GENTE-1211 — a camada de 12/11 sai primeiro */, EPOCA), EPOCA), EPOCA) // KINEO-ESPECIE-NAO-E-GENTE-1111 — a camada mais nova (11/11) sai antes do recibo
+  const hoje = semEspecieNaoEGente1111(semNomeSemCorpo1111(semNomeNaoCruzaPonto1111(semElencoProvaDeGente1211(semIdeiaFichaAssunto1211(semHistoriaReal1411(semBichoComNome1411(semFichaDoAutorManda1411(semFichaDoAutorMandaV21411(semHistoriaRealAll1411(semHistoriaRealAllV21411(semHistoriaRealAllV31411(semHistoriaRealAllV41411(semLinhaDeEpoca1411(semLinhaDeEpocaV21411(semQuemEstaNaCenaV21411(semQuemAparece2511(readFileSync(join(raiz, EPOCA), 'utf8'), EPOCA) /* KINEO-QUEM-APARECE-2511 — a camada de 25/11 sai primeiro */, EPOCA), EPOCA), EPOCA), EPOCA), EPOCA), EPOCA), EPOCA), EPOCA), EPOCA), EPOCA), EPOCA) /* KINEO-HISTORIA-REAL-1411 · KINEO-BICHO-COM-NOME-1411 · KINEO-FICHA-DO-AUTOR-MANDA-1411 (e a v2) — as camadas de 14/11 saem primeiro, cada uma pelo recibo exato (hash antes/depois) */, EPOCA) /* KINEO-IDEIA-FICHA-ASSUNTO-1211 — a camada de 12/11 noite sai antes */, EPOCA) /* KINEO-ELENCO-PROVA-DE-GENTE-1211 — a camada de 12/11 sai primeiro */, EPOCA), EPOCA), EPOCA) // KINEO-ESPECIE-NAO-E-GENTE-1111 — a camada mais nova (11/11) sai antes do recibo
   checa('D recibo: desfazer devolve a base exata', semQuandoNaoEGalinha0911(hoje, EPOCA).replace(/\r\n/g, '\n') === BASE_FONTE.replace(/\r\n/g, '\n'))
   checa('D recibo: o arquivo de hoje é exatamente base + esta entrega', deltaQuandoNaoEGalinha0911Exato(hoje, BASE_FONTE, EPOCA))
   checa('D recibo: edição a mais reprova', !deltaQuandoNaoEGalinha0911Exato(hoje.replace('KINEO-QUANDO-NAO-E-GALINHA-0911', 'KINEO-QUANDO-NAO-E-GALINHA-0911 x'), BASE_FONTE, EPOCA))

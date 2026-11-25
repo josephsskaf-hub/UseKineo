@@ -125,19 +125,8 @@ export function presencaPorPlano(p: PresencaDosPlanos | null | undefined, nPlano
   return Array.from({ length: nPlanos }, (_, i) => { for (const n of nomes) { const d = presencaDe(p, i, n); if (d !== null) return d } return null })
 }
 
-/** As cenas de hoje (quem está em cada plano) corrigidas pela leitura: quem está no elenco lido entra ou sai pelo que ela diz; o resto, como hoje. */
-export function cenasComPresenca<C extends { indice: number; nomes: string[]; pelaFala: string[] }>(cenas: readonly C[], elenco: ReadonlyArray<{ nome: string }>, p: PresencaDosPlanos | null | undefined): C[] {
-  if (!p) return [...cenas]
-  return cenas.map((c) => {
-    const d = p.planos[c.indice]
-    if (!d) return c
-    const lidos = elenco.map((f) => f.nome).filter((n) => p.elenco.some((x) => mesmaPessoa(x, n)))
-    const ficam = c.nomes.filter((n) => !lidos.includes(n) || d.some((x) => mesmaPessoa(x, n)))
-    const entram = lidos.filter((n) => d.some((x) => mesmaPessoa(x, n)) && !ficam.includes(n))
-    const nomes = [...ficam, ...entram]
-    return { ...c, nomes, pelaFala: c.pelaFala.filter((n) => nomes.includes(n)) }
-  })
-}
+// As cenas de hoje corrigidas pela leitura moram na camada que as decide (personagemAjuste cenasComPresenca2511; elencoEpoca e filme15Elenco com a mesma
+// regra inline), porque essas camadas não importam este módulo.
 
 /** Para o claim: só número. `mudou` = os planos em que a leitura trocou quem está em relação à regra de hoje. */
 export type RelatoQuemAparece = { versao: string; fonte: 'leitura' | 'main'; motivo: string | null; ms: number; custo_usd: number; planos: Array<number[] | null>; unclear: number; mudou: number[]; sem_imagem_chave: number[] }

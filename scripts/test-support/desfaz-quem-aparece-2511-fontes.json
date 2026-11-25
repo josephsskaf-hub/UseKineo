@@ -1,0 +1,22 @@
+{
+ "scope": {
+  "lib/cinematic/elencoEpoca.ts": {
+   "beforeSha256": "e566f399c8ad4d5b80862222ec94a61844229eb62cbcfaaf19f8b83ef2536879",
+   "afterSha256": "97140986e14780b8d4855e1c25fa3f5821195584b973c7707f99ebd2b18ca282",
+   "hunks": [
+    {
+     "after": "// KINEO-QUEM-APARECE-2511 — a leitura de quem aparece, inline (esta camada não ganha import): true visível, false ausente, null = a regra de hoje\nconst mesmaPessoa2511 = (a: string, b: string): boolean => { const x = String(a ?? '').toLowerCase().replace(/^the\\s+/, '').trim(); return !!x && x === String(b ?? '').toLowerCase().replace(/^the\\s+/, '').trim() }\nconst presencaNoPlano2511 = (p: { elenco: readonly string[]; planos: ReadonlyArray<ReadonlyArray<string> | null> } | null | undefined, plano: number, nome: string): boolean | null => { if (!p || !p.elenco.some((n) => mesmaPessoa2511(n, nome))) return null; const d = p.planos[plano]; return d ? d.some((n) => mesmaPessoa2511(n, nome)) : null }\nexport function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710",
+     "before": "export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710"
+    },
+    {
+     "after": "  /** KINEO-QUEM-APARECE-2511 — a leitura de quem aparece: quem ela leu não entra no plano em que ela diz que a pessoa não está. Ausente = o de sempre. */\n  presenca?: { elenco: readonly string[]; planos: ReadonlyArray<ReadonlyArray<string> | null> } | null\n  /** KINEO-ORIGEM-DO-ELENCO-0311 — de onde é quem está em cena (lib/cinematic/origemDoElenco, por injeção: esta camada segue sem rede); null/ausente = byte a byte o de antes. */",
+     "before": "  /** KINEO-ORIGEM-DO-ELENCO-0311 — de onde é quem está em cena (lib/cinematic/origemDoElenco, por injeção: esta camada segue sem rede); null/ausente = byte a byte o de antes. */"
+    },
+    {
+     "after": "        if (presencaNoPlano2511(args.presenca, i, p.nome) === false) continue // KINEO-QUEM-APARECE-2511: o plano que o roteiro pede sem a pessoa não a recebe\n        if (marcadaSemGente1411(prompts[i])) continue // KINEO-QUEM-ESTA-NA-CENA-1411 v2 — cena marcada sem gente não recebe ninguém",
+     "before": "        if (marcadaSemGente1411(prompts[i])) continue // KINEO-QUEM-ESTA-NA-CENA-1411 v2 — cena marcada sem gente não recebe ninguém"
+    }
+   ]
+  }
+ }
+}

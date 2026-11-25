@@ -24,7 +24,6 @@
 //      cena cola ", characters act naturally within the scene" em TODA cena. Agora a cena sem personagem cujo visual não mostra
 //      ninguém perde essa cláusula e ganha "No people, no human figures and no faces anywhere in this shot."
 // Guardião: scripts/test-meta95-personagem-ajuste-2010.mjs (executa este arquivo com os 3 roteiros reproduzidos à mão + mutantes).
-import { cenasComPresenca, type PresencaDosPlanos } from '@/lib/cinematic/quemAparece2511' // KINEO-QUEM-APARECE-2511
 import {
   elencoDeterministico, cenasComPersonagem, promptDoStillComFolha, mensagensDoCasting, lerCasting, ensaioDoPersonagem, custoDoPersonagemUsd, PERSONAGEM_MAX_STILLS,
   PERSONAGEM_CASTING_MODELO, PERSONAGEM_CASTING_PRAZO_MS, type FichaDePersonagem,
@@ -279,13 +278,29 @@ function cenasSemCitacaoDoComentario(visuals: ReadonlyArray<string>, falas: Read
 }
 // ═══ fim KINEO-COMENTARIO-NAO-E-CENA-1411 v2 ═══
 
+// KINEO-QUEM-APARECE-2511 — as cenas de hoje corrigidas pela leitura de quem aparece (lib/cinematic/quemAparece2511): quem a leitura leu entra ou sai pelo que
+// ela diz; o plano incerto (null) e quem ela não leu ficam como hoje. Inline: esta camada não importa a leitura.
+const mesmaPessoa2511 = (a: string, b: string): boolean => { const x = String(a ?? '').toLowerCase().replace(/^the\s+/, '').trim(); return !!x && x === String(b ?? '').toLowerCase().replace(/^the\s+/, '').trim() }
+export function cenasComPresenca2511<C extends { indice: number; nomes: string[]; pelaFala: string[] }>(cenas: readonly C[], elenco: ReadonlyArray<{ nome: string }>, p: { elenco: readonly string[]; planos: ReadonlyArray<ReadonlyArray<string> | null> } | null | undefined): C[] {
+  if (!p) return [...cenas]
+  return cenas.map((c) => {
+    const d = p.planos[c.indice]
+    if (!d) return c
+    const lidos = elenco.map((f) => f.nome).filter((n) => p.elenco.some((x) => mesmaPessoa2511(x, n)))
+    const ficam = c.nomes.filter((n) => !lidos.includes(n) || d.some((x) => mesmaPessoa2511(x, n)))
+    const entram = lidos.filter((n) => d.some((x) => mesmaPessoa2511(x, n)) && !ficam.includes(n))
+    const nomes = [...ficam, ...entram]
+    return { ...c, nomes, pelaFala: c.pelaFala.filter((n) => nomes.includes(n)) }
+  })
+}
+
 /**
  * Por cena, quem está nela. O VISUAL decide se há alguém no quadro (cenasComPersonagem: nome/papel/pronome no visual); a FALA
  * decide QUEM é a figura que o visual mostra sem nomear ("young man on motorcycle" + "A boy rode his bike" = o menino). Visual
  * sem ninguém (floresta, paisagem) não recebe personagem só porque a fala o cita — vira plano de ambiente (conserto 6).
  */
-export function cenasDoElenco(visuals: ReadonlyArray<string>, falas: ReadonlyArray<string>, elenco: ReadonlyArray<FichaDePersonagem>, cru = false, presenca: PresencaDosPlanos | null = null): CenaDoElenco[] {
-  if (presenca) return cenasComPresenca(cenasDoElenco(visuals, falas, elenco, cru), elenco, presenca) // KINEO-QUEM-APARECE-2511: quem a leitura leu entra ou sai pelo que ela diz; o resto, como hoje
+export function cenasDoElenco(visuals: ReadonlyArray<string>, falas: ReadonlyArray<string>, elenco: ReadonlyArray<FichaDePersonagem>, cru = false, presenca: { elenco: readonly string[]; planos: ReadonlyArray<ReadonlyArray<string> | null> } | null = null): CenaDoElenco[] {
+  if (presenca) return cenasComPresenca2511(cenasDoElenco(visuals, falas, elenco, cru), elenco, presenca) // KINEO-QUEM-APARECE-2511: quem a leitura leu entra ou sai pelo que ela diz; o resto, como hoje
   if (!cru && comentarioNaoECenaLigado()) return cenasSemCitacaoDoComentario(visuals, falas, elenco) // KINEO-COMENTARIO-NAO-E-CENA-1411
   const pelosVisuais = cenasComPersonagem(visuals, elenco)
   let anteriorFala: string[] = []
@@ -312,7 +327,7 @@ export const CLAUSULA_FICHA = (canonica: string) => ` The same main character ap
  *   · cena sem personagem e sem ninguém no visual → perde a cláusula de "characters act" e ganha "No people…";
  *   · cena sem personagem com gente própria no visual (multidão, outra pessoa) → intocada.
  */
-export function ajustarPromptsDoElenco(args: { prompts: ReadonlyArray<string>; visuals: ReadonlyArray<string>; falas: ReadonlyArray<string>; elenco: ReadonlyArray<FichaDePersonagem>; presenca?: PresencaDosPlanos | null /* KINEO-QUEM-APARECE-2511 */ }): { prompts: string[]; cenas: CenaDoElenco[]; comFicha: number[]; semGente: number[] } {
+export function ajustarPromptsDoElenco(args: { prompts: ReadonlyArray<string>; visuals: ReadonlyArray<string>; falas: ReadonlyArray<string>; elenco: ReadonlyArray<FichaDePersonagem>; presenca?: { elenco: readonly string[]; planos: ReadonlyArray<ReadonlyArray<string> | null> } | null /* KINEO-QUEM-APARECE-2511 */ }): { prompts: string[]; cenas: CenaDoElenco[]; comFicha: number[]; semGente: number[] } {
   const cenas = cenasDoElenco(args.visuals, args.falas, args.elenco, false, args.presenca ?? null) // KINEO-QUEM-APARECE-2511
   const comFicha: number[] = []
   const semGente: number[] = []

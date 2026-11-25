@@ -1,5 +1,4 @@
 // KINEO-QUALIDADE-TODOS-MOTORES-2910 — one engine-independent film contract, no provider calls.
-import type { PresencaDosPlanos } from '@/lib/cinematic/quemAparece2511' // KINEO-QUEM-APARECE-2511
 import { aplicarElencoEEpoca, type ModoVisualDoElenco } from '@/lib/cinematic/elencoEpoca'
 import { mesmoPersonagem } from '@/lib/cinematic/elencoEpoca' // KINEO-CITADO-NAO-AGE-0311
 import { generoDoNome } from '@/lib/cinematic/elencoEpoca' // KINEO-ELENCO-PROVA-DE-GENTE-1211 — a tabela de primeiros nomes vai à folha por injeção
@@ -267,7 +266,7 @@ export const FINAL_DIFERENTE_DA_ABERTURA = 'final moment of the story, a differe
 export const FICHA_DO_AUTOR_MANDA_1411: 'off' | 'all' = 'all'
 
 export function prepararQualidadeDoFilme(args: {
-  presenca?: PresencaDosPlanos | null // KINEO-QUEM-APARECE-2511 — ausente = o de sempre
+  presenca?: { elenco: readonly string[]; planos: ReadonlyArray<ReadonlyArray<string> | null> } | null // KINEO-QUEM-APARECE-2511 — ausente = o de sempre
   prompts: ReadonlyArray<string>; falas: ReadonlyArray<string>; contextoOriginal: string
   contextoFiltro: string | null | undefined; modo: ModoVisualDoElenco; tagFaceless: boolean
   style: StyleAnchor; elenco?: ReadonlyArray<FichaDePersonagem>; preservarElenco?: boolean

@@ -97,9 +97,17 @@ async function suite(change) {
     { const t0 = Date.now(), x = await rede(o); igual([x.presenca, x.erro], [null, e], e); assert.ok(Date.now() - t0 < 2000, e + ": o prazo (20 ms no teste) vale") }
   igual((await q.lerQuemAparece(EL, Array.from({ length: 13 }, () => PL[1]), { apiKey: 'k', fetchImpl: async () => assert.fail('não chama') })).erro, 'fora_do_tamanho')
   assert.equal(q.QUEM_APARECE_PRAZO_MS, 6000)
+  { const P = { elenco: ['the guard'], planos: [[], ['The Guard'], null] }
+    igual([q.presencaDe(P, 0, 'the guard'), q.presencaDe(P, 1, 'guard'), q.presencaDe(P, 2, 'the guard'), q.presencaDe(P, 0, 'Mara'), q.presencaDe(null, 0, 'the guard')], [false, true, null, null, null], 'presencaDe: ausente, visível, incerto, quem não foi lido, sem leitura')
+    igual(q.presencaPorPlano(P, 3, ['Mara', 'the guard']), [false, true, null]) }
 
   // ── 2. o trecho REAL da rota ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   const tipMods = { pa, f15, q }, baseMods = { pa: PAb, f15: F15b, q: null }
+  // a qualidade do filme (fora do trecho executado) recebe a leitura; os argumentos de sempre continuam na frente (as âncoras dos guardiões antigos)
+  { const lq = route.split('\n').find((l) => l.includes('const elencoEpoca = prepararQualidadeDoFilme({ prompts: classicScenePrompts')) ?? ''
+    assert.ok(lq.includes(', presenca: presenca2511 /* KINEO-QUEM-APARECE-2511 */ })'), 'prepararQualidadeDoFilme recebe a leitura')
+    for (const c of ['const cenasP = cenasDoElenco(classicScenePrompts, scenes.map((s) => s.voiceover ?? \'\'), elencoP, false, presenca2511', 'const cenasTravaP = cenasDoElenco(classicScenePrompts, scenes.map((s) => s.voiceover ?? \'\'), elencoP, false, presenca2511',
+      "personagemCenas.cenas = cenasDoElenco(classicScenePrompts, scenes.map(s => s.voiceover ?? ''), elencoDoAjuste, false, presenca2511", 'ajustarPromptsDoElenco({ prompts: classicScenePrompts']) assert.ok(route.includes(c), c.slice(0, 60)) }
   const fichaDe = (nome) => `consistent design: ${nome}, a character`
   const BASE_DOS = {}
   // o farol (só do guardião): o visual do plano 2 cita o faroleiro (a cena de hoje o põe) e a leitura diz que ele não está; no 3, só o pronome (a leitura o põe)
@@ -195,7 +203,8 @@ async function suite(change) {
     igual(pa.cenasDoElenco(vis, fal, el, false, { elenco: ['someone else'], planos: [[], [], []] }), PAb.cenasDoElenco(vis, fal, el), 'pessoa fora do elenco lido: como hoje')
     { const A = FILMES.alcatraz, ea = A.elenco.map((e) => ficha(e)), va = A.planos.map((pl) => pl.visual), fa = A.planos.map((pl) => pl.fala); const hojeA = PAb.cenasDoElenco(va, fa, ea)
       assert.ok(hojeA[1].nomes.includes('the guard'), 'a main põe o guarda no plano 2')
-      igual(pa.cenasDoElenco(va, fa, ea, false, { elenco: ['the guard'], planos: [null, null, null] }), hojeA, "plano 'unclear': como hoje") }
+      igual(pa.cenasDoElenco(va, fa, ea, false, { elenco: ['the guard'], planos: [null, null, null] }), hojeA, "plano 'unclear': como hoje")
+      igual(pa.cenasDoElenco(va, fa, ea, false, { elenco: ['someone else'], planos: [[], [], []] }), hojeA, 'o guarda fora do elenco lido: como hoje') }
   }
 
   // ── 4. o A2 sem a imagem-chave do meio, o registro e o relato ────────────────────────────────────────────────────────────────────────────────────────
@@ -259,24 +268,28 @@ const mutants = [
   [Q, 'Math.max(1, opts.timeoutMs ?? QUEM_APARECE_PRAZO_MS)', '60_000'],
   [Q, 'export const QUEM_APARECE_PRAZO_MS = 6_000', 'export const QUEM_APARECE_PRAZO_MS = 60_000'],
   [Q, "  if (!p || !p.elenco.some((n) => mesmaPessoa(n, nome))) return null\n", '  if (!p) return null\n'], // quem a leitura não leu passa a ser decidido
-  [Q, "    if (!d) return c\n", "    if (!d) return { ...c, nomes: [], pelaFala: [] }\n"], // o plano incerto perde todo mundo
-  [Q, "    const ficam = c.nomes.filter((n) => !lidos.includes(n) || d.some((x) => mesmaPessoa(x, n)))", "    const ficam = c.nomes.filter((n) => !lidos.includes(n) || true)"], // a leitura não tira ninguém
-  [Q, "    const entram = lidos.filter((n) => d.some((x) => mesmaPessoa(x, n)) && !ficam.includes(n))", "    const entram: string[] = []"], // a leitura não põe ninguém (pronome, outra língua)
+  [PA, "    if (!d) return c\n", "    if (!d) return { ...c, nomes: [], pelaFala: [] }\n"], // o plano incerto perde todo mundo
+  [PA, "    const ficam = c.nomes.filter((n) => !lidos.includes(n) || d.some((x) => mesmaPessoa2511(x, n)))", "    const ficam = c.nomes.filter((n) => !lidos.includes(n) || true)"], // a leitura não tira ninguém
+  [PA, "    const entram = lidos.filter((n) => d.some((x) => mesmaPessoa2511(x, n)) && !ficam.includes(n))", "    const entram: string[] = []"], // a leitura não põe ninguém (pronome, outra língua)
+  [PA, "    const lidos = elenco.map((f) => f.nome).filter((n) => p.elenco.some((x) => mesmaPessoa2511(x, n)))", "    const lidos = elenco.map((f) => f.nome)"], // quem a leitura não leu passa a ser decidido
+  [F15, "boolean | null => { if (!p || !p.elenco.some((n) => mesmaPessoa2511(n, nome))) return null;", "boolean | null => { if (!p) return null;"], // idem, no protagonista em toda cena
+  [EE, "boolean | null => { if (!p || !p.elenco.some((n) => mesmaPessoa2511(n, nome))) return null;", "boolean | null => { if (!p) return null;"], // idem, no "Named character"
   [Q, "if (!contaDaCasaExata(email)) return 'nao_e_da_casa'\n  if (e.ocupada)", "if (e.ocupada)"],
   [Q, "  if (e.feitas.has(chave)) return 'repetida'\n", ''],
   [Q, "  if (e.leituras >= SONDA_PRESENCA_TETO_POR_INSTANCIA) return 'teto'\n", ''],
   [Q, "e.ocupada = true; e.leituras++", 'e.leituras++'],
   [Q, 'Math.ceil(0.95 * t.length) - 1', 'Math.floor(0.5 * t.length)'],
-  [PA, '  if (presenca) return cenasComPresenca(cenasDoElenco(visuals, falas, elenco, cru), elenco, presenca)', '  if (false) return cenasComPresenca(cenasDoElenco(visuals, falas, elenco, cru), elenco, presenca)'],
+  [PA, '  if (presenca) return cenasComPresenca2511(cenasDoElenco(visuals, falas, elenco, cru), elenco, presenca)', '  if (false) return cenasComPresenca2511(cenasDoElenco(visuals, falas, elenco, cru), elenco, presenca)'],
   [PA, 'const cenas = cenasDoElenco(args.visuals, args.falas, args.elenco, false, args.presenca ?? null)', 'const cenas = cenasDoElenco(args.visuals, args.falas, args.elenco)'],
-  [F15, '    if (presencaDe(args.presenca, i, protagonista.nome) === false) return v', '    if (false) return v'],
-  [EE, '        if (presencaDaPessoa2511(args.presenca, i, p.nome) === false) continue', '        if (false) continue'],
+  [F15, '    if (presencaNoPlano2511(args.presenca, i, protagonista.nome) === false) return v', '    if (false) return v'],
+  [EE, '        if (presencaNoPlano2511(args.presenca, i, p.nome) === false) continue', '        if (false) continue'],
   [K, "  const comPersonagem = shots.map((s, i) => lida(ref.presenca, i) ?? planoMostraOPersonagem(", "  const comPersonagem = shots.map((s, i) => planoMostraOPersonagem("],
   [K, "  const comSegundo = shots.map((s, i) => !!seg && (lida(seg.presenca, i) ?? planoMostraOPersonagem(", "  const comSegundo = shots.map((s, i) => !!seg && (planoMostraOPersonagem("],
   [K, 'Array.isArray(p) && p.length === shots.length && ', 'Array.isArray(p) && '],
   [routeFile, "quemApareceLigado(QUEM_APARECE_2511, user.email) && !qualidadeHerdada", "!qualidadeHerdada"], // o cliente paga a leitura
-  [routeFile, "protagonistaEmTodaCena({ visuals: visuaisDoPlano15, presenca: presenca2511 /* KINEO-QUEM-APARECE-2511 */, elenco", "protagonistaEmTodaCena({ visuals: visuaisDoPlano15, presenca: null, elenco"],
-  [routeFile, "ajustarPromptsDoElenco({ presenca: presenca2511 /* KINEO-QUEM-APARECE-2511 */, ", "ajustarPromptsDoElenco({ presenca: null, "],
+  [routeFile, "(rodada 16) */, presenca: presenca2511 /* KINEO-QUEM-APARECE-2511 */ }) : null // KINEO-FILME15-ELENCO-2610", "(rodada 16) */, presenca: null }) : null // KINEO-FILME15-ELENCO-2610"],
+  [routeFile, "elenco: elencoDoAjuste, presenca: presenca2511 /* KINEO-QUEM-APARECE-2511 */ }) : null // KINEO-META95-PERSONAGEM-AJUSTE-2010", "elenco: elencoDoAjuste, presenca: null }) : null // KINEO-META95-PERSONAGEM-AJUSTE-2010"],
+  [routeFile, "byte a byte */, presenca: presenca2511 /* KINEO-QUEM-APARECE-2511 */ }) // KINEO-QUALIDADE-TODOS-MOTORES-2910", "byte a byte */ }) // KINEO-QUALIDADE-TODOS-MOTORES-2910"], // (só prova o texto: o trecho executado vai até a ordem do protagonista)
   [routeFile, "marcador: verbatim && parsedScript.hasMarkers ? s.stockSearchQuery ?? '' : ''", "marcador: ''"], // o marcador do autor não vai ao leitor (a régua da sonda mede; aqui, o pedido)
   [routeFile, 'if (i > 0 && kling4ApprovedStills[i])', 'if (kling4ApprovedStills[i])'], // a imagem inicial cai
   [routeFile, "rastro1911 && rastro1911.caminho !== 'hoje' && parsedScript", 'rastro1911 && parsedScript'],
