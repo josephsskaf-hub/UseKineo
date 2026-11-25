@@ -29,11 +29,12 @@ export const referenciaUnicaLigada = (modo: ModoReferenciaUnica2411, email: stri
 export type MotivoClienteSemReferencia2411 = 'mais_de_um' | 'nao_humano' | 'mais_de_uma_folha' | 'mais_de_um_humano' /* [revisora 24/11, c06af33d] */ | 'estilizado' | 'sem_referencia'
   | 'sem_plano' | 'clipe_longo' /* [revisora 24/11, volta 3] admitido, mas o montador devolveu null: nenhum plano o mostra (15 s) / clipe de 16 a 30 s */
   | MotivoClienteSemDuasPessoas2511 /* KINEO-DUAS-PESSOAS-CLIENTE-2511: o filme com duas folhas que a régua das duas pessoas barrou */
+  | 'figura_conhecida' /* KINEO-FAMOSO-SEM-REFERENCIA-2511: o protagonista (ou o roteiro e o pedido) é figura conhecida, pessoa real ou personagem de marca */
 /** Por que o cliente NÃO recebe a referência (null = recebe, se o montador achar plano que o mostra): mais de um protagonista; o protagonista ou alguém
  *  do elenco com folha que não é 'humano'; [CEO 24/11, volta 3 da revisora] mais de UM personagem com referência (folha https, ou o protagonista):
  *  dois humanos com folha nunca passaram por render, só o provado abre; o filme estilizado (isStylizedLook ou desenho infantil, o que a rota já
  *  sabe); ou nenhuma referência. Coadjuvante sem folha https não conta (Le Prince, Slocum e Cooper tinham coadjuvante só citado). */
-export function motivoClienteSemReferencia2411(snapshot: FilmQualitySnapshot | null | undefined, filme: { estilizado: boolean }): MotivoClienteSemReferencia2411 | null {
+export function motivoClienteSemReferencia2411(snapshot: FilmQualitySnapshot | null | undefined, filme: { estilizado: boolean; textoDoFilme?: string /* KINEO-FAMOSO-SEM-REFERENCIA-2511 */ }): MotivoClienteSemReferencia2411 | null {
   if (!retratoNoFormato(snapshot)) return 'sem_referencia'
   const leads = snapshot.characters.filter((c) => c.protagonista === true).length
   if (leads > 1) return 'mais_de_um'
@@ -46,7 +47,15 @@ export function motivoClienteSemReferencia2411(snapshot: FilmQualitySnapshot | n
   // mesmo com só uma referência https, não é a forma provada. Coadjuvante só citado no texto, que a leitura do elenco não pôs no elenco, não conta.
   if (snapshot.characters.filter((c) => c.tipo === 'humano').length > 1) return referenciaUnicaDoFilme(snapshot) ? 'mais_de_um_humano' : 'sem_referencia'
   if (filme.estilizado !== false) return 'estilizado' // na dúvida (campo ausente ou torto), estilizado
-  return referenciaUnicaDoFilme(snapshot) ? null : 'sem_referencia'
+  if (!referenciaUnicaDoFilme(snapshot)) return 'sem_referencia'
+  // KINEO-FAMOSO-SEM-REFERENCIA-2511 [CEO 25/11] no caminho público de UMA pessoa (que vai ao Gemini), a admissão não lia famoso nem pessoa real: o cliente
+  // escrevia o nome de uma pessoa real conhecida e a ficha com esse nome ia ao motor como referência. A MESMA régua da volta das duas pessoas (V2), sem lista
+  // nova: o protagonista (a referência é sempre ele) na tabela de figuras da casa, pessoa real no nome ou na canônica, nome de obra ou personagem de marca, ou
+  // pessoa real no roteiro e no pedido = 'figura_conhecida' = o pedido de hoje, sem referência (logo sem Gemini). Só depois de todas as outras guardas: os
+  // motivos de hoje não mudam, e a casa não passa por aqui.
+  const textoDoFilme = typeof filme.textoDoFilme === 'string' ? filme.textoDoFilme : ''
+  if (mentionsRealPerson(textoDoFilme) || snapshot.characters.some((c) => c.protagonista === true && figuraNaReferencia2511(c, textoDoFilme))) return 'figura_conhecida'
+  return null
 }
 export type AdmissaoReferenciaUnica2411 = { referencia: ReferenciaUnica2411; cliente?: true } | { motivo: MotivoClienteSemReferencia2411 } | null
 /** A admissão inteira, num lugar: 'off' = null; a casa = a referência sem guarda (como em 'internal'); cliente em 'internal' = null (o de hoje, sem
