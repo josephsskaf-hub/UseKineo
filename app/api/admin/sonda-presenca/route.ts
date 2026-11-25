@@ -9,6 +9,7 @@
 //   da lista = 400 sem chamada. A resposta diz a versão e o modelo usados, os tokens, o tempo e o custo pela tarifa do modelo.
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { contaDaCasaExata } from '@/lib/internalAccounts'
 import { QUEM_APARECE_PRAZO_MS, admitirSondaDePresenca, chaveDaPresenca, lerPedidoDePresenca, lerQuemAparece, liberarSondaDePresenca, novoEstadoDaSondaDePresenca, p95, presencaPorPessoa, leituraParaASonda } from '@/lib/cinematic/quemAparece2511'
 
 export const dynamic = 'force-dynamic'
@@ -21,8 +22,10 @@ const RECUSA: Record<string, number> = { nao_e_da_casa: 403, ocupada: 409, repet
 export async function POST(req: NextRequest) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  // [revisão cruzada 25/11, kineo 3d] a conta EXATA da casa é conferida ANTES de ler o corpo: fora da casa = 403 sempre (com corpo válido ou não);
+  // o 400 fica só para a entrada inválida da casa.
+  if (!user || !contaDaCasaExata(user.email)) return NextResponse.json({ erro: 'nao_e_da_casa' }, { status: 403 })
   const corpo = await req.json().catch(() => null)
-  if (!user) return NextResponse.json({ erro: 'nao_e_da_casa' }, { status: 403 })
   const pedido = lerPedidoDePresenca(corpo)
   if (!pedido) return NextResponse.json({ erro: 'pedido_invalido' }, { status: 400 })
   const admissao = admitirSondaDePresenca(estado, user.email, chaveDaPresenca(pedido))
@@ -31,7 +34,7 @@ export async function POST(req: NextRequest) {
   try {
     const r = await lerQuemAparece(pedido.elenco, pedido.planos, { versao: pedido.versao, modelo: pedido.modelo })
     ms = r.ms
-    return NextResponse.json({ versao: r.versao, modelo: r.modelo, presenca: r.presenca, por_pessoa: r.presenca ? presencaPorPessoa(r.presenca) : null, leitura: leituraParaASonda(r), bruta: r.bruta ?? null, motivo_do_esquema: r.motivoDoEsquema ?? null, fim: r.fim ?? null, recusa: r.recusa ?? false, tokens: r.tokens ?? null, unclear: r.unclear, ms: r.ms, p95_ms: p95([...estado.tempos, r.ms]), prazo_ms: QUEM_APARECE_PRAZO_MS, custo_usd: r.custoUsd, erro: r.erro }, { status: r.erro ? 502 : 200 })
+    return NextResponse.json({ versao: r.versao, modelo: r.modelo, presenca: r.presenca, por_pessoa: r.presenca ? presencaPorPessoa(r.presenca) : null, leitura: leituraParaASonda(r), bruta: r.bruta ?? null, motivo_do_esquema: r.motivoDoEsquema ?? null, fim: r.fim ?? null, recusa: r.recusa ?? false, tokens: r.tokens ?? null, unclear: r.unclear, ms: r.ms, p95_ms: p95([...estado.tempos, r.ms]), prazo_ms: QUEM_APARECE_PRAZO_MS, custo_usd: r.custoUsd, custo_e_teto: r.custoEhTeto ?? false, erro: r.erro }, { status: r.erro ? 502 : 200 })
   } finally {
     liberarSondaDePresenca(estado, ms)
   }

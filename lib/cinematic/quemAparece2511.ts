@@ -17,7 +17,7 @@
 //     ENTRA nomeado pelo leitor e com o nome escrito; quem não foi nomeado fica com a regra de hoje NAQUELE plano (`indecisos`, que o piso completa pela main).
 //   Nada de inferência: o 2º nunca entra por pronome; o protagonista nunca sai por pronome. O piso, o teto da imagem-chave e o registro no claim continuam.
 import { contaDaCasaExata } from '@/lib/internalAccounts'
-import { STILL_CRITIC_MODELO, custoDoCriticoUsd } from '@/lib/cinematic/criticoStill'
+import { STILL_CRITIC_MODELO } from '@/lib/cinematic/criticoStill'
 import { AI_TEXT_MODELS } from '@/lib/aiModels' // [A/B] a lista fechada de modelos sai do registro da casa
 import { TARIFAS_VISAO } from '@/lib/regua95/visaoProvedor' // [A/B] e a tarifa, da tabela que o projeto já usa
 
@@ -233,21 +233,33 @@ export const QUEM_APARECE_MODELO_PADRAO = STILL_CRITIC_MODELO
 export const modeloDaSondaValido = (m: unknown): m is string => typeof m === 'string' && Object.prototype.hasOwnProperty.call(MODELOS_DA_SONDA, m)
 /** Teto de saída de um modelo de raciocínio (o raciocínio conta como saída). */
 export const QUEM_APARECE_MAX_SAIDA_RACIOCINIO = 4000
-/** Custo da leitura pela tarifa do MODELO usado: pelo `usage` quando veio; senão estimado (texto/4 de entrada; saída: 300, ou o teto num de raciocínio).
- *  O modelo de hoje segue com o cálculo de sempre (custoDoCriticoUsd), byte a byte. */
-export function custoDaLeituraUsd(modelo: string, usage: { prompt_tokens?: unknown; completion_tokens?: unknown } | null | undefined, caracteres: number): number {
-  if (modelo === STILL_CRITIC_MODELO) return custoDoCriticoUsd(usage, 0, caracteres)
+/** [revisão cruzada 25/11, kineo 3d] O custo NUNCA fica abaixo do real.
+ *  · com o uso informado (as duas partes): a conta exata pela tarifa do modelo, arredondada PARA CIMA em 1e-9 (US$ 0,0001812 sai 0,0001812, nunca 0,000181);
+ *  · sem o uso (ou sem uma das partes, ou a chamada caiu no prazo depois de enviada): o TETO demonstrado — a entrada não passa dos bytes UTF-8 do pedido mais 8
+ *    por mensagem e 8 de abertura (cada token cobre ao menos 1 byte), e a saída não passa do máximo que o pedido permite. `teto` diz que é teto. */
+export const QUEM_APARECE_TOKENS_POR_MENSAGEM = 8
+export type LimitesDaLeitura = { bytesDeEntrada: number; mensagens: number; saidaMaxima: number }
+const paraCima = (usd: number) => Math.ceil(Math.round(usd * 1e12) / 1e3) / 1e9
+export function custoDaLeitura(modelo: string, usage: { prompt_tokens?: unknown; completion_tokens?: unknown } | null | undefined, limites: LimitesDaLeitura): { usd: number; teto: boolean } {
   const t = MODELOS_DA_SONDA[modelo]
-  if (!t) return 0
+  if (!t) return { usd: 0, teto: false }
   const e = Number(usage?.prompt_tokens), s = Number(usage?.completion_tokens)
-  const entrada = Number.isFinite(e) && e > 0 ? e : Math.ceil(caracteres / 4), saida = Number.isFinite(s) && s > 0 ? s : t.raciocinio ? QUEM_APARECE_MAX_SAIDA_RACIOCINIO : 300
-  return Math.round(((entrada * t.inPerM + saida * t.outPerM) / 1_000_000) * 1e6) / 1e6
+  const temE = Number.isFinite(e) && e >= 0 && usage?.prompt_tokens !== undefined && usage?.prompt_tokens !== null, temS = Number.isFinite(s) && s >= 0 && usage?.completion_tokens !== undefined && usage?.completion_tokens !== null
+  const entrada = temE ? e : Math.max(0, limites.bytesDeEntrada) + QUEM_APARECE_TOKENS_POR_MENSAGEM * (Math.max(0, limites.mensagens) + 1)
+  const saida = temS ? s : Math.max(0, limites.saidaMaxima)
+  return { usd: paraCima((entrada * t.inPerM + saida * t.outPerM) / 1_000_000), teto: !(temE && temS) }
+}
+/** Os limites de UM pedido: bytes UTF-8 das mensagens, quantas mensagens, e a saída máxima que ele permite. */
+export function limitesDoPedido(messages: ReadonlyArray<{ content?: unknown }>, saidaMaxima: number): LimitesDaLeitura {
+  const enc = new TextEncoder()
+  return { bytesDeEntrada: messages.reduce((n, m) => n + enc.encode(String(m?.content ?? '')).length, 0), mensagens: messages.length, saidaMaxima }
 }
 
 export type ChamadaDePresenca = { presenca: PresencaDosPlanos | null; custoUsd: number; ms: number; erro: string | null; unclear: number
   /** [volta 2] o que o modelo respondeu, conferido, e os tokens da chamada. [volta 3] a resposta BRUTA e o motivo, só quando o esquema recusou (o diagnóstico
    *  das "fora_do_esquema"); o fim da geração e se houve recusa do modelo. Sob o esquema estrito a resposta só tem números e enum.
    *  [A/B] a versão da pergunta e o modelo usados; `leitura` vem no formato da versão (v2: por pessoa; v3: assunto e nomeados). */
+  /** [revisão cruzada] true = o custo é o TETO (sem o uso informado), não a conta exata. */ custoEhTeto?: boolean
   leitura?: LeituraDePresenca | LeituraDePresencaV2 | null; tokens?: { entrada: number | null; saida: number | null }; bruta?: string | null; motivoDoEsquema?: MotivoDoEsquema | null; fim?: string | null; recusa?: boolean
   versao?: VersaoDaPergunta; modelo?: string }
 export const BRUTA_MAX = 2000
@@ -263,8 +275,10 @@ export async function lerQuemAparece(elenco: readonly PessoaDoElenco[], planos: 
   if (elenco.length < 1 || elenco.length > QUEM_APARECE_MAX_ELENCO || planos.length < 1 || planos.length > QUEM_APARECE_MAX_PLANOS) return fim(null, 0, 'fora_do_tamanho')
   const key = opts.apiKey ?? (typeof process !== 'undefined' ? process.env.OPENAI_API_KEY : undefined)
   if (!key) return fim(null, 0, 'sem_chave')
-  const { messages, caracteres } = versao === 'v2' ? pedidoDePresencaV2(elenco, planos) : pedidoDePresenca(elenco, planos)
-  const tamanho = MODELOS_DA_SONDA[modelo]?.raciocinio ? { max_completion_tokens: QUEM_APARECE_MAX_SAIDA_RACIOCINIO } : { temperature: 0, max_tokens: versao === 'v2' ? 900 : 600 }
+  const { messages } = versao === 'v2' ? pedidoDePresencaV2(elenco, planos) : pedidoDePresenca(elenco, planos)
+  const raciocinio = MODELOS_DA_SONDA[modelo]?.raciocinio === true, saidaMaxima = raciocinio ? QUEM_APARECE_MAX_SAIDA_RACIOCINIO : versao === 'v2' ? 900 : 600
+  const tamanho = raciocinio ? { max_completion_tokens: saidaMaxima } : { temperature: 0, max_tokens: saidaMaxima }
+  const limites = limitesDoPedido(messages as Array<{ content?: unknown }>, saidaMaxima)
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), Math.max(1, opts.timeoutMs ?? QUEM_APARECE_PRAZO_MS))
   try {
@@ -272,11 +286,11 @@ export async function lerQuemAparece(elenco: readonly PessoaDoElenco[], planos: 
       body: JSON.stringify({ model: modelo, ...tamanho, response_format: versao === 'v2' ? FORMATO_DA_RESPOSTA_V2 : FORMATO_DA_RESPOSTA, messages }) })
     if (!res.ok) return fim(null, 0, `http_${res.status}`)
     const data = (await res.json()) as { choices?: Array<{ finish_reason?: string; message?: { content?: string | null; refusal?: string | null } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }
-    const custo = custoDaLeituraUsd(modelo, data.usage, caracteres)
+    const c$ = custoDaLeitura(modelo, data.usage, limites), custo = c$.usd
     const escolha = data.choices?.[0], conteudo = typeof escolha?.message?.content === 'string' ? escolha.message.content : ''
     const num = (x: unknown) => (typeof x === 'number' && Number.isFinite(x) ? x : null)
     const comum: Partial<ChamadaDePresenca> = { tokens: { entrada: num(data.usage?.prompt_tokens), saida: num(data.usage?.completion_tokens) },
-      fim: typeof escolha?.finish_reason === 'string' ? escolha.finish_reason.slice(0, 40) : null, recusa: !!escolha?.message?.refusal }
+      fim: typeof escolha?.finish_reason === 'string' ? escolha.finish_reason.slice(0, 40) : null, recusa: !!escolha?.message?.refusal, custoEhTeto: c$.teto }
     if (versao === 'v2') {
       const l2 = lerLeituraDePresencaV2(conteudo, elenco.length, planos.length)
       return l2 ? fim(decidirPresencaV2(l2, elenco), custo, null, { ...comum, leitura: l2 }) : fim(null, custo, 'fora_do_esquema', { ...comum, leitura: null, bruta: conteudo.slice(0, BRUTA_MAX), motivoDoEsquema: null })
@@ -285,7 +299,7 @@ export async function lerQuemAparece(elenco: readonly PessoaDoElenco[], planos: 
     const extra: Partial<ChamadaDePresenca> = { ...comum, leitura: l }
     return l ? fim(decidirPresenca(l, elenco, planos), custo, null, extra) : fim(null, custo, 'fora_do_esquema', { ...extra, bruta: conteudo.slice(0, BRUTA_MAX), motivoDoEsquema: motivo })
   } catch {
-    return fim(null, custoDaLeituraUsd(modelo, null, caracteres), ctrl.signal.aborted ? 'prazo' : 'fetch')
+    return fim(null, custoDaLeitura(modelo, null, limites).usd, ctrl.signal.aborted ? 'prazo' : 'fetch', { custoEhTeto: true }) // o pedido pode ter sido cobrado: o teto
   } finally { clearTimeout(timer) }
 }
 

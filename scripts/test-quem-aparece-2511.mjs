@@ -415,22 +415,22 @@ async function suite(change) {
   for (let i = 1; i < q.SONDA_PRESENCA_TETO_POR_INSTANCIA; i++) { assert.equal(q.admitirSondaDePresenca(est, CASA, 'k' + i), 'ok'); q.liberarSondaDePresenca(est, i) }
   assert.equal(q.admitirSondaDePresenca(est, CASA, 'mais'), 'teto')
   igual([q.p95([]), q.p95([5]), q.p95(Array.from({ length: 20 }, (_, i) => i + 1)), q.p95(Array.from({ length: 100 }, (_, i) => 100 - i))], [null, 5, 19, 95])
-  const iPost = rotaSonda.indexOf('export async function POST'), i403 = rotaSonda.indexOf("if (!user) return NextResponse.json({ erro: 'nao_e_da_casa' }, { status: 403 })"), iAdm = rotaSonda.indexOf('admitirSondaDePresenca(estado, user.email'), iLer = rotaSonda.indexOf('await lerQuemAparece(pedido.elenco, pedido.planos, ')
-  assert.ok(iPost > 0 && iPost < i403 && i403 < iAdm && iAdm < iLer, '403 antes de tudo; a trava antes da chamada')
+  const iPost = rotaSonda.indexOf('export async function POST'), i403 = rotaSonda.indexOf("if (!user || !contaDaCasaExata(user.email)) return NextResponse.json({ erro: 'nao_e_da_casa' }, { status: 403 })"), iCorpo = rotaSonda.indexOf('await req.json()'), iAdm = rotaSonda.indexOf('admitirSondaDePresenca(estado, user.email'), iLer = rotaSonda.indexOf('await lerQuemAparece(pedido.elenco, pedido.planos, ')
+  assert.ok(iPost > 0 && iPost < i403 && i403 < iCorpo && iCorpo < iAdm && iAdm < iLer, '403 (a conta exata da casa) antes de ler o corpo; a trava antes da chamada')
   assert.ok(/finally \{\n\s+liberarSondaDePresenca\(estado, ms\)/.test(rotaSonda) && rotaSonda.includes('p95_ms: p95([...estado.tempos, r.ms])') && rotaSonda.includes('prazo_ms: QUEM_APARECE_PRAZO_MS'), 'libera no finally e devolve o tempo e o p95')
   assert.ok(!/generateCinematicSceneStill|persistFastStill|from\('|\.insert\(|debitVideoCredits/.test(rotaSonda), 'a sonda só lê: nem imagem, nem banco, nem crédito')
   // [CEO 25/11 12:00; A/B] a sonda EXECUTADA com a chave 'sonda': 200 para a casa (uma leitura), 403 para cliente e sem login, 400 para versão ou modelo
   // fora da lista (nenhuma leitura em nenhum dos três); sem os campos, v2 com o modelo de hoje
   { const RESP_V2 = JSON.stringify({ shots: [{ shot: 1, others: 'none', cast: [{ id: 1, on_screen: 'yes', how: 'shown' }] }] })
     const RESP_V3 = leituraCerta({ id: 'x', esperado: [[true]], elenco: [{ nome: 'Mara Quinn' }], planos: [{ fala: 'Mara waves from the pier.', marcador: '' }] })
-    const chamar = async (user, extra = {}) => { let leituras = 0; const corpos = []
+    const chamar = async (user, extra = {}, corpoInteiro = undefined) => { let leituras = 0, leuCorpo = 0; const corpos = []
       const fetchFalso = async (_u, o) => { leituras++; const corpo = JSON.parse(o.body); corpos.push(corpo); return respostaDe(corpo.response_format.json_schema.name === 'presenca_por_plano' ? RESP_V2 : RESP_V3) }
       const ld = createOfflineLoader({ globals: { ...GLOBALS, fetch: fetchFalso }, env: { OPENAI_API_KEY: 'k' }, source: (file, src) => muda(file, src), mocks: {
         'next/server': { NextResponse: { json: (body, init) => ({ status: init?.status ?? 200, body }) } },
         '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user } }) } }) } } })
       const rota = ld('@/' + sondaRoute)
-      const res = await rota.POST({ json: async () => ({ elenco: [{ nome: 'Mara Quinn', tipo: 'humano', genero: 'woman' }], planos: [{ fala: 'Mara waves from the pier.', marcador: '', visual: '' }], ...extra }) })
-      return { status: res.status, body: res.body, leituras, corpos } }
+      const res = await rota.POST({ json: async () => { leuCorpo++; return corpoInteiro !== undefined ? corpoInteiro : { elenco: [{ nome: 'Mara Quinn', tipo: 'humano', genero: 'woman' }], planos: [{ fala: 'Mara waves from the pier.', marcador: '', visual: '' }], ...extra } } })
+      return { status: res.status, body: res.body, leituras, corpos, leuCorpo } }
     const casa = await chamar({ email: CASA }), cli = await chamar({ email: CLIENTE }), anon = await chamar(null)
     igual([casa.status, casa.leituras, casa.body.erro, casa.body.versao, casa.body.modelo, casa.corpos[0]?.model, casa.corpos[0]?.response_format?.json_schema?.name], [200, 1, null, 'v2', 'gpt-4o-mini', 'gpt-4o-mini', 'presenca_por_plano'], 'a sonda sem os campos: v2 com o modelo de hoje')
     igual([casa.body.presenca, casa.body.por_pessoa, casa.body.leitura, casa.body.tokens, typeof casa.body.ms, typeof casa.body.custo_usd], [{ elenco: ['Mara Quinn'], planos: [['Mara Quinn']] }, [[true]], [{ others: 'none', cast: [{ on_screen: 'yes', how: 'shown' }] }], { entrada: 1400, saida: 200 }, 'number', 'number'], 'a sonda v2: a leitura no formato da v2, os tokens e o tempo')
@@ -439,7 +439,20 @@ async function suite(change) {
     igual([cli.status, cli.leituras, cli.body.erro, anon.status, anon.leituras], [403, 0, 'nao_e_da_casa', 403, 0], 'a sonda: 403 fora da casa, sem leitura')
     for (const extra of [{ versao: 'v4' }, { versao: 2 }, { versao: null }, { modelo: 'gpt-5' }, { modelo: 'gpt-4o-mini-tts' }, { modelo: 'anthropic/claude-opus-5.5' }, { modelo: '' }, { modelo: 7 }]) {
       const x = await chamar({ email: CASA }, extra); igual([x.status, x.leituras, x.body.erro], [400, 0, 'pedido_invalido'], 'fora da lista, sem chamada: ' + JSON.stringify(extra)) }
-    const fora = await chamar({ email: CLIENTE }, { modelo: 'gpt-4o' }); igual([fora.status, fora.leituras], [403, 0], 'cliente com modelo da lista: 403, sem chamada') }
+    const fora = await chamar({ email: CLIENTE }, { modelo: 'gpt-4o' }); igual([fora.status, fora.leituras], [403, 0], 'cliente com modelo da lista: 403, sem chamada')
+    // [revisão cruzada 25/11] a conta exata ANTES do corpo: fora da casa = 403 com qualquer corpo (e o corpo nem é lido); 400 só para a casa
+    for (const ruim of [null, {}, { elenco: [] }, 'x', { elenco: [{ nome: 'Mara' }], planos: [{ fala: 'oi' }], versao: 'v9' }]) {
+      for (const [quem, u] of [['cliente', { email: CLIENTE }], ['sem login', null], ['quase da casa', { email: 'xjosephsskaf@gmail.com' }], ['padrão largo da casa', { email: 'joseph+qa@gmail.com' }]]) {
+        const x = await chamar(u, {}, ruim); igual([x.status, x.body.erro, x.leituras, x.leuCorpo], [403, 'nao_e_da_casa', 0, 0], `${quem} com corpo inválido: 403, sem ler o corpo`) }
+      const c2 = await chamar({ email: CASA }, {}, ruim); igual([c2.status, c2.body.erro, c2.leituras, c2.leuCorpo], [400, 'pedido_invalido', 0, 1], 'a casa com corpo inválido: 400') }
+    igual(casa.body.custo_e_teto, false, 'com o uso informado: a conta exata, não o teto')
+    // a trava continua depois da conta: a MESMA instância recusa a leitura repetida (409) sem chamar de novo
+    { let leituras = 0; const ld = createOfflineLoader({ globals: { ...GLOBALS, fetch: async () => { leituras++; return respostaDe(RESP_V2) } }, env: { OPENAI_API_KEY: 'k' }, source: (file, src) => muda(file, src), mocks: {
+        'next/server': { NextResponse: { json: (body, init) => ({ status: init?.status ?? 200, body }) } },
+        '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user: { email: CASA } } }) } }) } } })
+      const rota = ld('@/' + sondaRoute), corpoX = { elenco: [{ nome: 'Mara Quinn' }], planos: [{ fala: 'Mara waves.' }] }
+      const r1 = await rota.POST({ json: async () => corpoX }), r2 = await rota.POST({ json: async () => corpoX })
+      igual([r1.status, r2.status, r2.body.erro, leituras], [200, 409, 'repetida', 1], 'a casa: a mesma leitura não repete') } }
   // ── A/B: as listas fechadas, a v2 byte a byte com a 6804eb793, o modelo de raciocínio, o custo por modelo ───────────────────────────────────────────
   igual(Object.keys(q.MODELOS_DA_SONDA), ['gpt-4o-mini', 'gpt-4.1-mini', 'gpt-4o', 'gpt-6.1-sol'], 'a lista fechada: os 4 modelos de texto de chat que o projeto já usa')
   { const reg = m('@/lib/aiModels'), vp = m('@/lib/regua95/visaoProvedor'), usados = new Set(Object.values(reg.AI_TEXT_MODELS))
@@ -471,7 +484,25 @@ async function suite(change) {
     const g4 = JSON.parse((await corpo(q, { versao: 'v3', modelo: 'gpt-4o' })).c)
     igual([g4.model, g4.temperature, g4.max_tokens, g4.response_format.json_schema.name], ['gpt-4o', 0, 600, 'assunto_por_plano'], 'gpt-4o com a v3')
     igual([(await corpo(q, { versao: 'v2', modelo: 'gpt-6.1-sol' })).r2.custoUsd, (await corpo(q, { versao: 'v2', modelo: 'gpt-4o' })).r2.custoUsd], [0.0048, 0.0055], 'o custo acompanha o modelo (1.400 de entrada, 200 de saída)')
-    igual([q.custoDaLeituraUsd('gpt-6.1-sol', null, 4000), q.custoDaLeituraUsd('gpt-4.1-mini', null, 4000), q.custoDaLeituraUsd('nada', null, 4000)], [0.042, 0.00088, 0], 'sem usage: estimado pela tarifa (raciocínio = o teto de saída)') }
+    // [revisão cruzada 25/11] o custo NUNCA abaixo do real: com o uso, a conta exata para cima; sem o uso, o teto demonstrado (entrada ≤ bytes + 8 por mensagem e 8 de abertura; saída = o máximo permitido)
+    const L0 = { bytesDeEntrada: 4000, mensagens: 2, saidaMaxima: 600 }
+    igual([q.custoDaLeitura('gpt-4o-mini', { prompt_tokens: 808, completion_tokens: 100 }, L0), q.custoDaLeitura('gpt-4.1-mini', { prompt_tokens: 801, completion_tokens: 100 }, L0)], [{ usd: 0.0001812, teto: false }, { usd: 0.0004804, teto: false }], 'os dois casos da revisão: o preço oficial, nunca abaixo')
+    { let semente = 7; const aleat = (n) => { semente = (semente * 1103515245 + 12345) % 2147483648; return semente % n }
+      for (const [id, tar] of Object.entries(q.MODELOS_DA_SONDA)) for (let i = 0; i < 300; i++) {
+        const e = aleat(20000), s = aleat(5000), exato = (e * tar.inPerM + s * tar.outPerM) / 1e6, c = q.custoDaLeitura(id, { prompt_tokens: e, completion_tokens: s }, L0)
+        assert.ok(c.usd + 1e-12 >= exato && c.usd - exato < 2e-9 && c.teto === false, `${id} ${e}/${s}: ${c.usd} >= ${exato}`) } }
+    const teto4o = q.custoDaLeitura('gpt-4o', null, L0)
+    igual(teto4o, { usd: Math.ceil(Math.round((((4000 + 8 * 3) * 2.5 + 600 * 10) / 1e6) * 1e12) / 1e3) / 1e9, teto: true }, 'gpt-4o v3 sem uso: entrada medida em bytes + a saída máxima (600)')
+    assert.ok(teto4o.usd >= 0.006, 'nunca abaixo do que só a saída permitida pode custar: ' + teto4o.usd)
+    igual([q.custoDaLeitura('gpt-4o-mini', { prompt_tokens: 900 }, L0).teto, q.custoDaLeitura('gpt-4o-mini', { completion_tokens: 50 }, L0).teto, q.custoDaLeitura('nada', null, L0)], [true, true, { usd: 0, teto: false }], 'faltou uma parte do uso: teto')
+    igual(q.custoDaLeitura('gpt-6.1-sol', { prompt_tokens: 1000 }, { ...L0, saidaMaxima: 4000 }).usd, 0.042, 'raciocínio sem a saída informada: o teto de 4.000 de saída')
+    { const lim = q.limitesDoPedido([{ content: 'abc' }, { content: 'ção' }, { content: 'مرحبا' }], 600); igual(lim, { bytesDeEntrada: 3 + 5 + 10, mensagens: 3, saidaMaxima: 600 }, 'bytes UTF-8, não letras (o português e o árabe pesam mais)') }
+    // a chamada: sem o uso na resposta, o teto e a marca; o prazo depois de enviada, o teto
+    { const semUso = await q.lerQuemAparece(ELd, PL, { apiKey: 'k', versao: 'v3', modelo: 'gpt-4o', fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({ choices: [{ message: { content: '{"shots": []}' } }] }) }) })
+      igual([semUso.custoEhTeto, semUso.custoUsd >= 0.006], [true, true], 'resposta sem o uso: o teto, marcado')
+      const caiu = await q.lerQuemAparece(ELd, PL, { apiKey: 'k', timeoutMs: 20, versao: 'v2', modelo: 'gpt-4o-mini', fetchImpl: (_u, o) => new Promise((_r, rej) => o.signal.addEventListener('abort', () => rej(new Error('abort')))) })
+      igual([caiu.erro, caiu.custoEhTeto, caiu.custoUsd >= (900 * 0.6) / 1e6], ['prazo', true, true], 'o prazo depois de enviado: o teto (o pedido pode ter sido cobrado)')
+      const ok1 = await q.lerQuemAparece(ELd, PL, { apiKey: 'k', versao: 'v2', fetchImpl: async () => respostaDe(resp) }); igual(ok1.custoEhTeto, false) } }
 }
 
 await suite(null)
@@ -488,12 +519,25 @@ const mutants = [
   [Q, 'Object.prototype.hasOwnProperty.call(MODELOS_DA_SONDA, m)', "m.startsWith('gpt')"],
   [Q, '[AI_TEXT_MODELS.filmJudge]: { ...TARIFAS_VISAO[AI_TEXT_MODELS.filmJudge], raciocinio: true,', '[AI_TEXT_MODELS.filmJudge]: { ...TARIFAS_VISAO[AI_TEXT_MODELS.filmJudge], raciocinio: false,'],
   [Q, "  [AI_TEXT_MODELS.research]: { ...TARIFAS_VISAO[AI_TEXT_MODELS.research], raciocinio: false, papel: 'pesquisa (Ads v2, Espaços, GEO)' },\n", ''],
-  [Q, '  if (modelo === STILL_CRITIC_MODELO) return custoDoCriticoUsd(usage, 0, caracteres)\n  const t = MODELOS_DA_SONDA[modelo]', '  const t = MODELOS_DA_SONDA[STILL_CRITIC_MODELO]'],
-  [Q, 't.raciocinio ? QUEM_APARECE_MAX_SAIDA_RACIOCINIO : 300', '300'],
+  [Q, '  const t = MODELOS_DA_SONDA[modelo]\n  if (!t) return { usd: 0, teto: false }', '  const t = MODELOS_DA_SONDA[STILL_CRITIC_MODELO]\n  if (!t) return { usd: 0, teto: false }'], // o custo ignora o modelo
+  // [revisão cruzada 25/11] o custo nunca abaixo do real
+  [Q, 'const paraCima = (usd: number) => Math.ceil(Math.round(usd * 1e12) / 1e3) / 1e9', 'const paraCima = (usd: number) => Math.round(usd * 1e6) / 1e6'], // o arredondamento de antes
+  [Q, 'const paraCima = (usd: number) => Math.ceil(Math.round(usd * 1e12) / 1e3) / 1e9', 'const paraCima = (usd: number) => Math.floor(usd * 1e6) / 1e6'],
+  [Q, '  const saida = temS ? s : Math.max(0, limites.saidaMaxima)', '  const saida = temS ? s : 300'], // sem o uso, a saída "típica" em vez da máxima
+  [Q, 'Math.max(0, limites.bytesDeEntrada) + QUEM_APARECE_TOKENS_POR_MENSAGEM * (Math.max(0, limites.mensagens) + 1)', 'Math.ceil(Math.max(0, limites.bytesDeEntrada) / 4)'], // a entrada pelas letras/4
+  [Q, 'teto: !(temE && temS) }', 'teto: false }'],
+  [Q, '&& temS) }', ') }'], // faltou a saída e não marca
+  [Q, "custoDaLeitura(modelo, null, limites).usd, ctrl.signal.aborted ? 'prazo' : 'fetch'", "0, ctrl.signal.aborted ? 'prazo' : 'fetch'"], // o prazo sai de graça
+  [Q, "enc.encode(String(m?.content ?? '')).length", "String(m?.content ?? '').length"], // letras em vez de bytes
+  [Q, 'recusa: !!escolha?.message?.refusal, custoEhTeto: c$.teto }', 'recusa: !!escolha?.message?.refusal }'],
+  [sondaRoute, 'custo_e_teto: r.custoEhTeto ?? false, ', ''],
+  // [revisão cruzada 25/11] a ordem da admissão
+  [sondaRoute, '  if (!user || !contaDaCasaExata(user.email)) return', '  if (!user) return'], // cliente com corpo inválido recebia 400
+  [sondaRoute, "  if (!user || !contaDaCasaExata(user.email)) return NextResponse.json({ erro: 'nao_e_da_casa' }, { status: 403 })\n  const corpo = await req.json().catch(() => null)\n", "  const corpo = await req.json().catch(() => null)\n  if (!user || !contaDaCasaExata(user.email)) return NextResponse.json({ erro: 'nao_e_da_casa' }, { status: 403 })\n"], // lê o corpo antes
   [Q, "versao === 'v2' ? pedidoDePresencaV2(elenco, planos) : pedidoDePresenca(elenco, planos)", 'pedidoDePresenca(elenco, planos)'],
   [Q, "response_format: versao === 'v2' ? FORMATO_DA_RESPOSTA_V2 : FORMATO_DA_RESPOSTA", 'response_format: FORMATO_DA_RESPOSTA'],
-  [Q, '? 900 : 600 }', '? 600 : 600 }'],
-  [Q, 'MODELOS_DA_SONDA[modelo]?.raciocinio ? { max_completion_tokens', 'false ? { max_completion_tokens'],
+  [Q, "versao === 'v2' ? 900 : 600", "versao === 'v2' ? 600 : 600"],
+  [Q, 'const raciocinio = MODELOS_DA_SONDA[modelo]?.raciocinio === true', 'const raciocinio = false && MODELOS_DA_SONDA[modelo]?.raciocinio === true'],
   [Q, ', p.versao, p.modelo]) // [A/B]', ']) // [A/B]'],
   [Q, 'const versao = b.versao === undefined ? QUEM_APARECE_VERSAO_DA_SONDA :', 'const versao = b.versao === undefined || true ? QUEM_APARECE_VERSAO_DA_SONDA :'],
   [Q, 'const modelo = b.modelo === undefined ? QUEM_APARECE_MODELO_PADRAO :', 'const modelo = b.modelo === undefined || true ? QUEM_APARECE_MODELO_PADRAO :'],
@@ -540,11 +584,11 @@ const mutants = [
   [Q, 'corta(p.descricao || p.canonica, ', 'corta(p.descricao, '], // a canônica da rota não vai
   [Q, 'bruta.toLowerCase().startsWith(`${nome.toLowerCase()}, `) ? bruta.slice(nome.length + 2) : bruta', 'bruta'], // o nome repetido
   [Q, ', DESCRICAO_MAX) // a canônica', ', 1000) // a canônica'], // a descrição sem teto
-  [Q, '? 900 : 600 }', '? 900 : 900 }'],
+  [Q, "versao === 'v2' ? 900 : 600", "versao === 'v2' ? 900 : 900"],
   // [volta 3, item 4] o diagnóstico da recusa
   [Q, "fim(null, custo, 'fora_do_esquema', { ...extra, bruta: conteudo.slice(0, BRUTA_MAX), motivoDoEsquema: motivo })", "fim(null, custo, 'fora_do_esquema', extra)"],
   [Q, 'bruta: conteudo.slice(0, BRUTA_MAX)', 'bruta: conteudo'],
-  [Q, ", recusa: !!escolha?.message?.refusal }", ', recusa: false }'],
+  [Q, ", recusa: !!escolha?.message?.refusal, custoEhTeto", ", recusa: false, custoEhTeto"],
   [Q, "fim: typeof escolha?.finish_reason === 'string' ? escolha.finish_reason.slice(0, 40) : null", 'fim: null'],
   [Q, "fim(decidirPresenca(l, elenco, planos), custo, null, extra)", "fim(decidirPresenca(l, elenco, planos), custo, null)"], // a leitura e os tokens somem
   [sondaRoute, 'por_pessoa: r.presenca ? presencaPorPessoa(r.presenca) : null, ', ''],
@@ -598,7 +642,7 @@ const mutants = [
   [routeFile, "motivo: !kling4Trial.job && kling4Trial.reason ? `reserva_${kling4Trial.reason}` : parsedScript.segments.length === 0 ? 'sem_marcadores' : 'secoes_menos_que_cenas'", "motivo: 'sem_marcadores'"],
   [routeFile, 'if (kling4Trial && !rastro1911 && kling4TrialCandidate && verbatim) response.plano_da_fala', 'if (kling4Trial && kling4TrialCandidate && verbatim) response.plano_da_fala'],
   [routeFile, 'return d !== null && d !== hojeQuemAparece2511[i].includes(x.nome)', 'return d !== null'], // o relato conta plano que não mudou
-  [sondaRoute, "  if (!user) return NextResponse.json({ erro: 'nao_e_da_casa' }, { status: 403 })\n", ''],
+  [sondaRoute, "  if (!user || !contaDaCasaExata(user.email)) return NextResponse.json({ erro: 'nao_e_da_casa' }, { status: 403 })\n", ''],
   [sondaRoute, '    liberarSondaDePresenca(estado, ms)\n', ''],
 ]
 const naoPedido = mutants.findIndex((m) => m[1] === " or flashback, \"not_mentioned\"")
