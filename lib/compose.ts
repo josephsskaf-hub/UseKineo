@@ -343,6 +343,9 @@ export interface ComposeInputs {
   seedanceShortFilm?: boolean
   /** Verified first-free-film trial only; never read from request body. */
   kling4TrialEngine?: Kling4TrialEngine | null
+  /** KINEO-FALA-DOS-PERSONAGENS-2511 — o clipe do grátis traz a FALA dos personagens no áudio do motor (o Gemini entregou o pedido falado): o clipe com o som,
+   *  sem a narração por cima, sem música, o filme com os 15 s do clipe. Só vale no grátis do Kling 4 com UM clipe; ausente/false = o de hoje, byte a byte. */
+  falaDoMotor?: boolean
   /** KINEO-K4-GRATIS-20S-1711 — segundos do clipe único do Kling 4 grátis, lidos do claim assinado (kling4TrialClipSecondsFromClaim); ausente = 15. */
   kling4TrialClipSeconds?: number | null
   /**
@@ -2420,6 +2423,7 @@ export function buildCreatomateSource({
   seedanceShortFilm,
   kling4TrialEngine,
   kling4TrialClipSeconds = null, // KINEO-K4-GRATIS-20S-1711
+  falaDoMotor = false, // KINEO-FALA-DOS-PERSONAGENS-2511
   whisperTimings,
   whisperWords,
   musicUrl,
@@ -2460,6 +2464,9 @@ export function buildCreatomateSource({
   if (seedanceShortFilm === true && quality === 'cinematic_ai' && duration === 15 && !hasAvatar) totalDuration = Math.max(14, totalDuration)
   const kling4TrialFilm = !!kling4TrialEngine && quality === 'cinematic_ai' && duration === 15 && frame.aspect === '9:16' && !hasAvatar
   if (kling4TrialFilm) totalDuration = Math.max(15, totalDuration)
+  // KINEO-FALA-DOS-PERSONAGENS-2511 — o filme falado dura o clipe (15 s): a fala é do motor, nenhuma narração a esperar; nada de sobra repetindo o fim com som
+  const falaDoMotorAtiva = falaDoMotor === true && kling4TrialFilm && kling4TrialEngine === 'kling4' && clipUrls.filter((u) => typeof u === 'string' && u.trim().length > 0).length === 1
+  if (falaDoMotorAtiva) totalDuration = 15
   const cleanClips = clipUrls.filter((u) => typeof u === 'string' && u.trim().length > 0)
   // Avatar tail fix (13/06) — in avatar mode the narration IS the master
   // clock: the lip-synced face and the mp3 are the same length, so the
@@ -2780,7 +2787,7 @@ export function buildCreatomateSource({
     // fica no FIM: os últimos segundos da última cena (o piso de cena é 3 s) com um empurrão lento, nunca a abertura.
     const K4_SEGUNDOS = typeof kling4TrialClipSeconds === 'number' && Number.isInteger(kling4TrialClipSeconds) && kling4TrialClipSeconds > 15 && kling4TrialClipSeconds <= 30 ? kling4TrialClipSeconds : 15 // KINEO-K4-FIM-SEM-VOLTA-0111 · KINEO-K4-GRATIS-20S-1711 — o clipe pode nascer do tamanho da voz (16–20 s); sem o campo, 15 como sempre
     const K4_CAUDA = 3 // KINEO-K4-FIM-SEM-VOLTA-0111 — dentro da última cena (kling4TrialSceneDurations: piso de 3 s)
-    const k4Base = { type: 'video' as const, track: 2, source: cleanClips[0], fit: 'cover' as const, loop: false, x: '50%', y: '50%', width: '100%', height: '100%', volume: '0%' } // KINEO-K4-FIM-SEM-VOLTA-0111
+    const k4Base = { type: 'video' as const, track: 2, source: cleanClips[0], fit: 'cover' as const, loop: false, x: '50%', y: '50%', width: '100%', height: '100%', volume: falaDoMotorAtiva ? '100%' : '0%' } // KINEO-K4-FIM-SEM-VOLTA-0111 · KINEO-FALA-DOS-PERSONAGENS-2511: o som do motor
     const k4Inteiro = round3(Math.min(totalDuration, K4_SEGUNDOS)) // KINEO-K4-FIM-SEM-VOLTA-0111
     elements.push({ ...k4Base, time: 0, duration: k4Inteiro, trim_start: 0 }) // KINEO-K4-FIM-SEM-VOLTA-0111
     const k4SobraCurta = totalDuration - k4Inteiro < 1 // KINEO-K4-NARRACAO-CABE-0111 — sobra < 1 s: o empurrão de 6 % da base (o que já rodou em produção), nunca o de 12 %
@@ -3176,7 +3183,7 @@ export function buildCreatomateSource({
   const audioDuration = round3(
     masterDuration && masterDuration > minPlausibleAudio ? masterDuration : totalDuration
   )
-  elements.push({
+  if (!falaDoMotorAtiva) elements.push({ // KINEO-FALA-DOS-PERSONAGENS-2511 — o filme falado não leva a narração por cima da fala do motor
     type: 'audio',
     track: 4,
     time: 0,
@@ -3330,7 +3337,7 @@ export function buildCreatomateSource({
   // Phonk / motivational track from Pixabay at low volume, looping under
   // the voiceover. Starts at t=0, runs the full video duration. The loop
   // flag re-cycles the track if the video is longer than the audio file.
-  if (musicUrl) {
+  if (musicUrl && !falaDoMotorAtiva) { // KINEO-FALA-DOS-PERSONAGENS-2511 — 1ª entrega: sem música sob a fala do motor (o som ambiente do próprio clipe fica)
     // Kineo-Audio-2026 — brief fade-in + a short fade-out. Fades are clamped to
     // half the timeline so ultra-short videos never fade the whole track.
     // Single looping element (Creatomate can't sidechain-duck).

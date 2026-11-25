@@ -109,7 +109,18 @@ export async function recordKling4TrialFilm(admin: SupabaseClient, i: Identity &
 //   · a queda (reserva_de 'gemini_omni_flash'): engine_used = o motor do marcador ("Kling 4.0" ou a reserva de hoje), o custo dele como sempre, e ao lado os
 //     dois motores e o estimado do Gemini (gemini_cobrado 'nao' só na recusa do envio, quando nada foi aceito).
 // Filme que não passou pelo Gemini: nada é lido nem escrito (byte a byte). Nunca lança; falha = o evento de antes.
+/** KINEO-FALA-DOS-PERSONAGENS-2511 — o selo diz também a VOZ real do filme (falado só quando o Gemini entregou o pedido falado; queda = narrado, motivo gemini_caiu).
+ *  Sem o marcador da fala = o selo de antes, byte a byte. */
 export function seloDoFilmeGratis2511(marker: unknown, atual: Record<string, unknown>): Record<string, unknown> | null {
+  const base = seloBaseDoFilmeGratis2511(marker, atual)
+  const m = marker && typeof marker === 'object' ? (marker as Record<string, unknown>) : null
+  const f = m?.fala_2511 as { modo?: unknown; motivo?: unknown } | undefined
+  if (!base || !f || typeof f !== 'object') return base
+  const caiu = m!.motor_do_clipe !== 'gemini_omni_flash' || !!m!.gemini_queda || m!.engine_used !== 'kling4'
+  const falado = f.modo === 'falado' && !caiu
+  return { ...base, voz: falado ? 'falado' : 'narrado', voz_motivo: falado ? null : f.modo === 'falado' ? 'gemini_caiu' : (typeof f.motivo === 'string' ? f.motivo : null) }
+}
+function seloBaseDoFilmeGratis2511(marker: unknown, atual: Record<string, unknown>): Record<string, unknown> | null {
   const m = marker && typeof marker === 'object' ? (marker as Record<string, unknown>) : null
   if (!m) return null
   const noGemini = m.motor_do_clipe === 'gemini_omni_flash', queda = m.reserva_de === 'gemini_omni_flash'

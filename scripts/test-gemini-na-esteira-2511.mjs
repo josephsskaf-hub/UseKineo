@@ -392,7 +392,7 @@ const MUTANTES = [
   [ROUTE, "motor2511 === 'kling4' || motor2511 === 'reserva'", "motor2511 === 'kling4'"], // [tomada] 'reserva' esquecida
   [ROUTE, "      if (motor2511 !== 'gemini' && !geminiNaEsteiraLigado(", '      if (!geminiNaEsteiraLigado('], // [tomada] 'gemini' não liga com o código desligado
   [ROUTE, '      if (wire.model !== KLING4_REFERENCE_MODEL) return null\n', ''],
-  [ROUTE, '        gemini2511.entrada = entrada; gemini2511.kling4 = { model: wire.model, input: wire.input }', '        gemini2511.entrada = entrada'],
+  [ROUTE, '        gemini2511.entrada = entrada2511; gemini2511.kling4 = { model: wire.model, input: wire.input }', '        gemini2511.entrada = entrada2511'], // KINEO-FALA-DOS-PERSONAGENS-2511: a âncora nova (entrada2511 = o pedido de hoje sem o modo falado)
   [ROUTE, "const entrada = geminiDoKling4(wire.input, [nome2511(ru?.nomes?.[0]), nome2511(ru?.segundo?.nomes?.[0])])", "const entrada = geminiDoKling4(wire.input, [nome2511(ru?.nomes?.[1]), nome2511(ru?.segundo?.nomes?.[0])])"],
   [ROUTE, "const entrada = geminiDoKling4(wire.input, [nome2511(ru?.nomes?.[0]), nome2511(ru?.segundo?.nomes?.[0])])", "const entrada = geminiDoKling4(wire.input, [ru?.nomes?.[0], ru?.segundo?.nomes?.[0]])"], // [para todos] o nome cru no cabeçalho
   [ROUTE, "nome2511(ru?.segundo?.nomes?.[0])])", "ru?.segundo?.nomes?.[0]])"], // [para todos] o 2º nome cru

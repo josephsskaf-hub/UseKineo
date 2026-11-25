@@ -102,6 +102,8 @@ import { isSeedanceShortClaim, SEEDANCE_SHORT_CLIP_STEPS } from '@/lib/durationB
 import { kling4TrialEngineFromClaim, kling4TrialClipSecondsFromClaim } from '@/lib/kling4TrialClaim' // KINEO-K4-GRATIS-20S-1711: + kling4TrialClipSecondsFromClaim
 import { recordKling4TrialFilm } from '@/lib/kling4TrialBudget'
 import { gravarSeloDoFilmeGratis2511 } from '@/lib/kling4TrialBudget' // KINEO-GEMINI-NA-ESTEIRA-2511 [revisora 25/11, conserto 1]
+import { montagemFalada2511, conferirFala2511, type LinhaDeFala2511 } from '@/lib/cinematic/falaDosPersonagens2511' // KINEO-FALA-DOS-PERSONAGENS-2511
+import { gravarConferenciaDaFala2511 } from '@/lib/cinematic/claim' // KINEO-FALA-DOS-PERSONAGENS-2511
 import { vozAssinadaDoClaim } from '@/lib/vozDoFilmeCurto' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29
 import { collectSceneNarrations, verifyObservedSpeech } from '@/lib/cinematic/speechContract'
 // KINEO-COMPOSE-REJECT-NOREFUND-2026-08-10 — ver o cabeçalho do arquivo: numa
@@ -3543,6 +3545,20 @@ export async function POST(req: NextRequest) {
       isTrialRender ||
       isFreePlanCinematic ||
       FORCE_WATERMARK_EMAILS.has((user.email ?? '').toLowerCase())
+    // KINEO-FALA-DOS-PERSONAGENS-2511 [CEO 25/11 18:00] o filme FALADO (o claim pediu e o Gemini entregou o pedido falado, sem queda): a legenda vem do Whisper do
+    // ÁUDIO DO CLIPE (a fala do motor), e o mesmo Whisper confere as palavras ditas × as escritas e GRAVA no claim (1ª entrega: não bloqueia). Sem a fala no
+    // claim, ou com a queda para o Kling 4 = nada disto roda (o filme narrado de hoje).
+    const marcadorDaFala2511 = (cinematicBirthClaim?.response?.kling4_trial ?? null) as Record<string, unknown> | null
+    const falaMontada2511 = typeof montagemFalada2511 === 'function' && montagemFalada2511(marcadorDaFala2511, cinematicBirthClaim?.falModels?.[0]) && composeClipUrls.filter((u) => typeof u === 'string' && u.trim()).length === 1
+    let palavrasDoMotor2511: WhisperWord[] | null = null
+    const falasDoMotor2511 = falaMontada2511 ? ((marcadorDaFala2511?.fala_2511 as { falas?: LinhaDeFala2511[][] } | undefined)?.falas ?? []) : []
+    if (falaMontada2511) {
+      const lido = await transcribeClipWithTimestampsAndDuration(composeClipUrls.find((u) => typeof u === 'string' && u.trim())!).catch(() => ({ words: [] as WhisperWord[], durationSeconds: null as number | null }))
+      palavrasDoMotor2511 = lido.words.length ? lido.words : null
+      const conferencia = { ...conferirFala2511(lido.words.map((w) => w.word), falasDoMotor2511), transcrita: lido.words.length > 0, em: new Date().toISOString() }
+      try { await gravarConferenciaDaFala2511({ db: composeAdmin, secret: serviceRoleKey, userId: authenticatedUserId, generationId, conferencia }) } catch { /* gravar nunca derruba o filme */ }
+      void writeServerEvent({ name: 'fala_dos_personagens_2511_conferida', userId: authenticatedUserId, path: '/api/compose', sessionId: generationId, metadata: { generation_id: generationId, ...conferencia } }).catch(() => false)
+    }
     let source: Record<string, unknown>
     let composeInputs: ComposeInputs
     try {
@@ -3553,7 +3569,7 @@ export async function POST(req: NextRequest) {
         // KINEO-KLING25-PLANOS-5S-2026-09-28 (revisão adversarial) — cada plano entra quando a SUA fala começa
         clipSpeech: composeClipUrls === clipUrls && signedClipPlan?.wordStarts ? { narrationWords: signedClipPlan.narrationWords, wordStarts: signedClipPlan.wordStarts } : null,
         voiceoverUrl,
-        voiceoverScript: scaledScript,
+        voiceoverScript: falaMontada2511 ? falasDoMotor2511.flat().map((l) => l.texto).join(' ') : scaledScript, // KINEO-FALA-DOS-PERSONAGENS-2511 — a legenda reserva é a fala escrita
         sceneCaptions,
         duration: duracaoDoFilmeAssinada({ pedida: duration, quality, claimResponse: cinematicBirthClaim?.response }), // KINEO-PARCEIRO-EYEBIBLE-1410 — verbatim clássico que o servidor desceu (35 s assinados) não estica para 61,5 s
         aspect: aspectRequested, // KINEO-MULTIFORMATO-2026-09-02
@@ -3562,7 +3578,8 @@ export async function POST(req: NextRequest) {
         seedanceShortFilm: quality === 'cinematic_ai' && isSeedanceShortClaim(cinematicBirthClaim?.response),
         kling4TrialEngine: kling4TrialEngineFromClaim(cinematicBirthClaim?.response),
         kling4TrialClipSeconds: kling4TrialClipSecondsFromClaim(cinematicBirthClaim?.response), // KINEO-K4-GRATIS-20S-1711 — 15 quando o claim não traz o campo (todo filme de hoje)
-        whisperWords: legendaWords, // KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28 — tempo do Whisper, grafia do roteiro
+        whisperWords: falaMontada2511 ? palavrasDoMotor2511 ?? undefined : legendaWords, // KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28 — tempo do Whisper, grafia do roteiro · KINEO-FALA-DOS-PERSONAGENS-2511: o Whisper do som do motor
+        falaDoMotor: falaMontada2511, // KINEO-FALA-DOS-PERSONAGENS-2511
         musicUrl,
         avatarUrl: avatarMode ? avatarUrlBody : null,
         // Hook Avatar (12/06) — validated: only meaningful in avatar mode and
@@ -3619,8 +3636,9 @@ export async function POST(req: NextRequest) {
     const faceless15Relato = aplicarFaceless15(source, faceless15, { idiomaDeSentido, whisperWords: legendaWords ?? null, clipSeconds: composeClipUrls === clipUrls ? signedClipPlan?.seconds ?? null : null, font: captionFontFor(language) }) // KINEO-FILMES-F1-F4-1910 — F1/F3/F4 em cima do source montado (lib/compose intocada), SÍNCRONO, antes de qualquer espera assíncrona (quadro/fonte da mesma montagem); fase desligada = source intacto, byte a byte
     // FREE15-CAPTION-TEXT-2610: rebuild only caption text with measured audio duration.
     // Preserve the original assembled film, including ASR-guided cuts, music and voice.
+    // KINEO-FALA-DOS-PERSONAGENS-2511 — no filme falado a legenda é a da fala do motor: as duas reconstruções pela narração (TTS) abaixo não rodam
     const captionSelection = selectOwnTtsCaptionSource({
-      source, compose: composeInputs, evidence: captionEvidence, build: buildCreatomateSource,
+      source, compose: composeInputs, evidence: falaMontada2511 ? { ...captionEvidence, status: 'not_applicable' } : captionEvidence, build: buildCreatomateSource,
       decorate: canonical => {
         const relato = aplicarFaceless15(canonical, faceless15, { idiomaDeSentido, whisperWords: null, clipSeconds: composeInputs.clipSeconds, font: captionFontFor(language) })
         if (relato.f1) faceless15Relato.f1 = relato.f1
@@ -3630,7 +3648,7 @@ export async function POST(req: NextRequest) {
     // KINEO-FILME15-PERFEITO-2610: production caption audit found blind 4-word
     // proportional fallbacks ending on connectors. Group canonical text before
     // the FIRST assembly too; only replace captions, never the approved voice/cuts.
-    if (quality === 'cinematic_ai' && (isSeedanceShortClaim(cinematicBirthClaim?.response) || kling4TrialEngineFromClaim(cinematicBirthClaim?.response) !== null) &&
+    if (!falaMontada2511 && quality === 'cinematic_ai' && (isSeedanceShortClaim(cinematicBirthClaim?.response) || kling4TrialEngineFromClaim(cinematicBirthClaim?.response) !== null) &&
       (!legendaWords?.length || captionSelection.alignment?.source === 'canonical_tts_script')) {
       const { buildFree15CanonicalCaptions } = await import('@/lib/free15CanonicalCaptions')
       const { repairGateCaptions } = await import('@/lib/free15Gate')
@@ -3804,12 +3822,14 @@ export async function POST(req: NextRequest) {
     if (quality === 'cinematic_ai' && (isSeedanceShortClaim(cinematicBirthClaim?.response) || kling4TrialEngineFromClaim(cinematicBirthClaim?.response) !== null) && cinematicBirthClaim?.response?.free15_gate_version === FREE15_GATE_VERSION) {
       const { storeFree15Gate } = await import('@/lib/free15GateServer')
       const { buildFree15CanonicalCaptions, FREE15_CANONICAL_CAPTION_TIMING } = await import('@/lib/free15CanonicalCaptions')
-      const captionElements = buildFree15CanonicalCaptions({ script: scaledScript, audioSeconds: realAudioDuration, source, idiomaDeSentido })
+      // KINEO-FALA-DOS-PERSONAGENS-2511 — no filme falado o portão conhece a FALA escrita (e os 15 s do clipe), nunca a narração que não toca
+      const textoDoPortao2511 = falaMontada2511 ? falasDoMotor2511.flat().map((l) => l.texto).join(' ') : scaledScript
+      const captionElements = buildFree15CanonicalCaptions({ script: textoDoPortao2511, audioSeconds: falaMontada2511 ? 15 : realAudioDuration, source, idiomaDeSentido })
       const stored = await storeFree15Gate({ db: composeAdmin, secret: serviceRoleKey, userId: authenticatedUserId, renderId, state: {
         version: FREE15_GATE_VERSION, status: 'ready', source, captionElements, captionTiming: FREE15_CANONICAL_CAPTION_TIMING,
         ...(kling4TrialEngineFromClaim(cinematicBirthClaim?.response) !== null ? { minimumSeconds: 15 as const } : {}),
         captionEvidence, attempted: false, reason: 'awaiting_final_assembly', updatedAt: Date.now(),
-        context: { asked: String(cinematicBirthClaim?.response?.prompt ?? body.topic ?? ''), narration: scaledScript, language },
+        context: { asked: String(cinematicBirthClaim?.response?.prompt ?? body.topic ?? ''), narration: textoDoPortao2511, language },
       } })
       free15ContextStored = stored
     }

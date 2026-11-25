@@ -999,6 +999,19 @@ export async function gravarImagensDaReserva(args: {
   const candidate = withSignature(args.secret, { ...current, response: nextResponse, responseHash: cinematicValueHash(nextResponse) })
   return updateClaim({ db: args.db, secret: args.secret, previous: current, next: candidate })
 }
+// ═══ KINEO-FALA-DOS-PERSONAGENS-2511 — a conferência da fala (as palavras ditas × as escritas) gravada no marcador da fala, sem bloquear nada ═══
+export async function gravarConferenciaDaFala2511(args: { db: SupabaseClient; secret: string; userId: string; generationId: string; conferencia: Record<string, unknown> }): Promise<CinematicClaimMutation> {
+  const loaded = await loadVerifiedCinematicClaim(args)
+  if (!loaded.ok || !loaded.claim) return { ok: false, error: loaded.ok ? 'claim not found' : loaded.error }
+  const current = loaded.claim
+  const marker = current.response?.kling4_trial as Record<string, unknown> | undefined
+  const fala = marker?.fala_2511 as Record<string, unknown> | undefined
+  if (!marker || !fala || typeof fala !== 'object' || fala.modo !== 'falado') return { ok: false, error: 'not a spoken film', conflict: true }
+  if (fala.conferencia) return { ok: true, claim: current } // a 1ª conferência fica (o compose pode rodar de novo)
+  const nextResponse = { ...current.response, kling4_trial: { ...marker, fala_2511: { ...fala, conferencia: args.conferencia } } }
+  const candidate = withSignature(args.secret, { ...current, response: nextResponse, responseHash: cinematicValueHash(nextResponse) })
+  return updateClaim({ db: args.db, secret: args.secret, previous: current, next: candidate })
+}
 // ═══ KINEO-GEMINI-NA-ESTEIRA-2511 — a queda do Gemini para o Kling 4 reference, em duas trocas atômicas do claim assinado ═══
 // (1) iniciar: UM servidor ganha a vez (token) e grava o motivo e o erro da fal; (2) trocar: depois do recibo do Kling 4, o claim passa a apontar para ele
 // (id, modelo, a entrada EXATA guardada no nascimento, o relógio do Kling 4 de novo), e daí vale a lógica de hoje. Sem recibo (recusado, incerto ou o
