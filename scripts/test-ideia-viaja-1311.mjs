@@ -44,7 +44,7 @@ function problemas(mut = {}) {
   const rota = mut[ROTA] ? mut[ROTA](ler(ROTA)) : ler(ROTA)
   const iRec = rota.indexOf('await recuperarIdeiaDoEscritor(user.id, body.prompt)')
   const iEv = rota.indexOf('void writeServerEvent({ name: FILM_IDEA_STATUS_EVENT')
-  const iEst = rota.indexOf('const pedidoEstacionado = pedidoEstacionavel(body)')
+  const iEst = rota.indexOf('const pedidoEstacionado = pedidoEstacionavel(')
   if (iEv < 0) p.push('(2) a rota não grava film_idea_status')
   else if (!(iRec >= 0 && iRec < iEv && iEv < iEst)) p.push('(2) film_idea_status fora do lugar (depois da recuperação, antes da cópia estacionada)')
   if ((rota.match(/name: FILM_IDEA_STATUS_EVENT/g) ?? []).length > 1) p.push('(2) film_idea_status gravado mais de uma vez')

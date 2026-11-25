@@ -112,6 +112,22 @@ assert.throws(() => assert.match(alcatrazPrompts('photoreal', {}, { chooseVisual
 assert.equal(style.visualTextForFilmLook('Flat 2D cartoon guard, close shot, candlelight', 'photoreal'), 'guard, close shot, candlelight')
 assert.equal(style.visualTextForFilmLook('Anime guardian with a live-action background', 'anime'), 'Anime guardian with a background')
 assert.equal(style.visualTextForFilmLook('Without cartoon. Wide shot.', 'photoreal'), 'Without cartoon. Wide shot.')
+for (const object of [
+  'A black and white dog runs across the grass.',
+  'A black-and-white scarf hangs from a chair.',
+  'A woman holds a watercolor painting of a lighthouse.',
+  'A guard watches a cartoon on the television in the prison.',
+  'A guard reads an illustrated map before opening the prison gate.',
+]) for (const look of ['photoreal', 'animated3d', 'anime']) {
+  assert.equal(style.visualTextForFilmLook(object, look), object, 'preserve the object or attribute visible in the shot')
+}
+assert.equal(style.visualTextForFilmLook('Cartoon guard at prison gate, close shot', 'photoreal'), 'guard at prison gate, close shot')
+assert.equal(style.visualTextForFilmLook('A photoreal guard opens the prison gate.', 'anime'), 'A guard opens the prison gate.')
+assert.equal(style.visualTextForFilmLook('A live-action detective enters the station.', 'animated3d'), 'A detective enters the station.')
+assert.equal(style.visualTextForFilmLook('A watercolor storybook fox finds a lantern.', 'photoreal'), 'A fox finds a lantern.')
+assert.equal(style.visualTextForFilmLook('Shot in black and white, a black and white dog runs across the grass.', 'anime'), 'a black and white dog runs across the grass.')
+assert.equal(style.visualTextForFilmLook('A guard watches a cartoon on the television in the prison. Render the whole scene in anime style.', 'photoreal'), 'A guard watches a cartoon on the television in the prison.')
+assert.equal(style.visualTextForFilmLook('Film noir cinematography, close shot of a watercolor painting.', 'photoreal'), 'close shot of a watercolor painting.')
 assert.match(resolve('cartoon guard', 'photoreal', true, false, 'cartoon style, candlelight').suffix, /candlelight$/)
 assert.doesNotMatch(resolve('cartoon guard', 'photoreal', true, false, 'cartoon style, candlelight').suffix, /cartoon/i)
 

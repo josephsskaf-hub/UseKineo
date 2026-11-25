@@ -132,9 +132,18 @@ export function forcePhotorealAnchor(anchor: StyleAnchor, explicitStyleSuffix?: 
 const CUE_LOOKS: Array<[RegExp, StyleLook]> = [
   [/\b(?:flat\s+)?2[- ]?d\s+(?:cartoons?|animation|animated)\b/i, 'animated3d'],
   ...LOOK_RE,
+  [/\bblack-and-white\b/i, 'noir'],
   [/\b(?:photo[- ]?real(?:ism|istic)?|live[- ]action)\b/i, 'photoreal'],
 ]
 const CUE_LOOK_RE = new RegExp('(?:' + CUE_LOOKS.map(([pattern]) => '(?:' + pattern.source + ')').join('|') + ')(?:[- ]style\\b)?', 'giu')
+
+// The look classifier reads broad keywords. A cue can also name the media actually visible inside a shot.
+const FRAME_BEFORE = /\b(?:(?:render(?:ed)?|film(?:ed)?|shot|drawn|depicted|presented)\s+(?:(?:the\s+)?(?:(?:whole|entire)\s+)?(?:scene|film|video|shot|frame|it|this)\s+)?(?:in|as|with)\s+|(?:in|with)\s+(?:the\s+)?(?:style|look|aesthetic)\s+of\s+|(?:(?:film|visual)\s+)?(?:style|look|aesthetic)\s*[:=]\s*)(?:(?:a|an|the)\s+)?$/iu
+const FRAME_AFTER = /^\s+(?:(?:film|visual)\s+)?(?:style|look|aesthetic|cinematography|rendering)\b/iu
+const ARTIFACT_AFTER = /^\s+(?:artwork|paintings?|drawings?|illustrations?|posters?|prints?|murals?|portraits?|books?|magazines?|comics?|pages?|maps?|brochures?|menus?|labels?|logos?|stickers?|figurines?|screens?|signs?|photographs?|photos?|screenshots?)\b/iu
+const MEDIA_ACTION = /^\s*(?:[,.!?;:]|$|(?:on|in|at|inside|behind|of|with|from|about|to|and|playing|plays|flickers|while|when|during|before|after|near|by|beside|under|above|past|em|no|na|nos|nas|naquela|sobre|en|del|al)\b)/iu
+const DETERMINER_BEFORE = /\b(?:a|an|the|this|that|his|her|its|their|some|um|uma|o|os|as|un|una|el|la)\s+$/iu
+const COLOR_ATTRIBUTE = /^black[- ]and[- ]white$/iu
 
 /** Keep subjects, actions and framing while removing affirmative cues for a different medium. */
 export function visualTextForFilmLook(text: string, look: StyleLook): string {
@@ -144,12 +153,23 @@ export function visualTextForFilmLook(text: string, look: StyleLook): string {
   for (const { 0: phrase, index } of text.matchAll(CUE_LOOK_RE)) {
     const medium = CUE_LOOKS.find(([pattern]) => pattern.test(phrase))?.[1]
     if (medium === look || negated.some(window => index >= window.index && index < window.index + window[0].length)) continue
-    result += text.slice(cursor, index)
-    cursor = index + phrase.length
+    const before = text.slice(cursor, index)
+    const after = text.slice(index + phrase.length)
+    const prefix = before.match(FRAME_BEFORE)?.[0]
+    const suffix = after.match(FRAME_AFTER)?.[0]
+    const styleWord = /[- ]style$/iu.test(phrase)
+    if (!(prefix || suffix || styleWord)) {
+      const depictsMedia = ARTIFACT_AFTER.test(after) || (DETERMINER_BEFORE.test(before) && MEDIA_ACTION.test(after))
+      const describesColor = COLOR_ATTRIBUTE.test(phrase) && /^\s+[\p{L}\p{N}]/u.test(after)
+      if (depictsMedia || describesColor) continue
+    }
+    const preposition = styleWord || suffix ? before.match(/\b(?:in|with)\s+(?:(?:a|an|the)\s+)?$/iu)?.[0] : undefined
+    result += before.slice(0, before.length - (prefix ?? preposition ?? '').length)
+    cursor = index + phrase.length + (suffix?.length ?? 0)
   }
   if (!cursor) return text
-  return (result + text.slice(cursor)).replace(/[ \t]{2,}/g, ' ').replace(/[ \t]+([,.;:])/g, '$1')
-    .replace(/,\s*(?=,)/g, '').replace(/^[\s,;:.]+|[\s,;:]+$/g, '')
+  return (result + text.slice(cursor)).replace(/[ \t]{2,}/g, ' ').replace(/([,.;:])\s+(?=[,.;:])/g, '')
+    .replace(/[ \t]+([,.;:])/g, '$1').replace(/,{2,}/g, ',').replace(/^[\s,;:.]+|[\s,;:]+$/g, '')
 }
 
 /** Decide UMA vez por filme, a partir do roteiro inteiro (nunca por cena). */

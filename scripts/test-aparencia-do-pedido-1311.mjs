@@ -82,7 +82,7 @@ function problemas(mut = {}) {
 
   // (5) a fiação
   const rota = mut[ROTA] ? mut[ROTA](ler(ROTA)) : ler(ROTA)
-  const iRec = rota.indexOf('await recuperarIdeiaDoEscritor(user.id, body.prompt)'), iEst = rota.indexOf('const pedidoEstacionado = pedidoEstacionavel(body)')
+  const iRec = rota.indexOf('await recuperarIdeiaDoEscritor(user.id, body.prompt)'), iEst = rota.indexOf('const pedidoEstacionado = pedidoEstacionavel(')
   if (iRec < 0 || iEst < 0 || iRec > iEst) p.push('(5) a rota não recupera a ideia antes da cópia estacionada')
   if (!/if \(ideiaDoEscritor\) \{ body\.original_idea = ideiaDoEscritor;/.test(rota)) p.push('(5) a ideia recuperada não vira body.original_idea')
   if ((rota.match(/elencoComFichaDoPedido\(body\.original_idea, [A-Za-z.]+, \{ aparencia1311 \}\)/g) ?? []).length !== 2) p.push('(5) as duas leituras da ficha não passam o interruptor')
