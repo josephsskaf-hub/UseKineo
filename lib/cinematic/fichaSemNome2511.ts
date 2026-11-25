@@ -7,10 +7,11 @@
 import { contaDaCasaExata } from '@/lib/internalAccounts'
 
 export type ModoFichaSemNome2511 = 'off' | 'internal' | 'public'
-// [CEO 25/11, volta 3] a sonda provou a causa (2 de 2 sementes: com "Bolt" sai bicho, com "a robot" o robô do autor): 'internal' de novo, com os 3
-// defeitos do §4 da revisora fechados (o sujeito, as aspas intocadas, gênero e idade). A sonda lê `sem_nome` do corpo e não depende disto.
-export const FICHA_SEM_NOME_2511: ModoFichaSemNome2511 = 'internal'
-export const FICHA_SEM_NOME_2511_VERSAO = 'ficha_sem_nome_2511_v2'
+// [CEO 25/11, volta 4] 'off' neste commit: o texto novo ("this character" / "this male character" / "this female character") ainda não foi provado
+// na sonda (o provado foi "a robot"). A CEO roda 4 fichas (Bolt nas 2 sementes, Mara, Elias) e só depois pede o commit que liga 'internal'. A sonda lê
+// `sem_nome` do corpo e não depende disto.
+export const FICHA_SEM_NOME_2511: ModoFichaSemNome2511 = 'off'
+export const FICHA_SEM_NOME_2511_VERSAO = 'ficha_sem_nome_2511_v3'
 export function fichaSemNomeLigada(modo: ModoFichaSemNome2511, email: string | null | undefined): boolean {
   return modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))
 }

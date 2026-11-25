@@ -412,56 +412,28 @@ export async function elencoComCasting(script: string, elenco: ReadonlyArray<Fic
 
 // ═══ 3. A FOLHA (o prompt da imagem de referência) ═══════════════════════════════════════════════════════════════
 /** O prompt da folha: corpo inteiro, de frente, pose neutra, fundo liso, no look do filme. Uma folha por personagem. */
-// KINEO-FICHA-SEM-NOME-2511 [CEO 25/11, Bolt addef2b6 e ab9a1d7a: duas folhas com o nome "Bolt", duas com cabeça de cachorro; Ember, Juno, Elias Ward e
-// Mara Quinn saíram fiéis] — a classe da regra de 14/11 (nome de personagem de marca não vai ao motor). PROVADO pela sonda (25/11 04:02, 2 de 2 sementes):
-// com "Bolt" o FLUX desenha bicho, com "a robot" o robô do autor. A folha é pedida SEM o nome próprio: cada ocorrência do nome FORA das aspas (inteiro, e
-// cada parte com maiúscula de 3+ letras) vira o SUJEITO que a ficha descreve ("a robot", depois "the robot"). Só a folha muda: as cenas, o crítico e o Kling
-// seguem com o nome (é ele que diz quem está em cada plano). Sem o pedido (semNome falso) = byte a byte o de antes.
-// Volta 3 [revisora 25/11, docs/revisoes-2311/CEO-FICHA-SEM-NOME-2511.md §4]: (a) o ser é o NÚCLEO do sujeito (a frase depois do nome, ou o texto do autor
-// entre aspas, até a 1ª preposição/relativo/verbo: "a pirate with a parrot" = pirata, "a girl hugging a teddy bear" = menina, "a dog who dreams of being a
-// dragon" = cachorro); fora da lista do tipo, o tipo ("an animal", "a creature"); (b) o texto entre aspas do autor NUNCA é tocado ("Rose-gold" fica), e o
-// hífen é parte da palavra; (c) gente guarda o gênero e a idade que a ficha tem: a palavra de idade/gênero do sujeito ("a little girl"), senão o gênero do
-// elenco com o adjetivo de idade escrito ("a young woman"), senão a profissão escrita, senão "a person".
+// KINEO-FICHA-SEM-NOME-2511 [CEO 25/11, Bolt addef2b6 e ab9a1d7a: duas folhas com o nome "Bolt", duas com cabeça de cachorro] — a classe da regra de 14/11
+// (nome de personagem de marca não vai ao motor). PROVADO pela sonda (25/11 04:02, 2 de 2 sementes): com "Bolt" o FLUX desenha bicho, sem ele o robô do autor.
+// Volta 4 [CEO 25/11 05:02, docs/semana-2/DECISAO-FICHA-SEM-NOME-2511.md: o código NÃO adivinha o ser — a regra do sujeito errou uma frase por volta]:
+// cada ocorrência do nome próprio FORA das aspas do autor (inteiro, e cada parte com maiúscula de 3+ letras, com fronteira de palavra e o hífen como parte
+// da palavra) vira "this character" ("Bolt's" → "this character's"); gente com gênero conhecido no elenco, "this male character" / "this female character"
+// — sem idade, sem profissão. Quem diz o que o personagem É continua sendo a descrição do autor, que segue inteira. O texto entre aspas (retas e curvas)
+// nunca é tocado; papel sem nome próprio ("the boy", "The Captain") fica. Só a folha muda: as cenas, o crítico, a fala e o Kling seguem com o nome.
+// Sem o pedido (semNome falso) = byte a byte o de antes.
 export const PESSOAS_DA_FOLHA = PESSOAS // KINEO-FICHA-SEM-NOME-2511 — a lista de gente, lida pelo conferente da folha (o ser "person")
-const PARA_O_SUJEITO = new Set(['with', 'in', 'on', 'of', 'from', 'for', 'at', 'by', 'under', 'over', 'near', 'inside', 'behind', 'beside', 'into', 'onto', 'who', 'that',
-  'which', 'whose', 'while', 'and', 'or', 'but', 'is', 'are', 'was', 'has', 'have', 'holding', 'hugging', 'walking', 'riding', 'wearing', 'carrying', 'playing', 'sitting',
-  'standing', 'dreaming', 'dreams', 'looking', 'exactly', 'as', 'drawn', 'kept', 'keeps', 'caught', 'lives', 'lived', 'born', 'named', 'called'])
-const GENERICOS_DO_SUJEITO = new Set(['character', 'creature', 'figure', 'mascot', 'version', 'cartoon'])
-const GENTE_COM_IDADE = new Set(['boy', 'girl', 'man', 'woman', 'kid', 'child', 'baby', 'toddler', 'teen', 'teenager', 'lady', 'gentleman', 'grandma', 'grandpa', 'grandmother',
-  'grandfather', 'king', 'queen', 'prince', 'princess', 'mother', 'father', 'mom', 'dad', 'son', 'daughter', 'brother', 'sister', 'uncle', 'aunt'])
-const IDADE_ESCRITA = ['young', 'old', 'elderly', 'little', 'teenage']
-const daLista = (lista: string, w: string) => new RegExp(`^(?:${lista})$`, 'i').test(w)
-const singular = (lista: string, w: string) => (daLista(lista, w) ? w : /s$/.test(w) && daLista(lista, w.slice(0, -1)) ? w.slice(0, -1) : /ies$/.test(w) && daLista(lista, w.slice(0, -3) + 'y') ? w.slice(0, -3) + 'y' : null)
-/** O ser que substitui o nome: o núcleo do sujeito (texto do autor entre aspas, ou a frase logo depois do nome), na lista do tipo; senão o tipo. */
-export function serDoSujeito(ficha: Pick<FichaDePersonagem, 'tipo'> & { genero?: FichaDePersonagem['genero'] }, sujeito: string): string {
-  const ws = (sujeito.split(/[;:.,()[\]!?"“”]/)[0] ?? '').toLowerCase().replace(/’/g, "'").split(/[^\p{L}\p{N}'-]+/u).filter(Boolean)
-  const corte = ws.findIndex((w) => PARA_O_SUJEITO.has(w))
-  const frase = corte < 0 ? ws : ws.slice(0, corte)
-  while (frase.length > 1 && GENERICOS_DO_SUJEITO.has(frase[frase.length - 1])) frase.pop()
-  const nucleo = frase[frase.length - 1] ?? ''
-  if (ficha.tipo === 'animal') return singular(ANIMAIS, nucleo) ?? 'animal'
-  if (ficha.tipo === 'criatura') return singular(CRIATURAS, nucleo) ?? 'creature'
-  const idade = IDADE_ESCRITA.find((a) => frase.includes(a))
-  const comIdade = (w: string) => (idade ? `${idade} ${w}` : w)
-  const gente = [...frase].reverse().find((w) => GENTE_COM_IDADE.has(w))
-  if (gente) return comIdade(gente)
-  if (ficha.genero === 'woman' || ficha.genero === 'man') return comIdade(ficha.genero)
-  return comIdade(singular(PESSOAS, nucleo) ?? 'person')
+/** O que entra no lugar do nome na folha: "this character", ou o gênero que o elenco conhece, só para gente. */
+export function quemNaFolha(ficha: Pick<FichaDePersonagem, 'tipo'> & { genero?: FichaDePersonagem['genero'] }): string {
+  if (ficha.tipo === 'humano' && ficha.genero === 'man') return 'this male character'
+  if (ficha.tipo === 'humano' && ficha.genero === 'woman') return 'this female character'
+  return 'this character'
 }
 export function canonicaSemNome(ficha: Pick<FichaDePersonagem, 'nome' | 'canonica' | 'tipo'> & { genero?: FichaDePersonagem['genero'] }): string {
   const nome = limpa(ficha.nome), c = String(ficha.canonica ?? '')
   if (!/^\p{Lu}/u.test(nome) || /^the\s/i.test(nome)) return c
   const partes = [nome, ...nome.split(' ').filter((p) => p.length >= 3 && /^\p{Lu}/u.test(p) && p !== nome)]
   const fonte = `(?<![\\p{L}\\p{N}-])(?:${partes.map(escapaRe).join('|')})(?![\\p{L}\\p{N}-])`
-  const pedacos = c.split(/("[^"]*"|“[^”]*”)/) // pares = o nosso texto; ímpares = o texto do autor entre aspas, intocado
-  const primeiro = pedacos.findIndex((p, i) => i % 2 === 0 && new RegExp(fonte, 'u').test(p))
-  if (primeiro < 0) return c
-  const autor = pedacos.find((p, i) => i % 2 === 1)
-  const depois = pedacos[primeiro].slice(pedacos[primeiro].search(new RegExp(fonte, 'u'))).replace(new RegExp(fonte, 'u'), '').replace(/^[\s,:-]+/, '')
-  const ser = serDoSujeito(ficha, autor ? autor.slice(1, -1) : depois || pedacos.slice(primeiro + 1).join(''))
-  let primeira = true
-  const troca = () => { const t = primeira ? `${/^[aeiou]/.test(ser) ? 'an' : 'a'} ${ser}` : `the ${ser}`; primeira = false; return t }
-  return pedacos.map((p, i) => (i % 2 === 0 ? p.replace(new RegExp(fonte, 'gu'), troca) : p)).join('')
+  const quem = quemNaFolha(ficha)
+  return c.split(/("[^"]*"|“[^”]*”)/).map((p, i) => (i % 2 === 0 ? p.replace(new RegExp(fonte, 'gu'), quem) : p)).join('') // ímpares = o texto do autor, intocado
 }
 export function promptDaFolha(ficha: FichaDePersonagem, look: Pick<StyleAnchor, 'lookPhrase'> | null | undefined, semNome = false /* KINEO-FICHA-SEM-NOME-2511 */): string {
   const lookPhrase = limpa(look?.lookPhrase ?? 'photorealistic, ultra-detailed')
