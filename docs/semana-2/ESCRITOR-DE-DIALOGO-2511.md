@@ -191,6 +191,23 @@ A revisora 392f0a52 liberou a v5 para a casa (`CLIENTE_FALA_NO_ROTEIRO` segue `'
 - **As 20 ideias comuns da revisora:** **20 de 20 com os dois personagens** (meta ≥ 17).
 - **Os 10 casos do ensaio:** 8 de 10 com os dois; o passageiro do f5 agora fala. Com só o 1º, 9 de 10.
 
+### Volta 6, parte 2: o 2º ensaio da CEO (v5 no ar, 25/11 23:12)
+Na casa, 8 de 10. No cliente (`dialogue_rule: 'client'`), 5 de 10. Os textos recusados vieram do banco (`rejected_text`) e voltaram pelo escritor; o guardião faz esse replay.
+
+| Caso | Recusado por | O que o modelo escreveu | O conserto |
+|---|---|---|---|
+| d4 casa | `nome` | "Penguin 1", "Penguin 2" (número no rótulo) | o pedido diz "a name has letters only: never a number"; a 2ª chamada acerta o rótulo |
+| f4 cliente | `papel` | Tomas com `role` vazio | a 2ª chamada diz quem está sem papel e quem pode falar ("one speaker is enough") |
+| d3 cliente | `papel` | a categoria do pedido no `role`, "cactus" no `name` | o pedido pede "o substantivo da ideia"; o nome que é substantivo comum da ideia vira o papel. **Fala já na 1ª** |
+| f5 cliente | `sem_adulto` | "passenger" | passenger entrou nos ofícios (parte 1). **Fala já na 1ª** |
+| d4 cliente | `curto` (duas vezes) | 24 palavras: o modelo conta "Let's" como duas | o pedido diz que a contração conta uma palavra; o acerto diz quanto falta em cada seção ("needs 1 more") |
+
+- **A 2ª chamada ganhou os erros de FORMA:** nome, falantes, papel, nome inventado, sem adulto, falante fora, dois-pontos, rubrica, marca e número de falas. Cada um tem o seu acerto, que diz o que está errado e em quem.
+- **Ficam sem 2ª chamada os motivos de segurança** (menor, figura, pessoa única, nome de gente, língua): esses vão direto ao narrado.
+- A resposta da 2ª passa pelas mesmas réguas, então a 2ª não abre nada.
+- **O que dá para afirmar offline:** f5 e d3 falam com o texto real do ensaio. d4 casa, f4 e d4 cliente agora ganham a 2ª chamada certa, mas só o próximo ensaio diz se o modelo acerta nela.
+- **Conta para a meta de 8 de 9 no cliente:** os 5 que já falavam, mais f5 e d3, dão 7, mais o que a 2ª chamada recuperar entre f4 e d4. Ainda não medido.
+
 ## O risco do caminho do servidor (conferido, executado)
 O roteiro de diálogo passa intacto pelo que o caminho da ideia solta faz depois do escritor (`lib/meta95/ideiaNoEscritor.ts`):
 - `roteiroSemMetaTexto` (l. 224) não remove nenhuma linha `Nome: fala`;
