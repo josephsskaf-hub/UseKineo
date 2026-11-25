@@ -104,9 +104,23 @@ async function suite(change) {
   // cachorro duas vezes: o mesmo tratamento da reprovação (a admissão não lê a folha)
   f = await filmeNaRota(route, j, { email: CASA, elencoP: [BOLT], respostas: { 'https://x.org/folha-Bolt.png': leituraJson(C1_CAO), 'https://x.org/nova-1.png': leituraJson({ ...C1_CAO, resembles: 'puppy dog' }) } })
   igual([f.folhas, f.reprovadas, f.relato[0].serve, f.relato[0].forma, f.gerados.length], [{ Bolt: 'https://x.org/folha-Bolt.png' }, ['Bolt'], false, 'outra_especie', 1], 'reprovada 2 vezes: não serve')
-  // perguntada e não respondida = leitura falhou = não serve (o que já existe: sem leitura, sem referência)
-  f = await filmeNaRota(route, j, { email: CASA, elencoP: [BOLT], respostas: { 'https://x.org/folha-Bolt.png': leituraJson(null) } })
-  igual([f.reprovadas, f.relato[0].tracos, f.relato[0].forma, f.gerados.length], [['Bolt'], 'sem_leitura', 'sem_leitura', 0], 'sem head_check: sem leitura')
+  // volta 2 [revisora (a)]: perguntada e sem head_check legível = a forma não é julgada ('sem_resposta') e a folha segue como na main — os 6 formatos tortos, no Bolt e no Elias
+  const TORTOS = { 'sem head_check': null, 'head_check null': 'NULL', 'sem fur': { ...ROBO, fur: undefined }, 'resembles vazio': { ...ROBO, resembles: '' }, 'nose maybe': { ...ROBO, nose: 'maybe' }, 'head_check em texto': 'a robot head' }
+  const comTorto = (h, traits, medium) => { const o = JSON.parse(leituraJson(null, traits, medium)); if (h === 'NULL') o.head_check = null; else if (h !== null) o.head_check = h; return JSON.stringify(o) }
+  for (const [nome, h] of Object.entries(TORTOS)) {
+    for (const [fi, look, traits, medium, url] of [[BOLT, 'animated3d', TRACOS_SIM, 'cartoon_3d', 'https://x.org/folha-Bolt.png'], [ELIAS, 'photoreal', [tr('gray-bearded', 'feature'), tr('navy coat', 'clothing')], 'photo_or_realistic_render', 'https://x.org/folha-Elias.png']]) {
+      const resp = { [url]: comTorto(h, traits, medium) }
+      f = await filmeNaRota(route, j, { email: CASA, look, elencoP: [fi], respostas: resp })
+      const bb = await filmeNaRota(routeBase, JB, { email: CASA, look, elencoP: [fi], respostas: resp })
+      assert.ok(f.corpos[0].includes('head_check'), nome + ': perguntada')
+      igual([f.folhas, f.reprovadas, f.gerados.length, f.relato[0].serve, f.relato[0].tracos, f.relato[0].forma], [bb.folhas, bb.reprovadas, 0, true, 'ok', 'sem_resposta'], `${fi.nome} ${nome}: serve como na main, forma 'sem_resposta'`)
+    }
+  }
+  // sem head_check nas DUAS leituras (a 1ª reprova por traço): a nova serve, a forma fica 'sem_resposta'
+  f = await filmeNaRota(route, j, { email: CASA, elencoP: [BOLT], respostas: { 'https://x.org/folha-Bolt.png': leituraJson(null, TRACOS_SIM.map((t) => (t.trait === 'small' ? { ...t, visible: 'no' } : t))), 'https://x.org/nova-1.png': leituraJson(null) } })
+  igual([f.folhas, f.relato[0].forma_1, f.relato[0].forma, f.relato[0].tentativa], [{ Bolt: 'https://x.org/nova-1.png' }, 'sem_resposta', 'sem_resposta', 2], 'sem head_check nas duas: a nova serve')
+  // fantasia e máscara: a gente não é perguntada (H8 da revisora)
+  for (const d of ['a man in a mask', 'a boy in a costume', 'a girl in a superhero costume']) assert.equal(j.especieDaDescricao(d, 'on'), null, 'não pergunta: ' + d)
   // robô certo: serve de primeira, sem folha nova
   f = await filmeNaRota(route, j, { email: CASA, elencoP: [BOLT], respostas: { 'https://x.org/folha-Bolt.png': leituraJson(ROBO) } })
   igual([f.folhas, f.gerados.length, f.relato[0].forma, f.relato[0].custo_usd], [{ Bolt: 'https://x.org/folha-Bolt.png' }, 0, 'ok', critico.custoDoCriticoUsd({ prompt_tokens: 3000, completion_tokens: 120 }, 1, 0)])
@@ -208,6 +222,10 @@ const mutants = [
   [J, 'const v2 = decidirDaFolha(r2.leitura, args.filmeFotorreal, descricao, modoForma, tipo)', 'const v2 = decidirDaFolha(r2.leitura, args.filmeFotorreal, descricao, FORMA_DA_FOLHA_2511, tipo)'], // a 2ª não confere a forma
   [J, "...(modoForma === 'on' ? {", '...(false ? {'], // o relato sem a forma
   [J, "(modo === 'off' ? 'off' : 'on')", "(modo === 'sonda' ? 'on' : 'off')"], // a sonda com 'internal' deixa de perguntar
+  [J, '  return exigeForma ? { meio, personagens, tracos, forma }', '  if (exigeForma && !forma) return null\n  return exigeForma ? { meio, personagens, tracos, forma }'], // a volta 2 desfeita: a folha cai
+  [J, "(l.forma === null ? 'sem_resposta' : 'nao_julgada')", "'nao_julgada'"], // o relato não conta
+  [J, " || v.forma === 'sem_resposta'", ''], // sem resposta reprova
+  [J, ' || NAO_JULGA_FORMA_RE.test(d)) return null', ') return null'], // H8: fantasia e máscara perguntadas
   [routeFile, 'lerAFolha(descricao, url, { forma: formaDoFilme2511 })', 'lerAFolha(descricao, url)'], // o leitor não recebe o head_check
   [routeFile, 'lookPhrase: styleAnchor.lookPhrase, forma: formaDoFilme2511 }', 'lookPhrase: styleAnchor.lookPhrase }'], // o laço não decide a forma
   [routeFile, 'formaNoFilme(FORMA_DA_FOLHA_2511, user.email)', "formaNoFilme(FORMA_DA_FOLHA_2511, 'josephsskaf@gmail.com')"], // todo e-mail vira a casa

@@ -293,7 +293,7 @@ async function suite(change) {
     igual(a.messages[1], b.messages[1], 'o texto do autor e a imagem = a main: ' + d); assert.equal(semProfissao(a.messages[0].content), b.messages[0].content, 'o sistema = a main mais o papel e a aparência: ' + d) }
   // a leitura
   for (const raw of [leituraJson(null), leituraJson(VELHA), leituraJson({ ...ROBO, resembles: '' }), leituraJson({ ...ROBO, resembles: 7 }), leituraJson({ ...ROBO, nose: 'maybe' }), leituraJson({ ...ROBO, fur: undefined }), leituraJson('yes')])
-    assert.equal(j.lerLeituraDaFolha(raw, true), null, raw)
+    { const l = j.lerLeituraDaFolha(raw, true); assert.ok(l && l.forma === null && l.tracos.length === 5, 'volta 2 da forma: sem head_check legível, a leitura fica e a forma é null: ' + raw) }
   igual(j.lerLeituraDaFolha(leituraJson({ ...C1_CAO, resembles: '  Dog ' }), true).forma, { parecido: 'dog', orelhas: 'yes', nariz: 'yes', focinho: 'yes', pelo: 'no' })
   const semAparencia = (l) => l && { ...l, tracos: l.tracos.map(({ aparencia, ...t }) => t) }
   for (const raw of [leituraJson(null), leituraJson(C1_CAO), leituraJson(VELHA)]) igual(semAparencia(j.lerLeituraDaFolha(raw)), JM.lerLeituraDaFolha(raw), 'não perguntada = a main (mais a aparência de cada traço)')
@@ -313,8 +313,8 @@ async function suite(change) {
   // a rede, falsa
   const rede = async (mod, descricao, conteudo, forma) => { const corpos = []; const r = await mod.lerAFolha(descricao, 'https://x.org/f.png', { apiKey: 'k', ...(forma ? { forma } : {}), fetchImpl: async (_u, o) => { corpos.push(o.body); return { ok: true, json: async () => ({ choices: [{ message: { content: conteudo } }], usage: { prompt_tokens: 100, completion_tokens: 50 } }) } } }); return { r, corpos } }
   const r1 = await rede(j, DB, leituraJson(VELHA), 'on')
-  assert.ok(r1.corpos[0].includes('head_check')); igual([r1.r.leitura, r1.r.erro], [null, 'resposta_ilegivel'], 'perguntada e não respondida: leitura falhou')
-  igual((await rede(j, DB, leituraJson(C1_CAO), 'on')).r.leitura.forma.parecido, 'dog')
+  assert.ok(r1.corpos[0].includes('head_check')); igual([r1.r.leitura?.forma, r1.r.erro], [null, null], 'perguntada e não respondida: a leitura fica, sem a forma (volta 2 da forma)')
+  igual((await rede(j, DB, leituraJson(C1_CAO), 'on')).r.leitura?.forma?.parecido, 'dog')
   for (const d of [DB, 'old bearded sailor', '', 'a robot dog']) { const a = await rede(j, d, leituraJson(null)), b = await rede(JM, d, leituraJson(null)); const ca = JSON.parse(a.corpos[0]), cb = JSON.parse(b.corpos[0])
     igual([ca.model, ca.temperature, ca.max_tokens, ca.response_format, ca.messages[1], semProfissao(ca.messages[0].content), semAparencia(a.r.leitura), a.r.erro], [cb.model, cb.temperature, cb.max_tokens, cb.response_format, cb.messages[1], cb.messages[0].content, b.r.leitura, b.r.erro], 'o filme: a main mais o papel e a aparência: ' + d) }
   // o laço: no filme = a main; com 'on' (2º mundo), a forma reprova e pede o corpo do robô
@@ -462,7 +462,7 @@ const mutants = [
   [J, ".split(/[^\\p{L}]+/u).some((w) => BICHO_RE.test(w))", '.split(/[^\\p{L}]+/u).slice(0, 1).some((w) => BICHO_RE.test(w))'], // "cartoon fox"
   [J, '  const forma = parecido && orelhas && nariz && focinho && pelo ? { parecido, orelhas, nariz, focinho, pelo } : null', '  const forma = orelhas && focinho ? { parecido: parecido ?? \'\', orelhas, nariz: nariz ?? \'unclear\', focinho, pelo: pelo ?? \'unclear\' } : null'],
   [J, "limpa(k.resembles).toLowerCase().slice(0, 40)", 'limpa(k.resembles).slice(0, 40)'],
-  [J, '  if (exigeForma && !forma) return null\n', ''],
+  [J, '  return exigeForma ? { meio, personagens, tracos, forma }', '  if (exigeForma && !forma) return null\n  return exigeForma ? { meio, personagens, tracos, forma }'], // a volta 2 da forma desfeita
   [J, '  return exigeForma ? { meio, personagens, tracos, forma } : { meio, personagens, tracos }', '  return { meio, personagens, tracos, forma }'],
   [J, "    (especie ? ' Also answer \"head_check\"", "    (false ? ' Also answer \"head_check\""],
   [J, "    (especie ? ' Also answer \"head_check\"", "    (true ? ' Also answer \"head_check\""],

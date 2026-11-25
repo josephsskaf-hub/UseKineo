@@ -57,9 +57,12 @@ export type LeituraDaFolha = { meio: MeioDaFolha; personagens: number; tracos: A
 export type SimNao = 'yes' | 'no' | 'unclear'
 export type MotivoDosTracos = 'mais_de_um' | 'nenhum' | 'forma_especie' | 'traco'
 /** O veredito POR EIXO: traços do autor e meio do filme. */
-export type FormaDaFolha = 'ok' | 'outra_especie' | 'nao_julgada'
+// KINEO-FORMA-NOS-FILMES-2511 volta 2 [revisora 25/11, CEO-FORMA-NOS-FILMES-2511.md (a)]: perguntada e sem head_check legível (ausente, null, campo faltando, vazio,
+// valor fora do enum, texto) = a forma NÃO é julgada ('sem_resposta', só para o relato contar) e o resto segue como a main; antes a leitura inteira caía e a
+// casa perdia a folha que a main usa.
+export type FormaDaFolha = 'ok' | 'outra_especie' | 'nao_julgada' | 'sem_resposta'
 export type VereditoDaFolha = { tracos: 'ok' | MotivoDosTracos; meio: 'ok' | 'meio'; ausentes: string[]; descartados: number; forma: FormaDaFolha; especie: string | null }
-export const formaPassa = (v: Pick<VereditoDaFolha, 'forma'>): boolean => v.forma === 'ok' || v.forma === 'nao_julgada'
+export const formaPassa = (v: Pick<VereditoDaFolha, 'forma'>): boolean => v.forma === 'ok' || v.forma === 'nao_julgada' || v.forma === 'sem_resposta'
 export const folhaPassa = (v: VereditoDaFolha): boolean => v.tracos === 'ok' && v.meio === 'ok' && formaPassa(v)
 // KINEO-FORMA-NOS-FILMES-2511 [CEO 25/11 07:50, sonda 06:07: 7 de 7, e o head_check acertou 4 de 4] 'internal' = a forma vale nos filmes da CASA (a lista
 // exata, contaDaCasaExata): o leitor recebe o head_check e a folha lida como 'outra_especie' tem o MESMO tratamento da reprovação do conferente (UMA folha
@@ -164,7 +167,6 @@ export function lerLeituraDaFolha(raw: string, exigeForma = false /* KINEO-FORMA
   const parecido = k && typeof k.resembles === 'string' && limpa(k.resembles) ? limpa(k.resembles).toLowerCase().slice(0, 40) : null
   const [orelhas, nariz, focinho, pelo] = k ? [sn(k.animal_ears), sn(k.nose), sn(k.snout_or_muzzle), sn(k.fur)] : [null, null, null, null]
   const forma = parecido && orelhas && nariz && focinho && pelo ? { parecido, orelhas, nariz, focinho, pelo } : null
-  if (exigeForma && !forma) return null
   return exigeForma ? { meio, personagens, tracos, forma } : { meio, personagens, tracos }
 }
 
@@ -198,7 +200,7 @@ export function decidirDaFolha(l: LeituraDaFolha, filmeFotorreal: boolean, descr
   const especie = especieDaDescricao(descricao, modoForma) // KINEO-FORMA-DA-FOLHA-2511
   const f = l.forma
   const estranha = !!f && (f.orelhas === 'yes' || f.focinho === 'yes' || pareceBicho(f.parecido) || (especie === 'robot' && (f.nariz === 'yes' || f.pelo === 'yes')))
-  const formaV: FormaDaFolha = !especie || !f ? 'nao_julgada' : estranha ? 'outra_especie' : 'ok'
+  const formaV: FormaDaFolha = !especie ? 'nao_julgada' : !f ? (l.forma === null ? 'sem_resposta' : 'nao_julgada') : estranha ? 'outra_especie' : 'ok'
   return { tracos, meio, ausentes: tracos === 'forma_especie' ? forma : tracos === 'traco' ? outros : [], descartados: l.tracos.length - doAutor.length, forma: formaV, especie }
 }
 
