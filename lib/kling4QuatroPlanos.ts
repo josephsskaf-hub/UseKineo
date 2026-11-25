@@ -231,11 +231,21 @@ export function cenaComLugar2511(promptDaCena: string, i: number, total: number)
   const meio = /^[^.]{2,60}\./.exec(p)?.[0] ?? ''
   return norm(`${meio} ${i === 0 ? LUGAR_DO_SEGUINTE_2511 : LUGAR_DO_ANTERIOR_2511} ${p.slice(meio.length)}`)
 }
+/** Depois de planosPorSecao: cada metade de cena fundida do MOLDE (seções sem descrição) sem "Setting:" ganha a cláusula do vizinho, logo depois do meio.
+ *  `grupos` = as seções de cada cena (o que planosPorSecao devolve). Grupo de uma seção, metade com descrição ou com "Setting:" = o mesmo texto. */
+export function comLugarNasMetades2511(prompts: readonly string[], grupos: readonly number[][], secoes: readonly object[]): string[] {
+  const saida = [...prompts]
+  let k = 0
+  grupos.forEach((g, i) => {
+    const molde = g.length > 1 && g.every((j) => (secoes[j] as { descricao?: unknown } | undefined)?.descricao === undefined)
+    for (let pos = 0; pos < g.length; pos++, k++) if (molde && k < saida.length) saida[k] = cenaComLugar2511(saida[k], i, grupos.length)
+  })
+  return saida
+}
 
 /** Os planos do Kling 4 por seção. null = nada a dividir ou não dá para provar → o envio de sempre (3 planos). */
 export function planosPorSecao(a: {
   prompts: readonly string[]; stills: readonly (string | null)[]; falas: readonly string[]; secoes: readonly SecaoDoRoteiro[]; objetoConcreto?: boolean
-  /** KINEO-PLANO-SEM-LUGAR-2511 (B) — com a chave: a metade de cena fundida sem "Setting:" fica no mesmo lugar do plano vizinho. */ lugarDaCenaMae?: boolean
 }): { prompts: string[]; stills: (string | null)[]; falas: string[]; grupos: number[][] } | null {
   if (a.prompts.length !== a.falas.length) return null
   const exatos = secoesDasCenas(a.secoes, a.falas)
@@ -243,7 +253,6 @@ export function planosPorSecao(a: {
   if (!grupos || grupos.every((g) => g.length === 1)) return null
   const total = grupos.reduce((n, g) => n + g.length, 0)
   if (total > KLING4_MAX_PLANOS) return null
-  if (a.lugarDaCenaMae === true) a = { ...a, prompts: a.prompts.map((p, i) => ((grupos[i]?.length ?? 1) > 1 && grupos[i].every((j) => a.secoes[j]?.descricao === undefined) ? cenaComLugar2511(p, i, a.prompts.length) : p)) } // KINEO-PLANO-SEM-LUGAR-2511 (B): só as cenas fundidas
   // a fala de antes do 1º marcador (só a 1ª cena pode ter) fica no 1º plano, como na cena
   const alvo0 = norm(a.falas[0]), junto0 = norm(grupos[0].map((x) => a.secoes[x].voiceover).join(' '))
   const prefixo = exatos && alvo0 !== junto0 && alvo0.endsWith(` ${junto0}`) ? alvo0.slice(0, alvo0.length - junto0.length).trim() : ''

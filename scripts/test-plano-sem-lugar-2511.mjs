@@ -4,7 +4,8 @@
 //   B. a metade de cena fundida do molde da pista, sem "Setting:", fica no mesmo lugar do plano vizinho (planosPorSecao REAL): o plano 3 do 815dbef7
 //      (paráfrase minha, sem texto do pedido) ganha o lugar; nenhuma ação da cena-mãe entra; cena de uma seção, metade com descrição, cena com
 //      "Setting:", filme de uma cena e chave desligada = a origin/main byte a byte;
-//   a chave: 'internal' = só a casa exata; a rota passa a chave aos 5 pedidos ao descritor, aos 3 do supervisor e às 2 montagens das metades.
+//   a chave: 'internal' = só a casa exata. Ao descritor ela chega pela política visual DO PEDIDO (WeakSet; as 5 chamadas ficam byte a byte as da main), ao
+//   supervisor pelos 3 pedidos, e às metades por UMA linha nova logo depois da montagem (as 2 chamadas de planosPorSecao ficam as da main).
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { execSync } from 'node:child_process'
@@ -40,9 +41,15 @@ async function suite(change) {
   assert.equal(q.PLANO_SEM_LUGAR_2511, 'internal')
   igual([q.planoSemLugarLigado('internal', true), q.planoSemLugarLigado('internal', false), q.planoSemLugarLigado('off', true), q.planoSemLugarLigado('public', false)], [true, false, false, true])
   assert.ok(rota.includes('const planoSemLugar2511 = planoSemLugarLigado(PLANO_SEM_LUGAR_2511, contaDaCasaExata2511(user.email))') && rota.includes("import { contaDaCasaExata as contaDaCasaExata2511 } from '@/lib/internalAccounts'"), 'a chave pela casa EXATA')
-  assert.equal(rota.split("typeof planoSemLugar2511 !== 'undefined' && planoSemLugar2511 /* KINEO-PLANO-SEM-LUGAR-2511 (A) */").length - 1, 5, 'os 5 pedidos ao descritor recebem a chave')
+  { const linhas = (r, t) => r.split('\n').filter((l) => l.includes(t))
+    igual(linhas(rota, 'generateCinematicDescriptions('), linhas(rotaB, 'generateCinematicDescriptions('), 'as chamadas ao descritor = a main (a chave não passa por elas)')
+    igual(linhas(rota, 'planosPorSecao({'), linhas(rotaB, 'planosPorSecao({'), 'as 2 montagens = a main')
+    const iAdd = rota.indexOf(`    if (typeof planoSemLugar2511 !== 'undefined' && planoSemLugar2511) PISTA_DE_CLIMA_2511.add(classicVisualPolicy)`), iPol = rota.indexOf('    const classicVisualPolicy: VisualPromptPolicy = {'), iDesc = rota.indexOf('generateCinematicDescriptions(secoesParaODescritor(parsedScript.segments)')
+    assert.ok(iPol > 0 && iAdd > iPol && iDesc > iAdd, 'A: a política do pedido é marcada logo depois de nascer e antes do 1º pedido ao descritor')
+    assert.ok(rota.includes('const PISTA_DE_CLIMA_2511 = new WeakSet<object>()') && rota.includes('  const pistaDeClima2511 = PISTA_DE_CLIMA_2511.has(visualPolicy)'), 'A: o descritor lê a marca da política do seu pedido')
+    const iQ = rota.indexOf('      const q = kling4PlanoPorSecao && verbatim && parsedScript.segments.length > scenes.length'), iB = rota.indexOf(`      if (q && typeof planoSemLugar2511 !== 'undefined' && planoSemLugar2511) q.prompts.splice(0, q.prompts.length, ...comLugarNasMetades2511(q.prompts, q.grupos, parsedScript.segments))`), iS = rota.indexOf('      if (q && sujeitoAparenciaLigada()', iQ)
+    assert.ok(iQ > 0 && iB > iQ && iS > iB, 'B: a linha nova logo depois da montagem das metades do envio') }
   assert.equal(rota.split("...(typeof planoSemLugar2511 !== 'undefined' && planoSemLugar2511 ? { pistaDeClima: true } : {})").length - 1, 3, 'os 3 pedidos ao supervisor')
-  assert.equal(rota.split("...(typeof planoSemLugar2511 !== 'undefined' && planoSemLugar2511 ? { lugarDaCenaMae: true } : {})").length - 1, 2, 'as 2 montagens das metades')
 
   // ── A. o descritor (o trecho REAL da rota) ───────────────────────────────────────────────────────────────────────────────────────────────────────
   const cenas = (rot) => parseUserScript(rot).segments.map((x) => ({ description: x.pexelsQuery, voiceover: x.voiceover, stockSearchQuery: x.pexelsQuery }))
@@ -84,7 +91,8 @@ async function suite(change) {
     stills: ['https://s/1', 'https://s/2', 'https://s/3'], falas: ['She came to fight a robot.', 'She warmed up. The machines kept building.', 'Then the twist.'],
     secoes: [{ pexelsQuery: 'robot factory', voiceover: 'She came to fight a robot.' }, { pexelsQuery: 'woman in jeans gym', voiceover: 'She warmed up.' }, { pexelsQuery: 'robotic arms assembling', voiceover: 'The machines kept building.' }, { pexelsQuery: 'surprised woman face', voiceover: 'Then the twist.' }],
     objetoConcreto: true }
-  const hoje = Qb.planosPorSecao(F815), off = q.planosPorSecao(F815), on = q.planosPorSecao({ ...F815, lugarDaCenaMae: true })
+  const comLugar = (F) => { const r = q.planosPorSecao(F); return r && { ...r, prompts: q.comLugarNasMetades2511(r.prompts, r.grupos, F.secoes) } }
+  const hoje = Qb.planosPorSecao(F815), off = q.planosPorSecao(F815), on = comLugar(F815)
   assert.ok(hoje && off && on, 'montou')
   igual(off, hoje, 'B: sem a chave = a main byte a byte')
   igual(on.grupos, [[0], [1, 2], [3]], 'a cena 2 é a fundida')
@@ -99,18 +107,18 @@ async function suite(change) {
   // a 1ª cena fundida: o lugar do plano seguinte
   { const F = { ...F815, prompts: [F815.prompts[1], F815.prompts[0], F815.prompts[2]], falas: ['She warmed up. The machines kept building.', 'She came to fight a robot.', 'Then the twist.'],
       secoes: [F815.secoes[1], F815.secoes[2], F815.secoes[0], F815.secoes[3]] }
-    const x = q.planosPorSecao({ ...F, lugarDaCenaMae: true }), h = Qb.planosPorSecao(F)
+    const x = comLugar(F), h = Qb.planosPorSecao(F)
     igual(x.grupos, [[0, 1], [2], [3]]); assert.ok(x.prompts[0].includes(q.LUGAR_DO_SEGUINTE_2511) && x.prompts[1].includes(q.LUGAR_DO_SEGUINTE_2511), 'B: na 1ª cena, o lugar do plano seguinte')
     igual(x.prompts.slice(2), h.prompts.slice(2)) }
   // cena-mãe com "Setting:", metade com descrição, filme de uma cena: como hoje
   { const F = { ...F815, prompts: [F815.prompts[0], cena('A woman trains hard', 'Setting: a boxing gym. '), F815.prompts[2]] }
-    igual(q.planosPorSecao({ ...F, lugarDaCenaMae: true }), Qb.planosPorSecao(F), 'B: a cena-mãe com Setting: = a main') }
+    igual(comLugar(F), Qb.planosPorSecao(F), 'B: a cena-mãe com Setting: = a main') }
   { const F = { ...F815, secoes: F815.secoes.map((x, j) => ({ ...x, descricao: j === 1 || j === 2 ? `A woman in a boxing gym does step ${j}.` : null })) }
-    igual(q.planosPorSecao({ ...F, lugarDaCenaMae: true }), Qb.planosPorSecao(F), 'B: a metade com a descrição do descritor por seção = a main') }
+    igual(comLugar(F), Qb.planosPorSecao(F), 'B: a metade com a descrição do descritor por seção = a main') }
   { const F = { prompts: [F815.prompts[1]], stills: ['https://s/1'], falas: ['She warmed up. The machines kept building.'], secoes: [F815.secoes[1], F815.secoes[2]], objetoConcreto: true }
-    igual(q.planosPorSecao({ ...F, lugarDaCenaMae: true }), Qb.planosPorSecao(F), 'B: filme de uma cena só = a main') }
+    igual(comLugar(F), Qb.planosPorSecao(F), 'B: filme de uma cena só = a main') }
   // o molde da fala (objetoConcreto desligado) também
-  { const F = { ...F815, objetoConcreto: false }; const x = q.planosPorSecao({ ...F, lugarDaCenaMae: true }), h = Qb.planosPorSecao(F)
+  { const F = { ...F815, objetoConcreto: false }; const x = comLugar(F), h = Qb.planosPorSecao(F)
     assert.ok(x.prompts[1].includes(q.LUGAR_DO_ANTERIOR_2511) && x.prompts[2].includes(q.LUGAR_DO_ANTERIOR_2511) && /Shot focus: /.test(x.prompts[2]), 'B: o molde "Shot focus" também ganha o lugar')
     igual(x.prompts.map((t) => t.replace(q.LUGAR_DO_ANTERIOR_2511 + ' ', '')), h.prompts) }
   // o teto da fal: o plano mais longo + a referência mais longa cabem em 512
@@ -124,9 +132,12 @@ await suite(null)
 const mutants = [
   [Q, "export const PLANO_SEM_LUGAR_2511: ModoPlanoSemLugar2511 = 'internal'", "export const PLANO_SEM_LUGAR_2511: ModoPlanoSemLugar2511 = 'public'"],
   [Q, "(modo === 'internal' && contaDaCasa === true)", "(modo === 'internal')"],
-  [Q, '  if (a.lugarDaCenaMae === true) a = ', '  if (false) a = '],
-  [Q, ' && grupos[i].every((j) => a.secoes[j]?.descricao === undefined)', ''],
-  [Q, '(grupos[i]?.length ?? 1) > 1 && ', ''],
+  [Q, '    for (let pos = 0; pos < g.length; pos++, k++) if (molde && k < saida.length) saida[k] = cenaComLugar2511(saida[k], i, grupos.length)', '    for (let pos = 0; pos < g.length; pos++, k++) {}'],
+  [Q, ' && g.every((j) => (secoes[j] as { descricao?: unknown } | undefined)?.descricao === undefined)', ''],
+  [Q, 'const molde = g.length > 1 && ', 'const molde = '],
+  [Q, 'cenaComLugar2511(saida[k], i, grupos.length)', 'cenaComLugar2511(saida[k], k, saida.length)'],
+  [R, `    if (typeof planoSemLugar2511 !== 'undefined' && planoSemLugar2511) PISTA_DE_CLIMA_2511.add(classicVisualPolicy)`, '    PISTA_DE_CLIMA_2511.add(classicVisualPolicy)'],
+  [R, '  const pistaDeClima2511 = PISTA_DE_CLIMA_2511.has(visualPolicy)', '  const pistaDeClima2511 = true'],
   [Q, "  if (/Setting: /.test(p) || total < 2) return promptDaCena\n", ''],
   [Q, ' || total < 2) return promptDaCena', ') return promptDaCena'],
   [Q, 'i === 0 ? LUGAR_DO_SEGUINTE_2511 : LUGAR_DO_ANTERIOR_2511', 'LUGAR_DO_ANTERIOR_2511'],
@@ -138,8 +149,7 @@ const mutants = [
   [R, "${temMarcaDeBusca(topic) && typeof pistaDeClima2511 !== 'undefined' && pistaDeClima2511 === true ? `- ${REGRA_DA_PISTA_CLIMA_2511}\n` : ''}", ''],
   [R, "${temMarcaDeBusca(topic) && typeof pistaDeClima2511 !== 'undefined' && pistaDeClima2511 === true ?", "${typeof pistaDeClima2511 !== 'undefined' && pistaDeClima2511 === true ?"],
   [R, 'planoSemLugarLigado(PLANO_SEM_LUGAR_2511, contaDaCasaExata2511(user.email))', 'planoSemLugarLigado(PLANO_SEM_LUGAR_2511, true)'],
-  [R, ", kling4TrialCandidate && scenes.length === 3, undefined, undefined, undefined, typeof planoSemLugar2511 !== 'undefined' && planoSemLugar2511 /* KINEO-PLANO-SEM-LUGAR-2511 (A) */))", ', kling4TrialCandidate && scenes.length === 3))'],
-  [R, "objetoConcreto: kling4PlanoVariado, ...(typeof planoSemLugar2511 !== 'undefined' && planoSemLugar2511 ? { lugarDaCenaMae: true } : {}) /* KINEO-PLANO-SEM-LUGAR-2511 (B) */ }) // KINEO-K4", 'objetoConcreto: kling4PlanoVariado }) // KINEO-K4'],
+  [R, `      if (q && typeof planoSemLugar2511 !== 'undefined' && planoSemLugar2511) q.prompts.splice(0, q.prompts.length, ...comLugarNasMetades2511(q.prompts, q.grupos, parsedScript.segments))`, '      if (false) q.prompts.splice(0, 0)'],
 ]
 let mortos = 0
 for (const m of mutants) {
@@ -147,4 +157,4 @@ for (const m of mutants) {
   await assert.rejects(suite(m), (e) => e instanceof assert.AssertionError, 'SOBREVIVEU: ' + m[1].slice(0, 120))
   mortos++
 }
-console.log(`PASS KINEO-PLANO-SEM-LUGAR-2511: chave 'internal' (casa exata) nos 5 pedidos ao descritor, nos 3 do supervisor e nas 2 montagens; A: a regra da pista de entorno no descritor (trecho real da rota) e no supervisor só com a chave e a marca, cópia literal, sem exemplo; sem a chave = a main byte a byte; B: o plano 3 do 815dbef7 (paráfrase) ganha o lugar do plano anterior, nenhuma ação da cena-mãe entra, 1ª cena = o seguinte, cena com Setting:, metade com descrição e filme de uma cena = a main; cabe em 512; ${mortos}/${mutants.length} mutantes mortos.`)
+console.log(`PASS KINEO-PLANO-SEM-LUGAR-2511: chave 'internal' (casa exata): o descritor pela política do pedido (as 5 chamadas e as 2 montagens = a main), o supervisor nos 3 pedidos, as metades por uma linha nova; A: a regra da pista de entorno no descritor (trecho real da rota) e no supervisor só com a chave e a marca, cópia literal, sem exemplo; sem a chave = a main byte a byte; B: o plano 3 do 815dbef7 (paráfrase) ganha o lugar do plano anterior, nenhuma ação da cena-mãe entra, 1ª cena = o seguinte, cena com Setting:, metade com descrição e filme de uma cena = a main; cabe em 512; ${mortos}/${mutants.length} mutantes mortos.`)
