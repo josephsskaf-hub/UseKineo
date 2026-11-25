@@ -8645,7 +8645,11 @@ async function manipularPost(req: NextRequest) {
       const wire = buildKling4TrialInput(e.prompts, e.approvedStills, e.timing)
       if (wire.model !== KLING4_REFERENCE_MODEL) return null
       const ru = e.timing?.referenciaUnica
-      const entrada = geminiDoKling4(wire.input, [ru?.nomes?.[0], ru?.segundo?.nomes?.[0]])
+      // [revisora 25/11, para todos] o nome do cabeçalho ("<IMAGE_REF_0> is …") passa pela MESMA limpeza de nomes de obra que o texto dos planos (timing.papelVisual2411,
+      // aplicada em buildKling4TrialInput): nome de obra vira o papel, nome comum fica igual (a nota 10 continua byte a byte)
+      const papel2511 = (e.timing as { papelVisual2411?: (plano: string) => string } | undefined)?.papelVisual2411 // posto no timing do envio do grátis (Object.assign acima)
+      const nome2511 = (n: string | null | undefined) => (n && papel2511 ? papel2511(n) : n)
+      const entrada = geminiDoKling4(wire.input, [nome2511(ru?.nomes?.[0]), nome2511(ru?.segundo?.nomes?.[0])])
       if (!entrada) return null
       try {
         const job = await submitGeminiTrialVideo(entrada, { apiKey: process.env.FAL_KEY ?? '', onPost: () => { kling4Posts++; ctxDespacho().totalPosts++ } })

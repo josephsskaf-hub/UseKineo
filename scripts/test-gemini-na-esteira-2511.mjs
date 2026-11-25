@@ -279,10 +279,10 @@ function provaDoTexto(over = {}) {
   const trecho = rota.slice(ini, fim)
   // R1 executa a tentativa com dublês: fora da casa e 'off' = nenhum pedido; na casa com referência = o pedido do adaptador, e a entrada do Kling 4 guardada
   const load = loader(over); const m = load(M)
-  const rodar = async ({ email, modo = m.GEMINI_NA_ESTEIRA_2511, model = K4R, envio = null }) => {
+  const rodar = async ({ email, modo = m.GEMINI_NA_ESTEIRA_2511, model = K4R, envio = null, timing = null, input = FIX.kling4_input }) => {
     const envios = []; let montagens = 0
-    const escopo = { geminiNaEsteiraLigado: m.geminiNaEsteiraLigado, GEMINI_NA_ESTEIRA_2511: modo, user: { email, id: USER }, kling4PorSecao: (x) => { montagens++; return x }, kling4Prompts: [], kling4ApprovedStills: [], kling4Timing: { referenciaUnica: { nomes: ['Elias Ward', 'Elias'], segundo: { nomes: ['Mara Quinn'] } } },
-      buildKling4TrialInput: () => ({ model, input: FIX.kling4_input }), KLING4_REFERENCE_MODEL: K4R, geminiDoKling4: m.geminiDoKling4, submitGeminiTrialVideo: async (e) => { envios.push(e); if (envio) return envio(); return { requestId: 'gem-1', model: GEM, submittedAt: 'x' } },
+    const escopo = { geminiNaEsteiraLigado: m.geminiNaEsteiraLigado, GEMINI_NA_ESTEIRA_2511: modo, user: { email, id: USER }, kling4PorSecao: (x) => { montagens++; return x }, kling4Prompts: [], kling4ApprovedStills: [], kling4Timing: timing ?? { referenciaUnica: { nomes: ['Elias Ward', 'Elias'], segundo: { nomes: ['Mara Quinn'] } } },
+      buildKling4TrialInput: (_p, _s, tm) => ({ model, input: tm?.papelVisual2411 ? { ...input, multi_prompt: input.multi_prompt.map((x) => ({ ...x, prompt: tm.papelVisual2411(x.prompt) })) } : input }), KLING4_REFERENCE_MODEL: K4R, geminiDoKling4: m.geminiDoKling4, submitGeminiTrialVideo: async (e) => { envios.push(e); if (envio) return envio(); return { requestId: 'gem-1', model: GEM, submittedAt: 'x' } },
       GeminiRecusadoNoEnvio: m.GeminiRecusadoNoEnvio, writeServerEvent: async () => true, GEMINI_ENVIO_EVENTO: 'x', generationId: GEN, ctxDespacho: () => ({ totalPosts: 0 }), kling4Posts: 0, process: { env: {} } }
     const corpo = ts.transpile('let kling4Posts = 0\n' + trecho + '\nreturn (async () => ({ job: await tentarGemini2511(), gemini2511 }))()', { target: ts.ScriptTarget.ES2022 })
     const r = await Function(...Object.keys(escopo).filter((k) => k !== 'kling4Posts'), corpo)(...Object.entries(escopo).filter(([k]) => k !== 'kling4Posts').map(([, v]) => v))
@@ -312,6 +312,14 @@ async function suite(over = {}) {
       t.no(rec.job !== null || rec.gemini2511.recusaNoEnvio !== 422 || rec.envios.length !== 1, 'G9 a recusa no envio: o Kling 4 na hora, sem a reserva') }
     { let lancou = false; try { await t.rodar({ email: CASA, envio: () => { throw new Error('503 ambíguo') } }) } catch { lancou = true }
       t.no(!lancou, 'G9b o envio ambíguo do Gemini lança (nenhum Kling 4 por cima)') }
+    // [revisora 25/11, para todos] o nome do cabeçalho passa pela MESMA limpeza de obra que os planos
+    { const papel = (s) => String(s).replace(/Lara Croft/g, 'figure 1').replace(/Indiana Jones/g, 'figure 2')
+      const comObra = JSON.parse(JSON.stringify(FIX.kling4_input).replace(/Elias Ward/g, 'Lara Croft').replace(/Mara Quinn/g, 'Indiana Jones'))
+      const obra = await t.rodar({ email: CLIENTE, input: comObra, timing: { referenciaUnica: { nomes: ['Lara Croft'], segundo: { nomes: ['Indiana Jones'] } }, papelVisual2411: papel } })
+      const p = obra.envios[0]?.prompt ?? ''
+      t.no(!p || /Lara Croft|Indiana Jones/.test(p) || !p.includes('<IMAGE_REF_0> is figure 1 and <IMAGE_REF_1> is figure 2'), 'G-obra: o nome de obra sai do cabeçalho e dos planos (cabeçalho e planos dizem figure 1)')
+      const comum = await t.rodar({ email: CLIENTE, timing: { referenciaUnica: { nomes: ['Elias Ward', 'Elias'], segundo: { nomes: ['Mara Quinn'] } }, papelVisual2411: papel } })
+      t.no(JSON.stringify(comum.envios) !== JSON.stringify([FIX.gemini_input_nota_10]), 'G-comum: nome comum com a limpeza ligada = o pedido da nota 10, byte a byte') }
     const semRef = await t.rodar({ email: CASA, model: 'kling/v4/image-to-video' })
     t.no(semRef.job !== null || semRef.envios.length !== 0, 'R3 sem referência: o Kling 4 de sempre')
   } catch (e) { t.f.push('R lançou: ' + String(e?.message ?? e)) }
@@ -374,7 +382,9 @@ const MUTANTES = [
   [ROUTE, '      if (!geminiNaEsteiraLigado(GEMINI_NA_ESTEIRA_2511, user.email)) return null\n', ''],
   [ROUTE, '      if (wire.model !== KLING4_REFERENCE_MODEL) return null\n', ''],
   [ROUTE, '        gemini2511.entrada = entrada; gemini2511.kling4 = { model: wire.model, input: wire.input }', '        gemini2511.entrada = entrada'],
-  [ROUTE, "const entrada = geminiDoKling4(wire.input, [ru?.nomes?.[0], ru?.segundo?.nomes?.[0]])", "const entrada = geminiDoKling4(wire.input, [ru?.nomes?.[1], ru?.segundo?.nomes?.[0]])"],
+  [ROUTE, "const entrada = geminiDoKling4(wire.input, [nome2511(ru?.nomes?.[0]), nome2511(ru?.segundo?.nomes?.[0])])", "const entrada = geminiDoKling4(wire.input, [nome2511(ru?.nomes?.[1]), nome2511(ru?.segundo?.nomes?.[0])])"],
+  [ROUTE, "const entrada = geminiDoKling4(wire.input, [nome2511(ru?.nomes?.[0]), nome2511(ru?.segundo?.nomes?.[0])])", "const entrada = geminiDoKling4(wire.input, [ru?.nomes?.[0], ru?.segundo?.nomes?.[0]])"], // [para todos] o nome cru no cabeçalho
+  [ROUTE, "nome2511(ru?.segundo?.nomes?.[0])])", "ru?.segundo?.nomes?.[0]])"], // [para todos] o 2º nome cru
   [STATUS, "  'google/gemini-omni-flash/v1.2/reference-to-video', // KINEO-GEMINI-NA-ESTEIRA-2511 (o filme grátis com foto, só a casa)\n", ''],
   // [revisora 25/11] G8 e G9 (dinheiro) e o conserto 1 (o selo)
   [A, '  catch (e) {\n    const porque', '  catch (e) {\n    if (e instanceof EnvioDoKling4Incerto && e.ambiguo) { try { await (deps.submitKling as (a: string, b: Record<string, unknown>) => Promise<string>)(guardada.model, guardada.input) } catch { /* G8 */ } }\n    const porque'],
