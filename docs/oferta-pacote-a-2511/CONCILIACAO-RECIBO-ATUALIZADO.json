@@ -1,0 +1,27 @@
+{
+  "date": "2026-11-25",
+  "sourceSha": "91272467e983d8719200f604ec49dcf695aa1fab",
+  "sourceBase": "6804eb7937e92fc10967ecc57b03b6537ac0ff25",
+  "sourceJsonSha256": "9b23b6ea627e44f2e464d930b030438068cac41bb30dde65291157bd23bd0687",
+  "sourceListSha256": "1899133f286c493f797cb457d63715a5dde21b79581277238b2bdc0b16ac6cee",
+  "companies": 30,
+  "uniqueAdIds": 30,
+  "activeVideoCardsDated": 30,
+  "firstHalfSourceSha256": "3002bb5cfee78abd80c86b82a0317f013eecd40c671071de0afc74416c3a3c29",
+  "firstHalfScreenshotsExisting": 15,
+  "secondHalfMethod": "15 transcribed individual cards; no JPG archived",
+  "authorReview": "Product Story checked committed receipt, fields, uniqueness, list IDs, source hash and local screenshot existence; did not independently reopen Meta",
+  "unknownDurationBrands": [
+    "HexClad",
+    "Gymshark",
+    "Blueland",
+    "The Ridge",
+    "Brooklinen",
+    "Vuori",
+    "Huel",
+    "Quince"
+  ],
+  "productComparison": "c8bcd7b31; no code or visual changes",
+  "impressions": "unknown",
+  "commercialInterest": "unknown"
+}

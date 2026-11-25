@@ -8,8 +8,8 @@
 
 - [Fotos antes/depois autocontidas](TELAS-ANTES-DEPOIS.html): quatro estados finais, cada um pareado com a candidata anterior.
 - [Dois contatos EN/PT](PRIMEIRO-CONTATO-EN-PT.md): 73 e 72 palavras, incluindo assunto e assinatura, sem destinatário ou envio.
-- [Conciliação das 30 candidatas](CONCILIACAO-CANAIS.md): escopo de apresentação visual, limites e qualificação atual pendente.
-- [Lista original de Canais](C:/kineo-wt/canais-2511/docs/empresas-video-2511/LISTA-30-EMPRESAS.md): ac80dc47beab1216446d3c5f42dd8ad1f3a1b3bb, preservada em outra branch, não duplicada neste commit.
+- [Conciliação das 30 candidatas](CONCILIACAO-CANAIS.md): 30 estados individuais Ativo com vídeo observados em 25/11; adequação e interesse comercial desconhecidos.
+- [Lista atual de Canais](C:/kineo-wt/canais-2511/docs/empresas-video-2511/LISTA-30-EMPRESAS.md): 91272467e983d8719200f604ec49dcf695aa1fab, com META-ATIVOS-2511.json; histórico ac80dc47b preservado em outra branch. [Conferência documental](CONCILIACAO-RECIBO-ATUALIZADO.json).
 - [Recibo dos gates](GATES.json), [recibo das fotos](FOTOS-RECIBO.json) e [contagem dos textos](EMAILS-CONTAGEM.json).
 
 ## Código real e escopo
@@ -36,10 +36,12 @@ O antes é o componente da candidata c60fb174c com cenário offline US$299, não
 
 **TIPOS:** execução inicial completa exit 0; execução após rebase registrada no recibo final de tipos e TYPECHECK-FINAL.log. Não houve build/deploy.
 
-**PARECER DE AUTORIA:** pacote preparado para revisão independente, sem autorização de publicação inferida. O que falta: PODE IR do kineo 3d; aprovação das fotos pelo dono; capacidade/agenda concreta e aceite dos clientes; confirmação atual dos anúncios individuais; seleção/aprovação do primeiro lote pela CEO. O limite de três clientes deve ser controlado antes de aceitar pagamento, não pela contagem de leads.
+**PARECER DE AUTORIA:** pacote preparado para revisão independente, sem autorização de publicação inferida. O que falta: PODE IR do kineo 3d; aprovação das fotos pelo dono; capacidade/agenda concreta e aceite dos clientes; seleção/aprovação do primeiro lote pela CEO. A evidência de anúncio individual Ativo com vídeo em 25/11 cobre as 30 empresas segundo o novo recibo; revalidar as peças escolhidas na seleção comercial. O limite de três clientes deve ser controlado antes de aceitar pagamento, não pela contagem de leads.
 
-**O que pode melhorar:** a lista não comprova 30 anunciantes ativos hoje. Nove evidências recentes são atribuídas a terceiro; zero confirmações diretas atuais. A conciliação preserva isso e retira promessas de funcionamento/resultado que uma imagem gerada não prova. Não há nova comparação concorrencial nesta alteração de implementação; o estudo de preços do dia 25 permanece no documento de decisão, com suas fontes e limites.
+**O que pode melhorar:** a limitação anterior de zero confirmações diretas foi superada pelo recibo de 30 cartões individuais Ativo com vídeo na Meta em 25/11. Não confundir esse estado com impressões, gasto, interesse ou adequação ao serviço. Quinze provas têm JPG local e quinze são transcrições de Canais; Product Story conferiu o recibo sem reabrir a Meta. Sede de três empresas permanece desconhecida; operação em país e mercado do filtro são campos diferentes. A conciliação mantém as restrições sobre promessas de funcionamento/resultado. Não há nova comparação concorrencial nesta atualização documental; o estudo de preços permanece no documento de decisão, com suas fontes e limites.
 
 **Próximo passo recomendado:** revisão independente da ponta exata, depois avaliação visual e lote pela CEO. Quadro somente local, fora do commit. Sem push, publicação, envio, gasto, consulta de clientes ou resultado comercial reivindicado.
 
 **HIGIENE DO DIFF:** após os gates, removido apenas CR excedente da linha 633 de FunnelClient.tsx herdada da candidata; um final de linha, sem mudança de texto ou comportamento. git diff --check fica limpo.
+
+**ATUALIZAÇÃO DOCUMENTAL · 25/11:** esta volta altera somente conciliação, estado do lote, metadado de pendência dos contatos e seu gerador, mais recibo de verificação. Corpos EN/PT, código, preço, OFF, oito fotos, HTML visual e gates são iguais a c8bcd7b31. Tipos/guardiões não repetidos porque não houve alteração de produto. A aprovação independente permanece pendente.
