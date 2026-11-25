@@ -443,7 +443,7 @@ const mutants = [
   [J, 'v1 = decidirDaFolha(r1.leitura, args.filmeFotorreal, descricao, modoForma, tipo)', 'v1 = decidirDaFolha(r1.leitura, args.filmeFotorreal, descricao, modoForma)'], // o laço sem o tipo
   [SO, 'decidirDaFolha(r.leitura, p.filmeFotorreal, descricao, modoForma, p.tipo), custo_usd: custo, erro: null }\n}\n', 'decidirDaFolha(r.leitura, p.filmeFotorreal, descricao, modoForma), custo_usd: custo, erro: null }\n}\n'], // a leitura da sonda sem o tipo
   [SN, "modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))", "modo !== 'off'"],
-  [routeFile, 'promptDaFolha(f, styleAnchor, folhaSemNome2511), epocaVisual?.ficha, true), styleSuffix: \'\', seed: (generationSeed + 7_919 * (101', 'promptDaFolha(f, styleAnchor), epocaVisual?.ficha, true), styleSuffix: \'\', seed: (generationSeed + 7_919 * (101'],
+  [routeFile, 'promptDaFolha(f, styleAnchor, folhaSemNome2511), epocaVisual?.ficha, true)), styleSuffix: \'\', seed: (generationSeed + 7_919 * (101', 'promptDaFolha(f, styleAnchor), epocaVisual?.ficha, true)), styleSuffix: \'\', seed: (generationSeed + 7_919 * (101'],
   [routeFile, 'promptDaFolha(f, styleAnchor, folhaSemNome2511), epocaVisual?.ficha, true) + instrucao', 'promptDaFolha(f, styleAnchor), epocaVisual?.ficha, true) + instrucao'],
   [routeFile, 'const folhaSemNome2511 = fichaSemNomeLigada(FICHA_SEM_NOME_2511, user.email)', 'const folhaSemNome2511 = true'],
   // 2. a forma

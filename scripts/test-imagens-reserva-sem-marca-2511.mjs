@@ -46,6 +46,7 @@ function borders(src) {
           outputs.push(emit(call,arg.initializer||arg.name))
         } else if(call==='buildFalInput') outputs.push(emit('reserva-imediata',n.arguments[1]))
       }
+      if(ts.isPropertyAssignment(n) && n.name.getText(tree)==='prompt_still') outputs.push(emit('retry-still',n.initializer))
       if(ts.isPropertyAssignment(n) && ['fallback_scenes','scene_prompts'].includes(n.name.getText(tree)) && /classicScenePrompts|promptsDaReserva/.test(n.initializer.getText(tree))) outputs.push(emit(n.name.getText(tree),n.initializer))
       if(ts.isBinaryExpression(n) && n.operatorToken.kind===ts.SyntaxKind.EqualsToken && n.left.getText(tree).endsWith('.fallback_scenes')) outputs.push(emit('fallback_scenes-final',n.right))
     }
@@ -54,7 +55,7 @@ function borders(src) {
   visit(tree)
   assert.equal(outputs.filter(x=>x.key==='generateCinematicSceneStill').length,6)
   assert.equal(outputs.filter(x=>x.key==='gerarStillComFolha').length,3)
-  for(const k of ['gerarStillsDaEstrela','reserva-imediata','fallback_scenes','fallback_scenes-final']) assert.equal(outputs.filter(x=>x.key===k).length,1,k)
+  for(const k of ['gerarStillsDaEstrela','reserva-imediata','fallback_scenes','fallback_scenes-final','retry-still']) assert.equal(outputs.filter(x=>x.key===k).length,1,k)
   assert.equal(outputs.filter(x=>x.key==='scene_prompts').length,2)
   return {vars,outputs}
 }
@@ -66,11 +67,16 @@ function captures(b, mode, email, film) {
   scope.promptsDaReserva=b.vars.get('promptsDaReserva')?.run(scope)
   return b.outputs.map(({key,run}) => {
     const values = film.plans.map((text,i) => {
-      const q={...scope,scenePrompt:text,promptForAttempt:text,c:{indice:i},promptNovo:text,fichasDaCena:()=>[],
+      const q={...scope,folhasC:['https://fixture.invalid/folha'],scenePrompt:text,promptForAttempt:text,c:{indice:i},promptNovo:text,fichasDaCena:()=>[],
         folhaSemNome2511:true,epocaVisual:null,styleAnchor:{},instrucao:'',f:{},aspectRequested:'9:16',
         promptDaFolha:()=>text,aplicarEpocaVisual:p=>p,promptDoStillComFolhaAjuste:p=>'Identity: '+p,
         estrelaPlanoClassico:[{protagonista:true,indice:i,prompt:text}]}
-      return JSON.parse(JSON.stringify(run(q)))
+      const value=JSON.parse(JSON.stringify(run(q)))
+      if(key!=='retry-still') return value
+      const claim={cenas:[{cena:i+1,folhas:q.folhasC,prompt_still:value}]}
+      const ref=bench('@/lib/cinematic/elencoTrava').referenciaDaCenaNoClaim(claim,i)
+      assert.ok(ref,'the redo gate must read the stored sheet prompt')
+      return bench('@/lib/cinematic/personagemAjuste').corpoDoEditAjuste(ref.prompt,ref.folhas,q.aspectRequested)
     })
     return {key,values}
   })
@@ -118,9 +124,10 @@ function leak(key,needle,replacement) {
   const output=captures(broken,'internal',house,samples[0])
   assert.ok(output.some(row=>row.key===key && escapes.test(JSON.stringify(row.values))), 'mutation must leak at '+key)
 }
+leak('retry-still','prompt_still: folhasC.length > 0 ? visualParaImagemOuReserva(promptDoStillComFolhaAjuste(classicScenePrompts[c.indice], fichasDaCena(c), aspectRequested)).slice(0, 2600)', 'prompt_still: folhasC.length > 0 ? promptDoStillComFolhaAjuste(classicScenePrompts[c.indice], fichasDaCena(c), aspectRequested).slice(0, 2600)')
 leak('fallback_scenes-final',').fallback_scenes = promptsDaReserva.map(',').fallback_scenes = classicScenePrompts.map(')
 leak('generateCinematicSceneStill','scenePrompt: visualParaImagemOuReserva(scenePrompt),\n              styleSuffix','scenePrompt,\n              styleSuffix')
 leak('gerarStillComFolha','prompt: visualParaImagemOuReserva(promptNovo), imageUrls','prompt: promptNovo, imageUrls')
 leak('reserva-imediata','buildFalInput(m, visualParaImagemOuReserva(promptForAttempt),','buildFalInput(m, promptForAttempt,')
-console.log('PASS: '+tested.outputs.length+' final image/fallback expressions; '+samples.length+' input sets; OFF/external, role assignment, M5/M9 and four leaking-sink mutants.')
+console.log('PASS: '+tested.outputs.length+' final image/fallback expressions; '+samples.length+' input sets; OFF/external, role assignment, M5/M9 and five leaking-sink mutants.')
 
