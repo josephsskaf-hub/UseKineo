@@ -6,6 +6,7 @@ import { minCoverageFor } from '@/lib/narrationFit' // KINEO-K4-NARRACAO-CABE-01
 // KINEO-REGUA-DO-ESCRITOR-2026-09-17 — o escritor dimensiona na régua do motor que VAI falar (a mesma do portão).
 import { minWordsFor, maxWordsFor, writerRateFor } from '@/lib/scriptWriterRate'
 import { openai, OPENAI_SCRIPT_TIMEOUT_MS } from '@/lib/openai'
+import { ESCRITOR_DE_DIALOGO_2511, escritorDeDialogoLigado, escreverDialogo2511, lerVoiceMode } from '@/lib/cinematic/escritorDeDialogo2511' // KINEO-ESCRITOR-DE-DIALOGO-2511
 import { writeServerEvent } from '@/lib/serverEvents'
 import { buildRefusalEvent } from '@/lib/stageRefusal'
 import {
@@ -424,6 +425,20 @@ export async function POST(req: NextRequest) {
     //
     // Quem chegou aqui pelo CTA já foi barrado por SER CURTO: devolver o mesmo
     // texto é a única resposta que com certeza não resolve nada.
+    // ═══ KINEO-ESCRITOR-DE-DIALOGO-2511 [CEO 25/11 noite; dono 17:50 "Pode abrir"] — voice_mode 'characters' no filme curto: o roteiro nasce com as falas
+    // (lib/cinematic/escritorDeDialogo2511). Só com a chave (nasce 'internal' = a casa exata), em inglês (a única língua provada) e com IDEIA (o texto que já
+    // chega com marcadores segue como hoje). Fora da régua, falhou ou demorou = segue abaixo, o roteiro narrado de hoje. voice_mode ausente ou 'narrator' =
+    // nenhuma linha nova roda. Depois da moderação do tema (acima): a política vale igual. ═══
+    if (lerVoiceMode(body.voice_mode) === 'characters' && filmeCurto && language === 'en' && !hasViralMarkers(topic) && escritorDeDialogoLigado(ESCRITOR_DE_DIALOGO_2511, user.email)) {
+      const dialogo2511 = await escreverDialogo2511({ ideia: topic, segundos: alvoSegundos, chamar: async (corpo) => {
+        const c = await openai.chat.completions.create(corpo as unknown as Parameters<typeof openai.chat.completions.create>[0], { timeout: OPENAI_SCRIPT_TIMEOUT_MS, maxRetries: 0 }) as { choices?: Array<{ message?: { content?: string | null } }> }
+        return c.choices?.[0]?.message?.content ?? null } })
+      await writeServerEvent({ name: 'dialogue_script_written', userId: user.id, path: '/api/generate-script', metadata: { ...dialogo2511.relato, target_seconds: alvoSegundos, engine: typeof body.engine === 'string' ? body.engine : null } })
+      if (dialogo2511.script) {
+        await writeServerEvent({ name: 'script_written', userId: user.id, path: '/api/generate-script', metadata: { original_idea: topic.slice(0, 4000), script_head: dialogo2511.script.slice(0, 200), voice_mode: 'characters', engine: typeof body.engine === 'string' ? body.engine : null, target_seconds: alvoSegundos, dialogue: dialogo2511.relato } })
+        return NextResponse.json({ script: dialogo2511.script, alreadyStructured: false, voiceMode: 'characters', targetSeconds: alvoSegundos, words: dialogo2511.relato.palavras, speakers: dialogo2511.relato.falantes })
+      }
+    }
     if (!forceAuthoring && hasViralMarkers(topic)) {
       // Revisão da E2b (achado 7, trava 8.2 sob o "vai" do 15 s): com alvo curto, o texto pronto acima do teto NÃO volta
       // intacto — ia verbatim pelos marcadores e a guarda do cinematic recusava (422 'script_too_long_for_short_film').

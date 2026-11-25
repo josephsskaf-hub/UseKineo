@@ -1,0 +1,15 @@
+{
+  "nota": "KINEO-ESCRITOR-DE-DIALOGO-2511 — o pacote do ensaio: 10 ideias MINHAS (nenhuma de cliente), 5 fotorreais e 5 de desenho. O estilo vem da tela (look); aqui é a ideia digitada. Rodar cada uma no POST /api/generate-script com { topic, language: 'en', targetSeconds: 15, engine: 'kling4', voice_mode: 'characters' }, na conta da casa, depois do deploy só-casa.",
+  "ideias": [
+    { "id": "f1", "estilo": "fotorreal", "topic": "A lighthouse keeper named Elias and a radio operator named Mara guide a lost fishing boat home through a storm." },
+    { "id": "f2", "estilo": "fotorreal", "topic": "Two old friends meet on a train platform after twenty years and one of them finally returns a borrowed watch." },
+    { "id": "f3", "estilo": "fotorreal", "topic": "A night-shift nurse convinces a stubborn patient to call his daughter before the morning surgery." },
+    { "id": "f4", "estilo": "fotorreal", "topic": "Rosa, a baker, finds a mysterious note inside a sealed flour sack and calls her brother Tomas to help solve it." },
+    { "id": "f5", "estilo": "fotorreal", "topic": "A taxi driver realizes his passenger is the stranger who saved his life ten years ago." },
+    { "id": "d1", "estilo": "desenho", "topic": "A tiny dragon named Ember is afraid of flying until a wise owl teaches her one brave trick." },
+    { "id": "d2", "estilo": "desenho", "topic": "A robot and a cat on the moon argue about who ate the last space cookie." },
+    { "id": "d3", "estilo": "desenho", "topic": "A grumpy cactus and a cheerful sunflower share one small window and learn to like each other." },
+    { "id": "d4", "estilo": "desenho", "topic": "Two penguins plan a surprise birthday party for their friend the walrus, but the walrus is already there." },
+    { "id": "d5", "estilo": "desenho", "topic": "A lost snowman in the desert asks a camel for directions back to the mountains." }
+  ]
+}
