@@ -89,6 +89,7 @@ async function run(rep = {}) {
   if (facts.VS_RIVAIS_CHECKED_LABEL !== LABEL) fail('R1', `carimbo "${facts.VS_RIVAIS_CHECKED_LABEL}"`)
 
   const engine = load('lib/engineLaunch.ts')
+  const freeFilmName = load('lib/freeFilmEngine.ts').FREE_FILM_ENGINE_NAME // KINEO-NOME-HONESTO-2511 — o nome do filme grátis (pode citar o Gemini Omni Flash 1.2)
   const answersMod = load(ANSWERS)
   const answers = answersMod.VS_RIVAL_ANSWERS
   const market = load('lib/marketingPrice.ts')
@@ -250,7 +251,9 @@ async function run(rep = {}) {
     if (!text.includes(escapeHtml(filmLine))) fail('R6', `${id}: filme grátis sem a cláusula de país ("${filmLine}")`)
     if (!engine.S25_PUBLIC && /Seedance 2\.5/.test(text)) fail('R6', `${id}: Seedance 2.5 na coluna da Kineo com S25_PUBLIC desligado`)
     if (engine.S25_PUBLIC && publicEngines.includes('Seedance 2.5') && !text.includes('Seedance 2.5 (paid plans)')) fail('R6', `${id}: Seedance 2.5 público sem "(paid plans)"`)
-    if (/Omni Flash/i.test(text)) fail('R6', `${id}: motor pausado na página`)
+    // KINEO-NOME-HONESTO-2511 — o motor PAGO Omni Flash segue pausado (lib/engineLaunch) e não aparece; o filme grátis PODE sair no Gemini Omni Flash 1.2
+    // (FREE_FILM_ENGINE_NAME, derivado da chave do Gemini): só o NOME EXATO do filme grátis sai da conta, qualquer outro "Omni Flash" continua vermelho
+    if (/Omni Flash/i.test(text.split(escapeHtml(freeFilmName)).join(' '))) fail('R6', `${id}: motor pausado na página`)
     if (!engine.AVATAR_PUBLIC && /avatar engine\b/i.test(text) && !/no avatar engine/i.test(text)) fail('R6', `${id}: motor de avatar fora do catálogo`)
   }
   if (engine.KINEO1_PUBLIC) fail('R6', 'o Kineo 1 (estoque) voltou ao catálogo: "scenes are generated, not matched from stock" deixou de valer; rever o texto')
