@@ -272,18 +272,23 @@ async function rotaDe(nome: string, rota: string, lib: string | null): Promise<G
   fs.writeFileSync(arq, src); temporarios.push(arq)
   return (await import(`../${arq}`)).GET as Get
 }
-const atual = (await import('../app/api/cron/resume-parked-renders/route')).GET as Get
+// KINEO-RETOMADA-SEM-RAJADA-2511 [CEO 25/11] — reancorado SEM afrouxar: este guardião prova a TRAVA DA COBRANÇA (nunca a tentativa N+1 sem ler a N,
+// nunca "Nothing was charged" com débito vivo) numa linha do tempo de 5 em 5 min. A cadência nova (lib/filaQuedaFal.ts, RETOMADA_ESPACADA_2511 'on')
+// só muda o QUANDO da N+1 e entra DEPOIS da trava; aqui a rota roda com a cadência 'off' (a de antes, byte a byte), para os tempos de cada caso
+// continuarem os que ele descreve. A trava com a cadência 'on' (as mesmas regras, nos tempos novos) é provada em scripts/test-retomada-sem-rajada-2511.mts.
+let atual: Get
 const rotaAtual = rd(ROTA)
-const libAtual = rd(LIB)
+const libAtual = troca(rd(LIB), "export const RETOMADA_ESPACADA_2511: ModoRetomadaEspacada2511 = 'on'", "export const RETOMADA_ESPACADA_2511: ModoRetomadaEspacada2511 = 'off'", 'cadencia_off')
 const git = (a: string[]) => execFileSync('git', a, { encoding: 'utf8', maxBuffer: 1 << 26 }).replace(/\r\n/g, '\n')
 let base: Get, anterior: Get, rev5: Get, rev6: Get, semEspera: Get, filtroVelho: Get, quatroCentosCego: Get, settledCego: Get, adotaVivo: Get, reabreVivo: Get
 try {
+  atual = await rotaDe('atual', rotaAtual, libAtual) // KINEO-RETOMADA-SEM-RAJADA-2511 — a rota atual com a cadência 'off'
   base = await rotaDe('base', git(['show', `${BASE}:${ROTA}`]), git(['show', `${BASE}:${LIB}`]))
   anterior = await rotaDe('anterior', git(['show', `${ANTERIOR}:${ROTA}`]), git(['show', `${ANTERIOR}:${LIB}`]))
   rev5 = await rotaDe('rev5', git(['show', `${REV5}:${ROTA}`]), git(['show', `${REV5}:${LIB}`]))
   rev6 = await rotaDe('rev6', git(['show', `${REV6}:${ROTA}`]), git(['show', `${REV6}:${LIB}`]))
   semEspera = await rotaDe('sem_espera', rotaAtual, troca(libAtual, 'export const PARKED_DEBIT_SETTLE_MS = PARKED_LEASE_TTL_MS', 'export const PARKED_DEBIT_SETTLE_MS = 0', 'sem_espera'))
-  filtroVelho = await rotaDe('filtro_velho', troca(rotaAtual, '!aluguelPodeTerCobrado(md.outcome)', "(md.outcome !== undefined && md.outcome !== 'started')", 'filtro_velho'), null)
+  filtroVelho = await rotaDe('filtro_velho', troca(rotaAtual, '!aluguelPodeTerCobrado(md.outcome)', "(md.outcome !== undefined && md.outcome !== 'started')", 'filtro_velho'), libAtual)
   quatroCentosCego = await rotaDe('4xx_cego', rotaAtual, troca(libAtual, "  if (outcome !== 'failed') return outcome\n", '  return outcome\n', '4xx_cego'))
   settledCego = await rotaDe('settled_cego', rotaAtual, troca(libAtual, "if (l.claim === 'settled' && l.debito !== 'estornado') return 'filme'", "if (l.claim === 'settled') return 'filme'", 'settled_cego'))
   adotaVivo = await rotaDe('adota_vivo', rotaAtual, troca(libAtual, "  if (l.erro) return 'ilegivel'\n", "  if (l.erro) return 'ilegivel'\n  if (l.debito === 'vivo') return 'filme'\n", 'adota_vivo'))

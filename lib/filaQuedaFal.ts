@@ -379,3 +379,71 @@ export function passouDoLimiteDeEspera(parkedAtMs: number, nowMs: number): boole
 /** Páginas de aluguéis lidas por passada (1000 por página). Passou disto = leitura incompleta = a passada não decide nada. */
 export const PARKED_LEASE_MAX_PAGES = 20
 export const PARKED_LEASE_PAGE = 1000
+
+// ═══ KINEO-RETOMADA-SEM-RAJADA-2511 [CEO 25/11; medida em docs/semana-2/RAJADA-DE-PEDIDOS-GRATIS-2511.md e RETOMADA-DO-ESTACIONADO-2511.md] ═══
+// A cron retomava o estacionado a cada 5 min por 24 h: 448 retomadas de 2 cliques em 31/10–01/11 (o débito em modo serviço, já consertado em 03/11,
+// respondia 503 "Your credit charge could not be confirmed"), 36 de um clique com a fal pausada em 08/11. Agora, com 'on':
+//   · fal fora ou capacidade: tentativas aos 5, 10, 20, 40 e 60 min do estacionamento e daí de hora em hora (a fal que volta logo = igual a hoje);
+//   · erro nosso (5xx sem queued/parked: o débito que não confirma, a rota que cai): 3 tentativas seguidas e o fechamento 'failed' com o e-mail honesto
+//     de sempre (só depois de toda tentativa lida sem cobrança, pela trava que já existe);
+//   · saldo (estacionado por balance_quota): a 1ª aos 15 min; sem ler o saldo, de hora em hora; lendo (FAL_BILLING_KEY), só tenta com saldo de volta;
+//   · o desfecho de cada tentativa grava a sua classe no aluguel (fal_fora, capacidade, erro_nosso, outro), para a medida separar as retomadas.
+// 'off' = a cadência de hoje, byte a byte (nenhuma linha nova roda).
+export type ModoRetomadaEspacada2511 = 'on' | 'off'
+export const RETOMADA_ESPACADA_2511: ModoRetomadaEspacada2511 = 'on'
+export const RETOMADA_ESPACADA_2511_VERSAO = 'retomada_espacada_2511_v1'
+const MIN_2511 = 60_000
+/** Espera antes da tentativa N+1 (índice = quantas tentativas já houve) com a fal fora ou sem capacidade: 5, 10, 20, 40 e 60 min do estacionamento. */
+export const ESPERAS_FAL_FORA_2511_MS: readonly number[] = [5, 5, 10, 20, 20].map((m) => m * MIN_2511)
+/** Depois da escada: de hora em hora. */
+export const ESPERA_DEPOIS_DA_ESCADA_2511_MS = 60 * MIN_2511
+/** Estacionado por saldo: a 1ª tentativa aos 15 min (o saldo não volta sozinho em 5 min). */
+export const PRIMEIRA_POR_SALDO_2511_MS = 15 * MIN_2511
+/** Erro nosso: no máximo 3 tentativas seguidas (esperas de 5 e 10 min entre elas); a 4ª vira o fechamento 'failed'. */
+export const ERRO_NOSSO_MAX_2511 = 3
+export const ESPERAS_ERRO_NOSSO_2511_MS: readonly number[] = [5, 10].map((m) => m * MIN_2511)
+/** A cron roda de 5 em 5 min e o aluguel nasce alguns segundos depois do começo da passada: a espera tem 1 min de folga. */
+export const FOLGA_DA_ESCADA_2511_MS = MIN_2511
+/** Com o saldo lido: o estacionado por saldo só volta com pelo menos isto na fal (um filme grátis de 15 s custa até US$ 3,14). */
+export const SALDO_PARA_RETOMAR_USD_2511 = 5
+/** O aviso de saldo baixo (CEO 25/11: queima média de US$ 46 por dia em novembro; 75 ≈ um dia e meio). */
+export const SALDO_BAIXO_USD_2511 = 75
+export type ClasseDaTentativa2511 = 'fal_fora' | 'capacidade' | 'erro_nosso' | 'outro'
+/** A classe do desfecho de uma tentativa: a gravada no aluguel vence; sem ela, pelo desfecho e o HTTP. */
+export function classeDaTentativa2511(md: { classe?: unknown; outcome?: unknown; status?: unknown }): ClasseDaTentativa2511 {
+  if (md.classe === 'fal_fora' || md.classe === 'capacidade' || md.classe === 'erro_nosso' || md.classe === 'outro') return md.classe
+  if (md.outcome === 'provider_down') return 'fal_fora'
+  const st = Number(md.status)
+  if (md.outcome === 'retry_later' && st === 429) return 'capacidade'
+  if (md.outcome === 'retry_later' && Number.isFinite(st) && st >= 500) return 'erro_nosso'
+  return 'outro'
+}
+export type TentativaPassada2511 = { atMs: number; classe: ClasseDaTentativa2511; status: number | null; erro: string | null }
+export type DecisaoDaEscada2511 =
+  | { acao: 'tentar' }
+  | { acao: 'esperar'; motivo: 'escada' | 'escada_erro_nosso' | 'escada_saldo' | 'saldo_zerado'; ateMs: number | null }
+  | { acao: 'fechar_erro_nosso'; status: number | null; erro: string | null }
+/** O motivo gravado no estacionamento ('balance_quota' | 'capacity'); qualquer outra coisa = null (a escada da fal fora). */
+export function motivoDoEstacionado2511(metadata: unknown): 'balance_quota' | 'capacity' | null {
+  const r = (metadata && typeof metadata === 'object' ? (metadata as { reason?: unknown }).reason : null)
+  return r === 'balance_quota' || r === 'capacity' ? r : null
+}
+/** Pode sair a tentativa N+1 agora? Só decide a CADÊNCIA: a trava da cobrança (ler a tentativa N antes da N+1) continua antes, na rota. */
+export function decidirEscada2511(i: { parkedAtMs: number; nowMs: number; motivo: 'balance_quota' | 'capacity' | null; tentativas: readonly TentativaPassada2511[]; saldoUsd: number | null }): DecisaoDaEscada2511 {
+  const t = [...i.tentativas].filter((x) => Number.isFinite(x.atMs)).sort((a, b) => a.atMs - b.atMs)
+  let seguidos = 0
+  for (let k = t.length - 1; k >= 0 && t[k].classe === 'erro_nosso'; k--) seguidos++
+  const ultima = t[t.length - 1] ?? null
+  if (seguidos >= ERRO_NOSSO_MAX_2511 && ultima) return { acao: 'fechar_erro_nosso', status: ultima.status, erro: ultima.erro }
+  const saldo = i.motivo === 'balance_quota'
+  if (saldo && i.saldoUsd !== null && i.saldoUsd < SALDO_PARA_RETOMAR_USD_2511) return { acao: 'esperar', motivo: 'saldo_zerado', ateMs: null }
+  let proxima: number, motivo: 'escada' | 'escada_erro_nosso' | 'escada_saldo'
+  if (ultima && ultima.classe === 'erro_nosso') { proxima = ultima.atMs + ESPERAS_ERRO_NOSSO_2511_MS[seguidos - 1]; motivo = 'escada_erro_nosso' }
+  // o saldo lido e de volta: a escada da fal fora a partir da última tentativa (a fal que recusa por outro motivo não vira rajada); depois de horas sem
+  // saldo (nenhuma tentativa), a escada já venceu e a retomada sai na passada em que o saldo volta
+  else if (saldo && i.saldoUsd !== null) { proxima = ultima ? ultima.atMs + (ESPERAS_FAL_FORA_2511_MS[t.length] ?? ESPERA_DEPOIS_DA_ESCADA_2511_MS) : i.parkedAtMs + ESPERAS_FAL_FORA_2511_MS[0]; motivo = 'escada' }
+  else if (!ultima) { proxima = i.parkedAtMs + (saldo ? PRIMEIRA_POR_SALDO_2511_MS : ESPERAS_FAL_FORA_2511_MS[0]); motivo = saldo ? 'escada_saldo' : 'escada' }
+  else if (saldo) { proxima = ultima.atMs + ESPERA_DEPOIS_DA_ESCADA_2511_MS; motivo = 'escada_saldo' }
+  else { proxima = ultima.atMs + (ESPERAS_FAL_FORA_2511_MS[t.length] ?? ESPERA_DEPOIS_DA_ESCADA_2511_MS); motivo = 'escada' }
+  return i.nowMs + FOLGA_DA_ESCADA_2511_MS >= proxima ? { acao: 'tentar' } : { acao: 'esperar', motivo, ateMs: proxima }
+}

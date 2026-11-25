@@ -12,3 +12,7 @@ export const idDoFechamento = (genId: string) => idDe('closed', genId)
 export const idDoAluguel = (genId: string, attempt: number) => idDe('lease', genId, String(attempt))
 /** generationId da retomada N: determinístico, logo o mesmo claim se a rodada repetir a mesma tentativa. */
 export const idDaRetomada = (genId: string, attempt: number) => `parked-${idDe('resume', genId, String(attempt)).replace(/-/g, '').slice(0, 24)}`
+
+/** KINEO-RETOMADA-SEM-RAJADA-2511 (d) — a retomada do robô: todo pedido que a cron refaz nasce com o generationId 'parked-…' (idDaRetomada acima).
+ *  A contagem de pedidos de cliente tira estes (ou conta clique, video_generation_started, que a retomada não grava). */
+export const ehRetomadaDoRobo = (generationId: unknown): boolean => typeof generationId === 'string' && generationId.startsWith('parked-')

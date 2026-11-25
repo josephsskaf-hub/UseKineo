@@ -33,6 +33,8 @@ import { CINEMATIC_CLAIM_EVENT } from '@/lib/cinematic/claim' // KINEO-RETOMADA-
 import { aluguelPodeTerCobrado, desfechoComCobranca, leituraDaCobranca, podeDizerNadaCobrado, situacaoDaTentativa, passouDoLimiteDeEspera, FOUNDER_PARKED_ALERT_EVENT, PARKED_LEASE_MAX_PAGES, PARKED_LEASE_PAGE, type LeituraDaCobranca, type SituacaoDaTentativa } from '@/lib/filaQuedaFal' // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 — nenhuma tentativa N+1 (nem e-mail "nothing was charged") sem LER a cobrança da tentativa N; cobrança viva = só espera (nunca re-POST)
 import { textoDoAlertaEstacionadoSemConfirmacao } from '@/lib/filaQuedaFal' // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 — revisão 7: o teto AVISA o fundador (o evento sozinho não tinha leitor)
 import { notifyFounder } from '@/lib/supplier/notify' // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
+import { RETOMADA_ESPACADA_2511, classeDaTentativa2511, decidirEscada2511, motivoDoEstacionado2511, type TentativaPassada2511 } from '@/lib/filaQuedaFal' // KINEO-RETOMADA-SEM-RAJADA-2511
+import { registrarDiaDoSaldo2511, saldoDaPassada2511 } from '@/lib/retomadaSemRajada2511' // KINEO-RETOMADA-SEM-RAJADA-2511 — o saldo da fal (só com FAL_BILLING_KEY) e o evento do dia
 
 export const dynamic = 'force-dynamic'
 // KINEO-DATA-CACHE-2026-09-02 (regra da casa): rota só-GET nasce com revalidate=false; sem isto o marcador de fechamento
@@ -192,6 +194,7 @@ export async function GET(req: NextRequest) {
   const parkedRows = await lerTudo<ParkedRow>((de, ate) => admin.from('events').select('user_id, session_id, created_at, metadata').eq('name', PARKED_EVENT).not('session_id', 'like', 'parked-%').gte('created_at', desde).order('created_at', { ascending: true }).order('id').range(de, ate)) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 — era .limit(100)
   if (parkedRows === null) return NextResponse.json({ error: 'parked read incomplete' }, { status: 500 })
   const parked = parkedRows.filter((r) => r.user_id && r.session_id && estacionadoRetomavel(r.session_id)) // KINEO-SERIE-AUTO-ETAPA1-0111 — a linha FILHA (a rota re-estacionou a tentativa N) nunca é retomada: só o original
+  if (RETOMADA_ESPACADA_2511 === 'on' && parked.length === 0) await saldoDaPassada2511(admin, { nowMs: now, haPorSaldo: false }).catch(() => null) // KINEO-RETOMADA-SEM-RAJADA-2511 — o aviso de saldo baixo (uma leitura por hora, só com a chave)
   if (parked.length === 0) return NextResponse.json({ ok: true, mode: confirm ? 'SEND' : 'DRY_RUN', scanned: 0, results: [] })
   const genIds = parked.map((r) => String(r.session_id))
   const userIds = [...new Set(parked.map((r) => String(r.user_id)))]
@@ -234,6 +237,23 @@ export async function GET(req: NextRequest) {
     if (Number.isFinite(t)) lastDispatchByUser.set(String(d.user_id), Math.max(lastDispatchByUser.get(String(d.user_id)) ?? 0, t))
   }
 
+  // KINEO-RETOMADA-SEM-RAJADA-2511 — as tentativas já feitas de cada estacionado (a cadência), o saldo da passada e o evento do dia do saldo
+  const espacada2511 = RETOMADA_ESPACADA_2511 === 'on'
+  const historico2511 = new Map<string, TentativaPassada2511[]>()
+  let saldo2511: number | null = null
+  if (espacada2511) {
+    for (const l of leaseRows) {
+      const md = (l.metadata ?? {}) as { outcome?: unknown; status?: unknown; error?: unknown; classe?: unknown }
+      const t = Date.parse(String(l.created_at))
+      if (md.outcome === undefined || !Number.isFinite(t)) continue
+      const lista = historico2511.get(String(l.session_id)) ?? []
+      lista.push({ atMs: t, classe: classeDaTentativa2511(md), status: Number.isFinite(Number(md.status)) && md.status !== null ? Number(md.status) : null, erro: typeof md.error === 'string' ? md.error.slice(0, 200) : null })
+      historico2511.set(String(l.session_id), lista)
+    }
+    const porSaldo = parked.filter((r) => !closed.has(String(r.session_id)) && motivoDoEstacionado2511(r.metadata) === 'balance_quota' && now - Date.parse(r.created_at) < PARKED_TTL_MS)
+    saldo2511 = await saldoDaPassada2511(admin, { nowMs: now, haPorSaldo: porSaldo.length > 0 }).catch(() => null)
+    if (porSaldo.length > 0) await registrarDiaDoSaldo2511(admin, { porSaldo, nowMs: now, saldoUsd: saldo2511 })
+  }
   const results: Array<{ generation: string; decision: ResumeDecision | string; outcome?: string; status?: number; email?: string }> = []
   let resumed = 0
   let providerDown = false
@@ -300,6 +320,16 @@ export async function GET(req: NextRequest) {
     }
     if (providerDown) { results.push({ generation: g8, decision: 'provider_down_wait' }); continue }
     if (resumed >= PARKED_MAX_RESUMES_PER_RUN) { results.push({ generation: g8, decision: 'deferred_budget' }); continue }
+    if (espacada2511) { // KINEO-RETOMADA-SEM-RAJADA-2511 — a cadência: a trava da cobrança (acima) já leu a tentativa N; aqui só o QUANDO da N+1
+      const e = decidirEscada2511({ parkedAtMs, nowMs: now, motivo: motivoDoEstacionado2511(row.metadata), tentativas: historico2511.get(genId) ?? [], saldoUsd: saldo2511 })
+      if (e.acao === 'esperar') { results.push({ generation: g8, decision: `wait_${e.motivo}` }); continue }
+      if (e.acao === 'fechar_erro_nosso') {
+        const f = await fechar(admin, row, 'failed', { attempts: lease.n, status: e.status, error: e.erro, motivo: 'erro_nosso_3x' })
+        const email = f === 'novo' ? await enviarEmail(admin, userId, 'failed', pedido.prompt, confirm) : 'none'
+        results.push({ generation: g8, decision: 'failed_erro_nosso', outcome: f, email })
+        continue
+      }
+    }
     const attempt = Math.max(lease.n, lease.maxAttempt) + 1 // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
     const leaseId = idDoAluguel(genId, attempt)
     const { error: leaseErr } = await admin.from('events').insert({ id: leaseId, user_id: userId, name: PARKED_LEASE_EVENT, path: '/api/cron/resume-parked-renders', session_id: genId, metadata: { version: PARKED_VERSION, attempt } })
@@ -310,7 +340,7 @@ export async function GET(req: NextRequest) {
     const resposta = classificarRespostaDaRetomada(status, json) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111
     const outcome = desfechoComCobranca(resposta, resposta === 'failed' ? situacaoDaTentativa({ leitura: await cobrancaDaRetomada(admin, userId, resumeGenId), iniciado: false, nowMs: now, rotaRespondeu: true }) : null) // KINEO-RETOMADA-SEM-COBRANCA-DUPLA-0111 — 4xx só é terminal com a tentativa 'sem_cobranca' (nem débito vivo, nem filme a caminho); senão retry_later, nunca "nothing was charged"
     const erro = typeof (json as { error?: unknown } | null)?.error === 'string' ? String((json as { error: string }).error).slice(0, 200) : null
-    await admin.from('events').update({ metadata: { version: PARKED_VERSION, attempt, outcome, status, resume_generation_id: resumeGenId, error: erro } }).eq('id', leaseId)
+    await admin.from('events').update({ metadata: { version: PARKED_VERSION, attempt, outcome, status, resume_generation_id: resumeGenId, error: erro, ...(espacada2511 ? { classe: classeDaTentativa2511({ outcome, status }) } : {}) } }).eq('id', leaseId) // KINEO-RETOMADA-SEM-RAJADA-2511 (d): a classe do desfecho
     let email = 'none'
     if (outcome === 'started') await fechar(admin, row, 'resumed', { attempts: attempt, resume_generation_id: resumeGenId, status })
     else if (outcome === 'failed') { const f = await fechar(admin, row, 'failed', { attempts: attempt, status, error: erro }); if (f === 'novo') email = await enviarEmail(admin, userId, 'failed', pedido.prompt, confirm) }
