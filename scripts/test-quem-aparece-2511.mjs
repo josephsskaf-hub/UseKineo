@@ -1,4 +1,7 @@
 // KINEO-QUEM-APARECE-2511 — guardião que EXECUTA a leitura de quem aparece em cada plano, com a rede FALSA (nada sai da máquina), contra a origin/main:
+//   0. [CEO 25/11 12:00, só-sonda] a chave é 'sonda': a leitura não entra em filme nenhum, nem da casa — o trecho real da rota, na casa, sai byte a byte
+//      igual ao da main de ANTES do "quem aparece" (9270f6e05), sem chamada; a sonda, executada, dá 200 à casa e 403 fora. O caminho da leitura segue
+//      testado com a chave forçada em 'internal' só dentro do guardião;
 //   1. a chave ('internal' = só a casa exata), o pedido (sem exemplo), o esquema (qualquer desvio = leitura falhou), a regra do código e a rede (sem chave,
 //      HTTP, prazo, JSON torto = null, com o tempo medido);
 //   2. o trecho REAL da rota (do elenco do ajuste até a ordem do protagonista), executado na casa com a leitura injetada (Alcatraz, Umudara, Shiro em paráfrase:
@@ -17,7 +20,7 @@ import { PARTE_B, AMOSTRA, LINGUA, FILMES, leituraCerta, CORPOS_DA_SONDA } from 
 
 const Q = 'lib/cinematic/quemAparece2511.ts', PA = 'lib/cinematic/personagemAjuste.ts', F15 = 'lib/filmes/filme15Elenco.ts', FQ = 'lib/cinematic/filmQuality.ts', EE = 'lib/cinematic/elencoEpoca.ts', K = 'lib/kling4Trial.ts'
 const routeFile = 'app/api/generate-video-cinematic/route.ts', sondaRoute = 'app/api/admin/sonda-presenca/route.ts'
-const BASE = 'origin/main'
+const BASE = '9270f6e05' // [CEO 25/11 12:00] a main de antes do "quem aparece" (a régua do byte a byte); era: origin/main
 const local = (file) => readFileSync(file, 'utf8').replaceAll('\r\n', '\n')
 const daBase = (file) => execSync(`git show ${BASE}:${file}`, { encoding: 'utf8', maxBuffer: 64 << 20 }).replaceAll('\r\n', '\n')
 const GLOBALS = { AbortSignal, AbortController, setTimeout, clearTimeout }
@@ -59,9 +62,13 @@ async function suite(change) {
   const tipCom = (extra = (f, t) => t) => load((file, src) => extra(file.replaceAll('\\', '/'), muda(file.replaceAll('\\', '/'), src)))
   const m = tipCom(), q = m('@/' + Q), pa = m('@/' + PA), f15 = m('@/' + F15), fq = m('@/' + FQ), ee = m('@/' + EE), k = m('@/' + K), qp = m('@/lib/kling4QuatroPlanos')
   const route = muda(routeFile, local(routeFile)), rotaSonda = muda(sondaRoute, local(sondaRoute))
+  // o caminho da leitura, com a chave forçada em 'internal' SÓ aqui (a chave real é 'sonda' e o trecho real da rota prova que a casa fica na main)
+  const qi = tipCom((f2, t2) => (f2 === Q ? t2.replace("export const QUEM_APARECE_2511: ModoQuemAparece2511 = 'sonda'", "export const QUEM_APARECE_2511: ModoQuemAparece2511 = 'internal'") : t2))('@/' + Q)
 
   // ── 1. a chave, o pedido, o esquema, a regra e a rede ───────────────────────────────────────────────────────────────────────────────────────────────
-  assert.equal(q.QUEM_APARECE_2511, 'internal')
+  assert.equal(q.QUEM_APARECE_2511, 'sonda', 'a chave: só-sonda até a régua passar')
+  igual([q.quemApareceLigado('sonda', CASA), q.quemApareceLigado('sonda', CLIENTE), q.quemApareceLigado('sonda', null)], [false, false, false], "'sonda': filme nenhum, nem da casa")
+  assert.equal(qi.QUEM_APARECE_2511, 'internal')
   assert.equal(q.quemApareceLigado('internal', CASA), true)
   for (const e of [CLIENTE, 'joseph@usekineo.com', 'xjosephsskaf@gmail.com', '', null, undefined]) assert.equal(q.quemApareceLigado('internal', e), false, String(e))
   igual([q.quemApareceLigado('off', CASA), q.quemApareceLigado('public', CLIENTE)], [false, true])
@@ -107,7 +114,7 @@ async function suite(change) {
     { fala: 'The old keeper climbs the spiral stairs.', marcador: 'spiral stairs', visual: 'An old keeper climbs spiral stairs.' },
     { fala: 'His chair by the window stays empty tonight.', marcador: 'empty chair by the window', visual: "An empty chair by the window, the old keeper's coat hanging on it." },
     { fala: 'He lights the great lamp.', marcador: 'great lamp lit', visual: 'A hand lights the great lamp at the top of the tower.' }], esperado: [[true], [false], [true]] }
-  const tipMods = { pa, f15, q }, baseMods = { pa: PAb, f15: F15b, q: null }
+  const tipMods = { pa, f15, q: qi }, baseMods = { pa: PAb, f15: F15b, q: null }
   // a qualidade do filme (fora do trecho executado) recebe a leitura; os argumentos de sempre continuam na frente (as âncoras dos guardiões antigos)
   { const lq = route.split('\n').find((l) => l.includes('const elencoEpoca = prepararQualidadeDoFilme({ prompts: classicScenePrompts')) ?? ''
     assert.ok(lq.includes(', presenca: presenca2511 /* KINEO-QUEM-APARECE-2511 */ })'), 'prepararQualidadeDoFilme recebe a leitura')
@@ -133,8 +140,11 @@ async function suite(change) {
       igual([x.prompts, x.forcadas, x.cenas], [b.prompts, b.forcadas, b.cenas], `${filme.id} ${mundo}: a main`)
       igual([x.presenca, x.mudou, x.chamadas], [null, [], mundo === 'cliente' || mundo === 'e-mail nulo' ? 0 : 1], `${filme.id} ${mundo}: chamadas`)
     }
-    const off = await rodarTrecho(route, { ...tipMods, q: tipCom((f, t2) => (f === Q ? t2.replace("export const QUEM_APARECE_2511: ModoQuemAparece2511 = 'internal'", "export const QUEM_APARECE_2511: ModoQuemAparece2511 = 'off'") : t2))('@/' + Q) }, { email: CASA, filme, conteudo: leituraParaInjetar(filme) })
+    const off = await rodarTrecho(route, { ...tipMods, q: tipCom((f, t2) => (f === Q ? t2.replace("export const QUEM_APARECE_2511: ModoQuemAparece2511 = 'sonda'", "export const QUEM_APARECE_2511: ModoQuemAparece2511 = 'off'") : t2))('@/' + Q) }, { email: CASA, filme, conteudo: leituraParaInjetar(filme) })
     igual([off.prompts, off.forcadas, off.cenas, off.chamadas], [b.prompts, b.forcadas, b.cenas, 0], filme.id + " 'off': a main")
+    // [CEO 25/11 12:00] a chave REAL ('sonda'), na CASA e no cliente: byte a byte o trecho da main de antes do "quem aparece" (9270f6e05), e a leitura nem é chamada
+    for (const email of [CASA, CLIENTE]) { const so = await rodarTrecho(route, { ...tipMods, q }, { email, filme, conteudo: leituraParaInjetar(filme) })
+      igual([so.prompts, so.forcadas, so.cenas, so.chamadas, so.presenca, so.mudou], [b.prompts, b.forcadas, b.cenas, 0, null, []], `${filme.id} 'sonda' (${email === CASA ? 'casa' : 'cliente'}): a main de 9270f6e05, nenhuma chamada`) }
   }
   // [revisora, volta 1] as leituras BURRAS dentro do esquema: o piso e o "no" incoerente seguram o filme
   { const burra = (filme, f) => JSON.stringify({ shots: filme.planos.map((_, i) => ({ shot: i + 1, cast: filme.elenco.map((_, k) => ({ id: k + 1, ...f(i, k) })) })) })
@@ -312,11 +322,26 @@ async function suite(change) {
   assert.ok(iPost > 0 && iPost < i403 && i403 < iAdm && iAdm < iLer, '403 antes de tudo; a trava antes da chamada')
   assert.ok(/finally \{\n\s+liberarSondaDePresenca\(estado, ms\)/.test(rotaSonda) && rotaSonda.includes('p95_ms: p95([...estado.tempos, r.ms])') && rotaSonda.includes('prazo_ms: QUEM_APARECE_PRAZO_MS'), 'libera no finally e devolve o tempo e o p95')
   assert.ok(!/generateCinematicSceneStill|persistFastStill|from\('|\.insert\(|debitVideoCredits/.test(rotaSonda), 'a sonda só lê: nem imagem, nem banco, nem crédito')
+  // [CEO 25/11 12:00] a sonda EXECUTADA com a chave 'sonda': 200 para a casa (uma leitura), 403 para cliente e sem login (nenhuma leitura)
+  { const chamar = async (user) => { let leituras = 0
+      const fetchFalso = async () => { leituras++; return respostaDe(leituraCerta({ id: 'x', esperado: [[true]] })) }
+      const ld = createOfflineLoader({ globals: { ...GLOBALS, fetch: fetchFalso }, env: { OPENAI_API_KEY: 'k' }, source: (file, src) => muda(file, src), mocks: {
+        'next/server': { NextResponse: { json: (body, init) => ({ status: init?.status ?? 200, body }) } },
+        '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user } }) } }) } } })
+      const rota = ld('@/' + sondaRoute)
+      const res = await rota.POST({ json: async () => ({ elenco: [{ nome: 'Mara Quinn', tipo: 'humano', genero: 'woman' }], planos: [{ fala: 'Mara waves from the pier.', marcador: '', visual: '' }] }) })
+      return { status: res.status, body: res.body, leituras } }
+    const casa = await chamar({ email: CASA }), cli = await chamar({ email: CLIENTE }), anon = await chamar(null)
+    igual([casa.status, casa.leituras, casa.body.erro, casa.body.presenca], [200, 1, null, { elenco: ['Mara Quinn'], planos: [['Mara Quinn']] }], 'a sonda: 200 para a casa com a chave em sonda')
+    igual([cli.status, cli.leituras, cli.body.erro, anon.status, anon.leituras], [403, 0, 'nao_e_da_casa', 403, 0], 'a sonda: 403 fora da casa, sem leitura') }
 }
 
 await suite(null)
 const mutants = [
-  [Q, "export const QUEM_APARECE_2511: ModoQuemAparece2511 = 'internal'", "export const QUEM_APARECE_2511: ModoQuemAparece2511 = 'public'"],
+  [Q, "export const QUEM_APARECE_2511: ModoQuemAparece2511 = 'sonda'", "export const QUEM_APARECE_2511: ModoQuemAparece2511 = 'public'"],
+  [Q, "export const QUEM_APARECE_2511: ModoQuemAparece2511 = 'sonda'", "export const QUEM_APARECE_2511: ModoQuemAparece2511 = 'internal'"], // a casa volta a ter a leitura no filme
+  [Q, "modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))", "modo === 'public' || (modo !== 'off' && contaDaCasaExata(email))"], // 'sonda' liga na casa
+  [sondaRoute, '  const admissao = admitirSondaDePresenca(estado, user.email, chaveDaPresenca(pedido))\n  if (admissao !== \'ok\')', '  const admissao = admitirSondaDePresenca(estado, user.email, chaveDaPresenca(pedido))\n  if (false)'], // a sonda deixa de recusar cliente
   [Q, "modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))", "modo !== 'off'"],
   [Q, "if (!s || s.shot !== i + 1 || !Array.isArray(s.cast) || s.cast.length !== nElenco) return null", "if (!s || !Array.isArray(s.cast)) return null"],
   [Q, '!Array.isArray(shots) || shots.length !== nPlanos || nElenco < 1', '!Array.isArray(shots)'],
@@ -384,4 +409,4 @@ for (const mutant of mutants) {
   mortos++
 }
 const sic = globalThis.__semImagemChave
-console.log(`PASS KINEO-QUEM-APARECE-2511: 'internal' (só a casa exata); pedido sem exemplo; esquema estrito (qualquer desvio = a main); visto/lembrança = visível, 'unclear' = a regra de hoje; o trecho real da rota com a leitura certa tira o protagonista dos planos que não o citam (Alcatraz 1 e 3, Umudara 3) e cliente, nulo, 'off', HTTP 500, fora do esquema e prazo = a main byte a byte; Identity: e plano do A2 sem o guarda (o mar volta); parte B 61/61 com a leitura (a main acerta ${globalThis.__mainCerta}/61); amostra 15/15 + 3 sem gabarito; pronome e língua 4/4 + 4 na parte B; Shiro fora do plano da pantera; sem imagem-chave no A2: Alcatraz ${sic.alcatraz.length}/3, Umudara ${sic.umudara.length}/3, Shiro ${sic.shiro.length}/3; registro e relato só número; sonda (403, uma por vez, sem repetir, teto, p95); ${mortos}/${mutants.length} mutantes mortos.`)
+console.log(`PASS KINEO-QUEM-APARECE-2511: chave 'sonda' (a casa e o cliente = a main de 9270f6e05 byte a byte, nenhuma chamada; a sonda executada: 200 casa, 403 cliente e sem login; o caminho da leitura testado com 'internal' forçado); 'internal' (só a casa exata); pedido sem exemplo; esquema estrito (qualquer desvio = a main); visto/lembrança = visível, 'unclear' = a regra de hoje; o trecho real da rota com a leitura certa tira o protagonista dos planos que não o citam (Alcatraz 1 e 3, Umudara 3) e cliente, nulo, 'off', HTTP 500, fora do esquema e prazo = a main byte a byte; Identity: e plano do A2 sem o guarda (o mar volta); parte B 61/61 com a leitura (a main acerta ${globalThis.__mainCerta}/61); amostra 15/15 + 3 sem gabarito; pronome e língua 4/4 + 4 na parte B; Shiro fora do plano da pantera; sem imagem-chave no A2: Alcatraz ${sic.alcatraz.length}/3, Umudara ${sic.umudara.length}/3, Shiro ${sic.shiro.length}/3; registro e relato só número; sonda (403, uma por vez, sem repetir, teto, p95); ${mortos}/${mutants.length} mutantes mortos.`)

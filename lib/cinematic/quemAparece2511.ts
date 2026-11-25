@@ -14,8 +14,10 @@ import { contaDaCasaExata } from '@/lib/internalAccounts'
 import { STILL_CRITIC_MODELO, custoDoCriticoUsd } from '@/lib/cinematic/criticoStill'
 
 export const QUEM_APARECE_2511_VERSAO = 'quem_aparece_2511_v1'
-export type ModoQuemAparece2511 = 'off' | 'internal' | 'public'
-export const QUEM_APARECE_2511: ModoQuemAparece2511 = 'internal'
+// [CEO 25/11 11:55, o ensaio de 86 leituras NÃO passou na régua: tirou quem estava em 5 casos, pôs quem não estava em 7] 'sonda' = a leitura não entra em
+// filme NENHUM (nem da casa) até passar; a sonda (/api/admin/sonda-presenca) continua.
+export type ModoQuemAparece2511 = 'off' | 'sonda' | 'internal' | 'public'
+export const QUEM_APARECE_2511: ModoQuemAparece2511 = 'sonda'
 export const quemApareceLigado = (modo: ModoQuemAparece2511, email: string | null | undefined): boolean =>
   modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))
 export const QUEM_APARECE_PRAZO_MS = 6_000
