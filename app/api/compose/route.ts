@@ -3536,15 +3536,6 @@ export async function POST(req: NextRequest) {
     const legendaWords: WhisperWord[] | undefined = legendaNaEscritaDoRoteiro(grafia ? grafia.words : whisperWords, scaledScript) // KINEO-META95-ESCRITA-2010 — rede final: Whisper em outra escrita não vai para a tela (plano B: o texto do roteiro no tempo do áudio)
     if (whisperWords && whisperWords.length > 0 && !legendaWords) console.warn('[compose] KINEO-META95-ESCRITA-2010: Whisper em outra escrita que o roteiro — legenda pelo texto do roteiro (plano B)') // KINEO-META95-ESCRITA-2010
 
-    // KINEO-TRIAL-WATERMARK-2026-09-07 — a decisão de marca d'água mora AQUI,
-    // uma única vez, lida pelo builder logo abaixo E pela resposta lá no fim.
-    // `FORCE_WATERMARK_EMAILS` (#434) segue como último termo: as contas de
-    // autopromoção do fundador sempre saem marcadas.
-    watermarkApplied =
-      isFreePlanFast ||
-      isTrialRender ||
-      isFreePlanCinematic ||
-      FORCE_WATERMARK_EMAILS.has((user.email ?? '').toLowerCase())
     // KINEO-FALA-DOS-PERSONAGENS-2511 [CEO 25/11 18:00] o filme FALADO (o claim pediu e o Gemini entregou o pedido falado, sem queda): a legenda vem do Whisper do
     // ÁUDIO DO CLIPE (a fala do motor), e o mesmo Whisper confere as palavras ditas × as escritas e GRAVA no claim (1ª entrega: não bloqueia). Sem a fala no
     // claim, ou com a queda para o Kling 4 = nada disto roda (o filme narrado de hoje).
@@ -3559,6 +3550,15 @@ export async function POST(req: NextRequest) {
       try { await gravarConferenciaDaFala2511({ db: composeAdmin, secret: serviceRoleKey, userId: authenticatedUserId, generationId, conferencia }) } catch { /* gravar nunca derruba o filme */ }
       void writeServerEvent({ name: 'fala_dos_personagens_2511_conferida', userId: authenticatedUserId, path: '/api/compose', sessionId: generationId, metadata: { generation_id: generationId, ...conferencia } }).catch(() => false)
     }
+    // KINEO-TRIAL-WATERMARK-2026-09-07 — a decisão de marca d'água mora AQUI,
+    // uma única vez, lida pelo builder logo abaixo E pela resposta lá no fim.
+    // `FORCE_WATERMARK_EMAILS` (#434) segue como último termo: as contas de
+    // autopromoção do fundador sempre saem marcadas.
+    watermarkApplied =
+      isFreePlanFast ||
+      isTrialRender ||
+      isFreePlanCinematic ||
+      FORCE_WATERMARK_EMAILS.has((user.email ?? '').toLowerCase())
     let source: Record<string, unknown>
     let composeInputs: ComposeInputs
     try {
@@ -3569,7 +3569,7 @@ export async function POST(req: NextRequest) {
         // KINEO-KLING25-PLANOS-5S-2026-09-28 (revisão adversarial) — cada plano entra quando a SUA fala começa
         clipSpeech: composeClipUrls === clipUrls && signedClipPlan?.wordStarts ? { narrationWords: signedClipPlan.narrationWords, wordStarts: signedClipPlan.wordStarts } : null,
         voiceoverUrl,
-        voiceoverScript: falaMontada2511 ? falasDoMotor2511.flat().map((l) => l.texto).join(' ') : scaledScript, // KINEO-FALA-DOS-PERSONAGENS-2511 — a legenda reserva é a fala escrita
+        voiceoverScript: scaledScript,
         sceneCaptions,
         duration: duracaoDoFilmeAssinada({ pedida: duration, quality, claimResponse: cinematicBirthClaim?.response }), // KINEO-PARCEIRO-EYEBIBLE-1410 — verbatim clássico que o servidor desceu (35 s assinados) não estica para 61,5 s
         aspect: aspectRequested, // KINEO-MULTIFORMATO-2026-09-02
@@ -3578,8 +3578,7 @@ export async function POST(req: NextRequest) {
         seedanceShortFilm: quality === 'cinematic_ai' && isSeedanceShortClaim(cinematicBirthClaim?.response),
         kling4TrialEngine: kling4TrialEngineFromClaim(cinematicBirthClaim?.response),
         kling4TrialClipSeconds: kling4TrialClipSecondsFromClaim(cinematicBirthClaim?.response), // KINEO-K4-GRATIS-20S-1711 — 15 quando o claim não traz o campo (todo filme de hoje)
-        whisperWords: falaMontada2511 ? palavrasDoMotor2511 ?? undefined : legendaWords, // KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28 — tempo do Whisper, grafia do roteiro · KINEO-FALA-DOS-PERSONAGENS-2511: o Whisper do som do motor
-        falaDoMotor: falaMontada2511, // KINEO-FALA-DOS-PERSONAGENS-2511
+        whisperWords: legendaWords, // KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28 — tempo do Whisper, grafia do roteiro
         musicUrl,
         avatarUrl: avatarMode ? avatarUrlBody : null,
         // Hook Avatar (12/06) — validated: only meaningful in avatar mode and
@@ -3614,6 +3613,8 @@ export async function POST(req: NextRequest) {
           withEndCard ||
           FORCE_WATERMARK_EMAILS.has((user.email ?? '').toLowerCase()),
       }
+      // KINEO-FALA-DOS-PERSONAGENS-2511 — o filme FALADO: a legenda vem do Whisper do som do motor (reserva: o texto das falas), e o builder liga a fala do motor
+      if (typeof falaMontada2511 !== 'undefined' && falaMontada2511) composeInputs = { ...composeInputs, whisperWords: palavrasDoMotor2511 ?? undefined, voiceoverScript: falasDoMotor2511.flat().map((l) => l.texto).join(' '), falaDoMotor: true }
       source = buildCreatomateSource(composeInputs)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
@@ -3648,7 +3649,7 @@ export async function POST(req: NextRequest) {
     // KINEO-FILME15-PERFEITO-2610: production caption audit found blind 4-word
     // proportional fallbacks ending on connectors. Group canonical text before
     // the FIRST assembly too; only replace captions, never the approved voice/cuts.
-    if (!falaMontada2511 && quality === 'cinematic_ai' && (isSeedanceShortClaim(cinematicBirthClaim?.response) || kling4TrialEngineFromClaim(cinematicBirthClaim?.response) !== null) &&
+    if (!(typeof falaMontada2511 !== 'undefined' && falaMontada2511) && quality === 'cinematic_ai' && (isSeedanceShortClaim(cinematicBirthClaim?.response) || kling4TrialEngineFromClaim(cinematicBirthClaim?.response) !== null) &&
       (!legendaWords?.length || captionSelection.alignment?.source === 'canonical_tts_script')) {
       const { buildFree15CanonicalCaptions } = await import('@/lib/free15CanonicalCaptions')
       const { repairGateCaptions } = await import('@/lib/free15Gate')

@@ -208,8 +208,8 @@ async function suite(change) {
   assert.ok(compose.includes("const falaMontada2511 = typeof montagemFalada2511 === 'function' && montagemFalada2511(marcadorDaFala2511, cinematicBirthClaim?.falModels?.[0]) && composeClipUrls.filter("), 'E o compose: falado só pelo claim e pelo modelo que entregou')
   assert.ok(compose.includes('transcribeClipWithTimestampsAndDuration(composeClipUrls.find('), 'E o Whisper do ÁUDIO DO CLIPE')
   assert.ok(compose.includes("try { await gravarConferenciaDaFala2511({ db: composeAdmin, secret: serviceRoleKey, userId: authenticatedUserId, generationId, conferencia }) } catch { /* gravar nunca derruba o filme */ }"), 'E a conferência grava no claim e nunca derruba')
-  assert.ok(compose.includes("whisperWords: falaMontada2511 ? palavrasDoMotor2511 ?? undefined : legendaWords,") && compose.includes('falaDoMotor: falaMontada2511,'), 'E a legenda do falado vem do som do motor, e o builder liga a fala')
-  assert.ok(compose.includes("evidence: falaMontada2511 ? { ...captionEvidence, status: 'not_applicable' } : captionEvidence") && compose.includes('if (!falaMontada2511 && quality === \'cinematic_ai\''), 'E as reconstruções da legenda pela narração não rodam no falado')
+  assert.ok(compose.includes("      if (typeof falaMontada2511 !== 'undefined' && falaMontada2511) composeInputs = { ...composeInputs, whisperWords: palavrasDoMotor2511 ?? undefined, voiceoverScript: falasDoMotor2511.flat().map((l) => l.texto).join(' '), falaDoMotor: true }\n      source = buildCreatomateSource(composeInputs)\n"), 'E a legenda do falado vem do som do motor (reserva: o texto das falas), e o builder liga a fala logo antes de montar')
+  assert.ok(compose.includes("evidence: falaMontada2511 ? { ...captionEvidence, status: 'not_applicable' } : captionEvidence") && compose.includes("if (!(typeof falaMontada2511 !== 'undefined' && falaMontada2511) && quality === 'cinematic_ai'"), 'E as reconstruções da legenda pela narração não rodam no falado')
   assert.ok(compose.includes("const textoDoPortao2511 = falaMontada2511 ? falasDoMotor2511.flat().map((l) => l.texto).join(' ') : scaledScript") && compose.includes('narration: textoDoPortao2511'), 'E o portão do grátis conhece a fala')
   assert.ok(/export async function gravarConferenciaDaFala2511[\s\S]{0,700}fala\.modo !== 'falado'[\s\S]{0,200}if \(fala\.conferencia\) return \{ ok: true, claim: current \}/.test(claimSrc), 'E o claim: só no filme falado; a 1ª conferência fica')
 }
@@ -264,7 +264,8 @@ const mutantes = [
   [BUDGET, "  const caiu = m!.motor_do_clipe !== 'gemini_omni_flash' || !!m!.gemini_queda || m!.engine_used !== 'kling4'\n", "  const caiu = false\n"],
   [BUDGET, "  if (!base || !f || typeof f !== 'object') return base\n", "  if (!base) return base\n  if (!f || typeof f !== 'object') return { ...base, voz: 'narrado', voz_motivo: null }\n"], // sem o marcador, o selo ganharia a voz
   [COMPOSE, "montagemFalada2511(marcadorDaFala2511, cinematicBirthClaim?.falModels?.[0])", "!!marcadorDaFala2511"],
-  [COMPOSE, "whisperWords: falaMontada2511 ? palavrasDoMotor2511 ?? undefined : legendaWords,", "whisperWords: legendaWords,"],
+  [COMPOSE, "composeInputs = { ...composeInputs, whisperWords: palavrasDoMotor2511 ?? undefined,", "composeInputs = { ...composeInputs,"],
+  [COMPOSE, ", falaDoMotor: true }\n      source = buildCreatomateSource(composeInputs)", " }\n      source = buildCreatomateSource(composeInputs)"],
   [COMPOSE, "evidence: falaMontada2511 ? { ...captionEvidence, status: 'not_applicable' } : captionEvidence", "evidence: captionEvidence"],
   [CLAIM, "  if (fala.conferencia) return { ok: true, claim: current } // a 1ª conferência fica", "  // a 1ª conferência fica"],
 ]
