@@ -403,7 +403,7 @@ async function suite(change) {
     for (const ruim of [{ descricao: 'x'.repeat(201) }, { descricao: 'a\u0007b' }, { descricao: 7 }, { protagonista: 'sim' }, { protagonista: 1 }])
       assert.equal(q.lerPedidoDePresenca({ ...okD, elenco: [{ ...okD.elenco[0], ...ruim }] }), null, JSON.stringify(ruim).slice(0, 40))
     assert.equal(q.lerPedidoDePresenca({ ...okD, elenco: [okD.elenco[0], { nome: 'Elias', protagonista: true }] }), null, 'dois protagonistas') }
-  assert.ok(rotaSonda.includes("por_pessoa: r.presenca ? presencaPorPessoa(r.presenca) : null, leitura: r.leitura ? r.leitura.map((p) => ({ subject: p.assunto, named: p.nomeados.map((k) => k + 1) })) : null, bruta: r.bruta ?? null, motivo_do_esquema: r.motivoDoEsquema ?? null, fim: r.fim ?? null, recusa: r.recusa ?? false, tokens: r.tokens ?? null"), 'a sonda devolve a leitura, a decisão por pessoa, a resposta bruta e o motivo quando o esquema recusa, e os tokens')
+  assert.ok(rotaSonda.includes("versao: r.versao, modelo: r.modelo, presenca: r.presenca, por_pessoa: r.presenca ? presencaPorPessoa(r.presenca) : null, leitura: leituraParaASonda(r), bruta: r.bruta ?? null, motivo_do_esquema: r.motivoDoEsquema ?? null, fim: r.fim ?? null, recusa: r.recusa ?? false, tokens: r.tokens ?? null") && rotaSonda.includes("await lerQuemAparece(pedido.elenco, pedido.planos, { versao: pedido.versao, modelo: pedido.modelo })"), 'a sonda passa a versão e o modelo e devolve a versão, o modelo, a leitura, a decisão por pessoa, a bruta e os tokens')
   const okP = { elenco: [{ nome: 'Mara Quinn', tipo: 'humano', genero: 'woman' }], planos: [{ fala: 'Mara waves.', marcador: '', visual: '' }] }
   for (const ruim of [null, {}, { ...okP, elenco: [] }, { ...okP, planos: [] }, { ...okP, planos: Array(13).fill(okP.planos[0]) }, { ...okP, elenco: Array.from({ length: 7 }, (_, i) => ({ nome: 'P' + i })) },
     { ...okP, elenco: [{ nome: 'Mara' }, { nome: 'mara' }] }, { ...okP, elenco: [{ nome: 'Mara', tipo: 'robo' }] }, { ...okP, elenco: [{ nome: 'Mara', genero: 'mulher' }] }, { ...okP, planos: [{ fala: '', marcador: '', visual: '' }] },
@@ -415,23 +415,63 @@ async function suite(change) {
   for (let i = 1; i < q.SONDA_PRESENCA_TETO_POR_INSTANCIA; i++) { assert.equal(q.admitirSondaDePresenca(est, CASA, 'k' + i), 'ok'); q.liberarSondaDePresenca(est, i) }
   assert.equal(q.admitirSondaDePresenca(est, CASA, 'mais'), 'teto')
   igual([q.p95([]), q.p95([5]), q.p95(Array.from({ length: 20 }, (_, i) => i + 1)), q.p95(Array.from({ length: 100 }, (_, i) => 100 - i))], [null, 5, 19, 95])
-  const iPost = rotaSonda.indexOf('export async function POST'), i403 = rotaSonda.indexOf("if (!user) return NextResponse.json({ erro: 'nao_e_da_casa' }, { status: 403 })"), iAdm = rotaSonda.indexOf('admitirSondaDePresenca(estado, user.email'), iLer = rotaSonda.indexOf('await lerQuemAparece(pedido.elenco, pedido.planos)')
+  const iPost = rotaSonda.indexOf('export async function POST'), i403 = rotaSonda.indexOf("if (!user) return NextResponse.json({ erro: 'nao_e_da_casa' }, { status: 403 })"), iAdm = rotaSonda.indexOf('admitirSondaDePresenca(estado, user.email'), iLer = rotaSonda.indexOf('await lerQuemAparece(pedido.elenco, pedido.planos, ')
   assert.ok(iPost > 0 && iPost < i403 && i403 < iAdm && iAdm < iLer, '403 antes de tudo; a trava antes da chamada')
   assert.ok(/finally \{\n\s+liberarSondaDePresenca\(estado, ms\)/.test(rotaSonda) && rotaSonda.includes('p95_ms: p95([...estado.tempos, r.ms])') && rotaSonda.includes('prazo_ms: QUEM_APARECE_PRAZO_MS'), 'libera no finally e devolve o tempo e o p95')
   assert.ok(!/generateCinematicSceneStill|persistFastStill|from\('|\.insert\(|debitVideoCredits/.test(rotaSonda), 'a sonda só lê: nem imagem, nem banco, nem crédito')
-  // [CEO 25/11 12:00] a sonda EXECUTADA com a chave 'sonda': 200 para a casa (uma leitura), 403 para cliente e sem login (nenhuma leitura)
-  { const chamar = async (user) => { let leituras = 0
-      const fetchFalso = async () => { leituras++; return respostaDe(leituraCerta({ id: 'x', esperado: [[true]], elenco: [{ nome: 'Mara Quinn' }], planos: [{ fala: 'Mara waves from the pier.', marcador: '' }] })) }
+  // [CEO 25/11 12:00; A/B] a sonda EXECUTADA com a chave 'sonda': 200 para a casa (uma leitura), 403 para cliente e sem login, 400 para versão ou modelo
+  // fora da lista (nenhuma leitura em nenhum dos três); sem os campos, v2 com o modelo de hoje
+  { const RESP_V2 = JSON.stringify({ shots: [{ shot: 1, others: 'none', cast: [{ id: 1, on_screen: 'yes', how: 'shown' }] }] })
+    const RESP_V3 = leituraCerta({ id: 'x', esperado: [[true]], elenco: [{ nome: 'Mara Quinn' }], planos: [{ fala: 'Mara waves from the pier.', marcador: '' }] })
+    const chamar = async (user, extra = {}) => { let leituras = 0; const corpos = []
+      const fetchFalso = async (_u, o) => { leituras++; const corpo = JSON.parse(o.body); corpos.push(corpo); return respostaDe(corpo.response_format.json_schema.name === 'presenca_por_plano' ? RESP_V2 : RESP_V3) }
       const ld = createOfflineLoader({ globals: { ...GLOBALS, fetch: fetchFalso }, env: { OPENAI_API_KEY: 'k' }, source: (file, src) => muda(file, src), mocks: {
         'next/server': { NextResponse: { json: (body, init) => ({ status: init?.status ?? 200, body }) } },
         '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user } }) } }) } } })
       const rota = ld('@/' + sondaRoute)
-      const res = await rota.POST({ json: async () => ({ elenco: [{ nome: 'Mara Quinn', tipo: 'humano', genero: 'woman' }], planos: [{ fala: 'Mara waves from the pier.', marcador: '', visual: '' }] }) })
-      return { status: res.status, body: res.body, leituras } }
+      const res = await rota.POST({ json: async () => ({ elenco: [{ nome: 'Mara Quinn', tipo: 'humano', genero: 'woman' }], planos: [{ fala: 'Mara waves from the pier.', marcador: '', visual: '' }], ...extra }) })
+      return { status: res.status, body: res.body, leituras, corpos } }
     const casa = await chamar({ email: CASA }), cli = await chamar({ email: CLIENTE }), anon = await chamar(null)
-    igual([casa.status, casa.leituras, casa.body.erro, casa.body.presenca], [200, 1, null, { elenco: ['Mara Quinn'], planos: [['Mara Quinn']], indecisos: [[]] }], 'a sonda: 200 para a casa com a chave em sonda')
-    igual([casa.body.por_pessoa, casa.body.leitura, casa.body.bruta, casa.body.motivo_do_esquema], [[[true]], [{ subject: 'person_or_creature', named: [1] }], null, null], 'a sonda: a decisão por pessoa e a leitura no formato do modelo')
-    igual([cli.status, cli.leituras, cli.body.erro, anon.status, anon.leituras], [403, 0, 'nao_e_da_casa', 403, 0], 'a sonda: 403 fora da casa, sem leitura') }
+    igual([casa.status, casa.leituras, casa.body.erro, casa.body.versao, casa.body.modelo, casa.corpos[0]?.model, casa.corpos[0]?.response_format?.json_schema?.name], [200, 1, null, 'v2', 'gpt-4o-mini', 'gpt-4o-mini', 'presenca_por_plano'], 'a sonda sem os campos: v2 com o modelo de hoje')
+    igual([casa.body.presenca, casa.body.por_pessoa, casa.body.leitura, casa.body.tokens, typeof casa.body.ms, typeof casa.body.custo_usd], [{ elenco: ['Mara Quinn'], planos: [['Mara Quinn']] }, [[true]], [{ others: 'none', cast: [{ on_screen: 'yes', how: 'shown' }] }], { entrada: 1400, saida: 200 }, 'number', 'number'], 'a sonda v2: a leitura no formato da v2, os tokens e o tempo')
+    const v3 = await chamar({ email: CASA }, { versao: 'v3', modelo: 'gpt-4.1-mini' })
+    igual([v3.status, v3.body.versao, v3.body.modelo, v3.corpos[0]?.model, v3.body.leitura, v3.body.por_pessoa, v3.body.custo_usd], [200, 'v3', 'gpt-4.1-mini', 'gpt-4.1-mini', [{ subject: 'person_or_creature', named: [1] }], [[true]], 0.00088], 'a sonda v3 com outro modelo da lista: o custo pela tarifa dele')
+    igual([cli.status, cli.leituras, cli.body.erro, anon.status, anon.leituras], [403, 0, 'nao_e_da_casa', 403, 0], 'a sonda: 403 fora da casa, sem leitura')
+    for (const extra of [{ versao: 'v4' }, { versao: 2 }, { versao: null }, { modelo: 'gpt-5' }, { modelo: 'gpt-4o-mini-tts' }, { modelo: 'anthropic/claude-opus-5.5' }, { modelo: '' }, { modelo: 7 }]) {
+      const x = await chamar({ email: CASA }, extra); igual([x.status, x.leituras, x.body.erro], [400, 0, 'pedido_invalido'], 'fora da lista, sem chamada: ' + JSON.stringify(extra)) }
+    const fora = await chamar({ email: CLIENTE }, { modelo: 'gpt-4o' }); igual([fora.status, fora.leituras], [403, 0], 'cliente com modelo da lista: 403, sem chamada') }
+  // ── A/B: as listas fechadas, a v2 byte a byte com a 6804eb793, o modelo de raciocínio, o custo por modelo ───────────────────────────────────────────
+  igual(Object.keys(q.MODELOS_DA_SONDA), ['gpt-4o-mini', 'gpt-4.1-mini', 'gpt-4o', 'gpt-6.1-sol'], 'a lista fechada: os 4 modelos de texto de chat que o projeto já usa')
+  { const reg = m('@/lib/aiModels'), vp = m('@/lib/regua95/visaoProvedor'), usados = new Set(Object.values(reg.AI_TEXT_MODELS))
+    for (const [id, t2] of Object.entries(q.MODELOS_DA_SONDA)) { assert.ok(usados.has(id), id + ': está no registro da casa'); igual([t2.inPerM, t2.outPerM], [vp.TARIFAS_VISAO[id].inPerM, vp.TARIFAS_VISAO[id].outPerM], id + ': a tarifa da tabela da casa') }
+    igual(Object.entries(q.MODELOS_DA_SONDA).filter(([, t2]) => t2.raciocinio).map(([id]) => id), ['gpt-6.1-sol'], 'só o gpt-6.1-sol é de raciocínio') }
+  igual([q.VERSOES_DA_PERGUNTA, q.QUEM_APARECE_VERSAO_DA_SONDA, q.QUEM_APARECE_VERSAO_DO_FILME, q.QUEM_APARECE_MODELO_PADRAO], [['v2', 'v3'], 'v2', 'v3', 'gpt-4o-mini'], 'as versões; a sonda sem campo = v2; o filme usa UMA')
+  { const okV = { elenco: [{ nome: 'Mara Quinn' }], planos: [{ fala: 'Mara waves.' }] }
+    igual([q.lerPedidoDePresenca(okV).versao, q.lerPedidoDePresenca(okV).modelo, q.lerPedidoDePresenca({ ...okV, versao: 'v3', modelo: 'gpt-6.1-sol' }).versao, q.lerPedidoDePresenca({ ...okV, versao: 'v3', modelo: 'gpt-6.1-sol' }).modelo], ['v2', 'gpt-4o-mini', 'v3', 'gpt-6.1-sol'])
+    const ch = (e) => q.chaveDaPresenca(q.lerPedidoDePresenca({ ...okV, ...e }))
+    assert.equal(new Set([ch({}), ch({ versao: 'v3' }), ch({ modelo: 'gpt-4o' }), ch({ versao: 'v3', modelo: 'gpt-4o' })]).size, 4, 'o mesmo caso em outra versão ou outro modelo não é repetido')
+    assert.equal(ch({}), ch({ versao: 'v2', modelo: 'gpt-4o-mini' }), 'sem campo = os padrões') }
+  { let chamou = 0; const f = async () => { chamou++; return respostaDe('{}') }
+    for (const [o, e] of [[{ versao: 'v9' }, 'versao_fora_da_lista'], [{ modelo: 'gpt-5' }, 'modelo_fora_da_lista'], [{ modelo: 'tts-1-hd' }, 'modelo_fora_da_lista']]) igual((await q.lerQuemAparece(EL, PL, { apiKey: 'k', fetchImpl: f, ...o })).erro, e, e)
+    assert.equal(chamou, 0, 'fora da lista: nenhuma chamada') }
+  // a v2 de volta: o MESMO pedido (corpo HTTP) e a MESMA decisão da 6804eb793, com o modelo de hoje
+  { const V2SRC = execSync('git show 6804eb793:' + Q, { encoding: 'utf8', maxBuffer: 64 << 20 })
+    const qv2 = load((file, src) => (file.replaceAll('\\', '/') === Q ? V2SRC : src))('@/' + Q)
+    const ELd = [{ nome: 'Elias Ward', tipo: 'humano', genero: 'man', descricao: 'a lighthouse keeper', protagonista: true }, { nome: 'Mara Quinn', tipo: 'humano', genero: 'woman', descricao: 'a radio operator' }]
+    const resp = JSON.stringify({ shots: [{ shot: 1, others: 'none', cast: [{ id: 1, on_screen: 'yes', how: 'shown' }, { id: 2, on_screen: 'no', how: 'not_mentioned' }] }, { shot: 2, others: 'distinct_people', cast: [{ id: 1, on_screen: 'no', how: 'not_mentioned' }, { id: 2, on_screen: 'no', how: 'not_mentioned' }] }] })
+    const corpo = async (mod, opts) => { let c; const r2 = await mod.lerQuemAparece(ELd, PL, { apiKey: 'k', fetchImpl: async (_u, o) => { c = o.body; return respostaDe(resp) }, ...opts }); return { c, r2 } }
+    const velho = await corpo(qv2, {}), novo = await corpo(q, { versao: 'v2' })
+    assert.equal(novo.c, velho.c, 'a v2: o corpo HTTP byte a byte com a 6804eb793')
+    igual([novo.r2.presenca, novo.r2.custoUsd, novo.r2.erro, novo.r2.versao, novo.r2.modelo], [velho.r2.presenca, velho.r2.custoUsd, null, 'v2', 'gpt-4o-mini'], 'a v2: a mesma decisão e o mesmo custo')
+    for (const ruim of ['{"shots": []}', JSON.stringify({ shots: [{ shot: 1, others: 'x', cast: [] }, { shot: 2, others: 'none', cast: [] }] })]) {
+      const y = await q.lerQuemAparece(ELd, PL, { apiKey: 'k', versao: 'v2', fetchImpl: async () => respostaDe(ruim) }); igual([y.presenca, y.erro, y.bruta], [null, 'fora_do_esquema', ruim], 'v2 fora do esquema: bruta') }
+    // o modelo de raciocínio: sem temperature nem max_tokens; o custo pela tarifa dele (2/10 por milhão)
+    const sol = JSON.parse((await corpo(q, { versao: 'v2', modelo: 'gpt-6.1-sol' })).c)
+    igual([sol.model, sol.max_completion_tokens, 'temperature' in sol, 'max_tokens' in sol, sol.response_format.json_schema.name], ['gpt-6.1-sol', 4000, false, false, 'presenca_por_plano'], 'raciocínio: max_completion_tokens')
+    const g4 = JSON.parse((await corpo(q, { versao: 'v3', modelo: 'gpt-4o' })).c)
+    igual([g4.model, g4.temperature, g4.max_tokens, g4.response_format.json_schema.name], ['gpt-4o', 0, 600, 'assunto_por_plano'], 'gpt-4o com a v3')
+    igual([(await corpo(q, { versao: 'v2', modelo: 'gpt-6.1-sol' })).r2.custoUsd, (await corpo(q, { versao: 'v2', modelo: 'gpt-4o' })).r2.custoUsd], [0.0048, 0.0055], 'o custo acompanha o modelo (1.400 de entrada, 200 de saída)')
+    igual([q.custoDaLeituraUsd('gpt-6.1-sol', null, 4000), q.custoDaLeituraUsd('gpt-4.1-mini', null, 4000), q.custoDaLeituraUsd('nada', null, 4000)], [0.042, 0.00088, 0], 'sem usage: estimado pela tarifa (raciocínio = o teto de saída)') }
 }
 
 await suite(null)
@@ -440,6 +480,26 @@ const mutants = [
   [Q, "export const QUEM_APARECE_2511: ModoQuemAparece2511 = 'sonda'", "export const QUEM_APARECE_2511: ModoQuemAparece2511 = 'internal'"], // a casa volta a ter a leitura no filme
   [Q, "modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))", "modo === 'public' || (modo !== 'off' && contaDaCasaExata(email))"], // 'sonda' liga na casa
   [sondaRoute, '  const admissao = admitirSondaDePresenca(estado, user.email, chaveDaPresenca(pedido))\n  if (admissao !== \'ok\')', '  const admissao = admitirSondaDePresenca(estado, user.email, chaveDaPresenca(pedido))\n  if (false)'], // a sonda deixa de recusar cliente
+  // [A/B] versão e modelo
+  [Q, "export const QUEM_APARECE_VERSAO_DA_SONDA: VersaoDaPergunta = 'v2'", "export const QUEM_APARECE_VERSAO_DA_SONDA: VersaoDaPergunta = 'v3'"],
+  [Q, "export const QUEM_APARECE_VERSAO_DO_FILME: VersaoDaPergunta = 'v3'", "export const QUEM_APARECE_VERSAO_DO_FILME: VersaoDaPergunta = 'v2'"],
+  [Q, "  if (!VERSOES_DA_PERGUNTA.includes(versao)) return fim(null, 0, 'versao_fora_da_lista')\n", ''],
+  [Q, "  if (!modeloDaSondaValido(modelo)) return fim(null, 0, 'modelo_fora_da_lista')\n", ''],
+  [Q, 'Object.prototype.hasOwnProperty.call(MODELOS_DA_SONDA, m)', "m.startsWith('gpt')"],
+  [Q, '[AI_TEXT_MODELS.filmJudge]: { ...TARIFAS_VISAO[AI_TEXT_MODELS.filmJudge], raciocinio: true,', '[AI_TEXT_MODELS.filmJudge]: { ...TARIFAS_VISAO[AI_TEXT_MODELS.filmJudge], raciocinio: false,'],
+  [Q, "  [AI_TEXT_MODELS.research]: { ...TARIFAS_VISAO[AI_TEXT_MODELS.research], raciocinio: false, papel: 'pesquisa (Ads v2, Espaços, GEO)' },\n", ''],
+  [Q, '  if (modelo === STILL_CRITIC_MODELO) return custoDoCriticoUsd(usage, 0, caracteres)\n  const t = MODELOS_DA_SONDA[modelo]', '  const t = MODELOS_DA_SONDA[STILL_CRITIC_MODELO]'],
+  [Q, 't.raciocinio ? QUEM_APARECE_MAX_SAIDA_RACIOCINIO : 300', '300'],
+  [Q, "versao === 'v2' ? pedidoDePresencaV2(elenco, planos) : pedidoDePresenca(elenco, planos)", 'pedidoDePresenca(elenco, planos)'],
+  [Q, "response_format: versao === 'v2' ? FORMATO_DA_RESPOSTA_V2 : FORMATO_DA_RESPOSTA", 'response_format: FORMATO_DA_RESPOSTA'],
+  [Q, '? 900 : 600 }', '? 600 : 600 }'],
+  [Q, 'MODELOS_DA_SONDA[modelo]?.raciocinio ? { max_completion_tokens', 'false ? { max_completion_tokens'],
+  [Q, ', p.versao, p.modelo]) // [A/B]', ']) // [A/B]'],
+  [Q, 'const versao = b.versao === undefined ? QUEM_APARECE_VERSAO_DA_SONDA :', 'const versao = b.versao === undefined || true ? QUEM_APARECE_VERSAO_DA_SONDA :'],
+  [Q, 'const modelo = b.modelo === undefined ? QUEM_APARECE_MODELO_PADRAO :', 'const modelo = b.modelo === undefined || true ? QUEM_APARECE_MODELO_PADRAO :'],
+  [Q, '  if (!versao || !modelo) return null\n', ''],
+  [sondaRoute, '{ versao: pedido.versao, modelo: pedido.modelo }', '{}'],
+  [sondaRoute, 'versao: r.versao, modelo: r.modelo, ', ''],
   // [volta 3] a regra do código
   [Q, "if (a.assunto !== 'person_or_creature') return a.nomeados.length > 0 ? null : []", "if (a.assunto !== 'person_or_creature') return []"], // id nomeado em lugar/outros deixa de ser incoerente
   [Q, "if (a.assunto !== 'person_or_creature') return a.nomeados.length > 0 ? null : []", "if (a.assunto !== 'person_or_creature') return null"], // lugar e outros deixam de tirar o protagonista (Alcatraz, Umudara, Shiro)
@@ -467,7 +527,7 @@ const mutants = [
   [Q, '      if (!nomeados.includes(id - 1)) nomeados.push(id - 1)', '      nomeados.push(id - 1)'], // id repetido
   [Q, "out[s.shot - 1] = { assunto", 'out[out.findIndex((x) => !x)] = { assunto'], // os planos fora de ordem lidos na ordem de chegada
   // [volta 3] o pedido e o esquema
-  [Q, 'response_format: FORMATO_DA_RESPOSTA', "response_format: { type: 'json_object' }"],
+  [Q, ': FORMATO_DA_RESPOSTA, messages', ": { type: 'json_object' }, messages"],
   [Q, "name: 'assunto_por_plano', strict: true", "name: 'assunto_por_plano', strict: false"],
   [Q, "required: ['shot', 'subject', 'named']", "required: ['shot', 'subject']"], // o estrito pede tudo em required
   [Q, "'When you are not sure which subject fits, answer \"person_or_creature\". ' +", "'' +"], // sem a dúvida a favor de "alguém"
@@ -480,7 +540,7 @@ const mutants = [
   [Q, 'corta(p.descricao || p.canonica, ', 'corta(p.descricao, '], // a canônica da rota não vai
   [Q, 'bruta.toLowerCase().startsWith(`${nome.toLowerCase()}, `) ? bruta.slice(nome.length + 2) : bruta', 'bruta'], // o nome repetido
   [Q, ', DESCRICAO_MAX) // a canônica', ', 1000) // a canônica'], // a descrição sem teto
-  [Q, 'max_tokens: 600', 'max_tokens: 900'],
+  [Q, '? 900 : 600 }', '? 900 : 900 }'],
   // [volta 3, item 4] o diagnóstico da recusa
   [Q, "fim(null, custo, 'fora_do_esquema', { ...extra, bruta: conteudo.slice(0, BRUTA_MAX), motivoDoEsquema: motivo })", "fim(null, custo, 'fora_do_esquema', extra)"],
   [Q, 'bruta: conteudo.slice(0, BRUTA_MAX)', 'bruta: conteudo'],
@@ -550,4 +610,4 @@ for (const mutant of mutants) {
   mortos++
 }
 const sic = globalThis.__semImagemChave
-console.log(`PASS KINEO-QUEM-APARECE-2511 volta 3: chave 'sonda' (a casa e o cliente = a main de 9270f6e05 byte a byte, nenhuma chamada; a sonda executada: 200 casa, 403 cliente e sem login; o caminho da leitura testado com 'internal' forçado); a pergunta é o ASSUNTO do plano (lugar ou objeto · só outros · alguém) e os ids nomeados; o protagonista só sai em lugar/outros, "alguém" sem o nome dele escrito e nomeado = a regra de hoje; o 2º só entra nomeado e escrito, o resto fica com a main pessoa a pessoa (o piso completa); esquema estrito mínimo (shot, subject, named), planos em qualquer ordem, recusa com motivo e resposta bruta na sonda; Alcatraz, Umudara e Shiro pela leitura certa; parte B 61, amostra 18, pronome e língua: nenhuma decisão contra o gabarito, a leitura conserta ${globalThis.__conserta} (a main acerta ${globalThis.__mainCerta}/61 no @Image2 do plano 4); sem imagem-chave no A2: Alcatraz ${sic.alcatraz.length}/3, Umudara ${sic.umudara.length}/3, Shiro ${sic.shiro.length}/3; registro e relato só número; ${mortos}/${mutants.length} mutantes mortos.`)
+console.log(`PASS KINEO-QUEM-APARECE-2511 A/B (a sonda aceita versao v2|v3 e modelo da lista fechada ${Object.keys(globalThis.__modelos ?? {}).length || 4} — gpt-4o-mini, gpt-4.1-mini, gpt-4o, gpt-6.1-sol —, sem os campos v2 com o modelo de hoje; fora da lista = 400 sem chamada; a v2 byte a byte com a 6804eb793; o custo pela tarifa do modelo) + volta 3: chave 'sonda' (a casa e o cliente = a main de 9270f6e05 byte a byte, nenhuma chamada; a sonda executada: 200 casa, 403 cliente e sem login; o caminho da leitura testado com 'internal' forçado); a pergunta é o ASSUNTO do plano (lugar ou objeto · só outros · alguém) e os ids nomeados; o protagonista só sai em lugar/outros, "alguém" sem o nome dele escrito e nomeado = a regra de hoje; o 2º só entra nomeado e escrito, o resto fica com a main pessoa a pessoa (o piso completa); esquema estrito mínimo (shot, subject, named), planos em qualquer ordem, recusa com motivo e resposta bruta na sonda; Alcatraz, Umudara e Shiro pela leitura certa; parte B 61, amostra 18, pronome e língua: nenhuma decisão contra o gabarito, a leitura conserta ${globalThis.__conserta} (a main acerta ${globalThis.__mainCerta}/61 no @Image2 do plano 4); sem imagem-chave no A2: Alcatraz ${sic.alcatraz.length}/3, Umudara ${sic.umudara.length}/3, Shiro ${sic.shiro.length}/3; registro e relato só número; ${mortos}/${mutants.length} mutantes mortos.`)

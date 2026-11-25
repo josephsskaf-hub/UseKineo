@@ -18,6 +18,8 @@
 //   Nada de inferência: o 2º nunca entra por pronome; o protagonista nunca sai por pronome. O piso, o teto da imagem-chave e o registro no claim continuam.
 import { contaDaCasaExata } from '@/lib/internalAccounts'
 import { STILL_CRITIC_MODELO, custoDoCriticoUsd } from '@/lib/cinematic/criticoStill'
+import { AI_TEXT_MODELS } from '@/lib/aiModels' // [A/B] a lista fechada de modelos sai do registro da casa
+import { TARIFAS_VISAO } from '@/lib/regua95/visaoProvedor' // [A/B] e a tarifa, da tabela que o projeto já usa
 
 export const QUEM_APARECE_2511_VERSAO = 'quem_aparece_2511_v3'
 // [CEO 25/11 11:55, o ensaio de 86 leituras NÃO passou na régua: tirou quem estava em 5 casos, pôs quem não estava em 7] 'sonda' = a leitura não entra em
@@ -129,36 +131,161 @@ export const FORMATO_DA_RESPOSTA = { type: 'json_schema', json_schema: { name: '
   type: 'object', additionalProperties: false, required: ['shots'], properties: { shots: { type: 'array', items: {
     type: 'object', additionalProperties: false, required: ['shot', 'subject', 'named'], properties: {
       shot: { type: 'integer' }, subject: { type: 'string', enum: [...ASSUNTOS] }, named: { type: 'array', items: { type: 'integer' } } } } } } } } } as const
+// ═══ [CEO 25/11, ensaio 3 reprovado — A/B, uma variável por vez] A PERGUNTA v2 (pessoa a pessoa, com others e a assimetria do protagonista), byte a byte a do
+// commit 6804eb793, só com os nomes trocados (sufixo V2). Convive com a v3 SÓ para a sonda: o caminho do filme (desligado) usa uma (QUEM_APARECE_VERSAO_DO_FILME). ═══
+export type NaTela = 'yes' | 'no' | 'unclear'
+export type Como = 'shown' | 'voice_only' | 'stated_absent' | 'memory' | 'not_mentioned'
+const NA_TELA: readonly NaTela[] = ['yes', 'no', 'unclear']
+const COMO: readonly Como[] = ['shown', 'voice_only', 'stated_absent', 'memory', 'not_mentioned']
+/** O que mais aparece no plano além do elenco (volta 2, a assimetria): ninguém; uma figura sem nome que pode ser do elenco; outras pessoas que claramente não são. */
+export type Outros = 'none' | 'unnamed_figure' | 'distinct_people'
+const OUTROS: readonly Outros[] = ['none', 'unnamed_figure', 'distinct_people']
+export type LeituraDePresencaV2 = Array<Array<{ naTela: NaTela; como: Como }> & { outros?: Outros }>
+
+export function pedidoDePresencaV2(elenco: readonly PessoaDoElenco[], planos: readonly PlanoParaLer[]): { messages: unknown[]; caracteres: number } {
+  const sistema = 'You read the plan of a short film. For every numbered shot and every numbered cast member, say whether that cast member is visible on screen in that shot. ' +
+    'Judge from the author\'s words for the shot: the author\'s shot note, when there is one, and the line spoken over the shot. The generated visual was written by us, not by the author: use it only to understand the shot, never as the only reason to put someone on screen. ' +
+    'The words point to a cast member in any way they can: the name, a pronoun, a description that fits that cast member\'s description, or the same words in another language. ' + // KINEO-QUEM-APARECE-2511 volta 2
+    'A cast member\'s name can also be an ordinary word; decide from the sentence whether the word names the cast member. A person\'s belongings, a photo of them or their voice do not put them on screen. ' +
+    'When the words show a figure without a name and it is not clear whether it is a cast member or someone else, answer "unclear" for that cast member. ' +
+    'Answer only with JSON: {"shots": [{"shot": number, "others": "none" | "unnamed_figure" | "distinct_people", "cast": [{"id": number, "on_screen": "yes" | "no" | "unclear", "how": "shown" | "voice_only" | "stated_absent" | "memory" | "not_mentioned"}]}]}, ' +
+    'one entry per shot in order and, inside each, one entry per cast member in order. "others" says who else is on screen besides the cast: "none" = nobody else, "unnamed_figure" = a person or creature without a name who could be one of the cast, "distinct_people" = other people or creatures who are clearly not any cast member. ' +
+    '"how" says how the shot relates to that cast member: "shown" = seen in the shot, "voice_only" = only heard, ' +
+    '"stated_absent" = the words say the person is not there, "memory" = seen in a memory or flashback, "not_mentioned" = the shot does not involve the person.'
+  const prot = indiceDoProtagonista(elenco)
+  const quem = elenco.map((p, i) => { const nome = corta(p.nome, NOME_MAX), bruta = corta(p.descricao || p.canonica, DESCRICAO_MAX + NOME_MAX + 2)
+    const d = corta(bruta.toLowerCase().startsWith(`${nome.toLowerCase()}, `) ? bruta.slice(nome.length + 2) : bruta, DESCRICAO_MAX) // a canônica começa pelo nome ("Elias Ward, a ..."): o nome já está na linha
+    return `${i + 1}. ${nome} (${TIPO_EN[p.tipo ?? ''] ?? 'character'}${p.genero === 'man' ? ', male' : p.genero === 'woman' ? ', female' : ''}${i === prot ? ', main character' : ''})${d ? `: ${d}` : ''}` }).join('\n')
+  const tomadas = planos.map((p, i) => [`Shot ${i + 1}.`, `Author's shot note: ${corta(p.marcador, MARCADOR_MAX) || '(none)'}`, `Spoken line: ${corta(p.fala, FALA_MAX) || '(none)'}`,
+    `Generated visual (ours): ${corta(p.visual, VISUAL_MAX) || '(none)'}`].join('\n')).join('\n\n')
+  const texto = `Cast:\n${quem}\n\nShots:\n${tomadas}`
+  return { messages: [{ role: 'system', content: sistema }, { role: 'user', content: texto }], caracteres: sistema.length + texto.length }
+}
+
+/** A resposta conferida por esquema. Qualquer desvio = null (a leitura falhou). */
+export function lerLeituraDePresencaV2(raw: string, nElenco: number, nPlanos: number): LeituraDePresencaV2 | null {
+  let o: unknown
+  try { o = JSON.parse(raw) } catch { return null }
+  const shots = o && typeof o === 'object' ? (o as Record<string, unknown>).shots : null
+  if (!Array.isArray(shots) || shots.length !== nPlanos || nElenco < 1) return null
+  const out: LeituraDePresencaV2 = []
+  for (let i = 0; i < shots.length; i++) {
+    const s = shots[i] && typeof shots[i] === 'object' ? (shots[i] as Record<string, unknown>) : null
+    if (!s || s.shot !== i + 1 || !Array.isArray(s.cast) || s.cast.length !== nElenco || !OUTROS.includes(s.others as Outros)) return null
+    const linha = [] as Array<{ naTela: NaTela; como: Como }> & { outros?: Outros }
+    linha.outros = s.others as Outros
+    for (let k = 0; k < s.cast.length; k++) {
+      const c = s.cast[k] && typeof s.cast[k] === 'object' ? (s.cast[k] as Record<string, unknown>) : null
+      if (!c || c.id !== k + 1 || !NA_TELA.includes(c.on_screen as NaTela) || !COMO.includes(c.how as Como)) return null
+      linha.push({ naTela: c.on_screen as NaTela, como: c.how as Como })
+    }
+    out.push(linha)
+  }
+  return out
+}
+
+/** A regra, no código: visível = 'yes' visto (ou lembrança); ausente = 'no'; o resto = aquele plano fica com a regra de hoje. */
+export function decidirPresencaV2(l: LeituraDePresencaV2, elenco: readonly PessoaDoElenco[]): PresencaDosPlanos {
+  const prot = indiceDoProtagonista(elenco)
+  const planos = l.map((linha) => {
+    const nomes: string[] = []
+    for (let k = 0; k < linha.length; k++) {
+      const { naTela, como } = linha[k]
+      if (naTela === 'unclear') return null
+      if (naTela === 'no' && (como === 'shown' || como === 'memory')) return null // [revisora, volta 1 §2] viu e não está: incoerente = a regra de hoje
+      // [CEO 25/11, volta 2 (c)] TIRAR o protagonista pede certeza: só com o plano sem ninguém ou com outras pessoas claramente distintas; figura sem nome = a regra de hoje
+      if (naTela === 'no' && k === prot && linha.outros !== 'none' && linha.outros !== 'distinct_people') return null
+      // [CEO 25/11, volta 2 (d)] o 2º personagem só entra visto; lembrança dele = a regra de hoje
+      if (naTela === 'yes' && k !== prot && como !== 'shown') return null
+      if (naTela === 'yes') { if (como !== 'shown' && como !== 'memory') return null; nomes.push(elenco[k].nome) }
+    }
+    return nomes
+  })
+  return { elenco: elenco.map((p) => p.nome), planos }
+}
+
+// [CEO 25/11, volta 2 (e)] a saída estruturada da OpenAI (json_schema estrito): a forma e os valores vêm garantidos pelo fornecedor; o número de planos e de
+// pessoas e a ordem dos ids o esquema não sabe, e continuam conferidos por lerLeituraDePresencaV2.
+export const FORMATO_DA_RESPOSTA_V2 = { type: 'json_schema', json_schema: { name: 'presenca_por_plano', strict: true, schema: {
+  type: 'object', additionalProperties: false, required: ['shots'], properties: { shots: { type: 'array', items: {
+    type: 'object', additionalProperties: false, required: ['shot', 'others', 'cast'], properties: {
+      shot: { type: 'integer' }, others: { type: 'string', enum: [...OUTROS] },
+      cast: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'on_screen', 'how'], properties: {
+        id: { type: 'integer' }, on_screen: { type: 'string', enum: [...NA_TELA] }, how: { type: 'string', enum: [...COMO] } } } } } } } } } } } as const
+// ═══ fim da pergunta v2 ═══
+
+// ═══ [CEO 25/11, A/B] versão da pergunta e modelo: listas FECHADAS ═══
+/** As duas perguntas. A sonda sem `versao` usa a v2; o caminho do filme (desligado: chave 'sonda') usaria esta, e só ela, quando ligar. */
+export type VersaoDaPergunta = 'v2' | 'v3'
+export const VERSOES_DA_PERGUNTA: readonly VersaoDaPergunta[] = ['v2', 'v3']
+export const QUEM_APARECE_VERSAO_DA_SONDA: VersaoDaPergunta = 'v2'
+export const QUEM_APARECE_VERSAO_DO_FILME: VersaoDaPergunta = 'v3'
+/** Os modelos de TEXTO de chat da OpenAI que o projeto já usa em produção (lib/aiModels.ts AI_TEXT_MODELS), com a tarifa que o projeto já registra
+ *  (lib/regua95/visaoProvedor.ts TARIFAS_VISAO, US$ por milhão de tokens). Nenhum modelo novo. `raciocinio` = não aceita temperature nem max_tokens
+ *  (usa max_completion_tokens), a mesma regra de visaoProvedor. O de hoje é o do crítico de still (STILL_CRITIC_MODELO). */
+export const MODELOS_DA_SONDA: Readonly<Record<string, { inPerM: number; outPerM: number; raciocinio: boolean; papel: string }>> = {
+  [STILL_CRITIC_MODELO]: { ...TARIFAS_VISAO[AI_TEXT_MODELS.vision], raciocinio: false, papel: 'crítico de still, analyzer, utility (o de hoje)' },
+  [AI_TEXT_MODELS.research]: { ...TARIFAS_VISAO[AI_TEXT_MODELS.research], raciocinio: false, papel: 'pesquisa (Ads v2, Espaços, GEO)' },
+  [AI_TEXT_MODELS.writer]: { ...TARIFAS_VISAO[AI_TEXT_MODELS.writer], raciocinio: false, papel: 'escritor e planejador' },
+  [AI_TEXT_MODELS.filmJudge]: { ...TARIFAS_VISAO[AI_TEXT_MODELS.filmJudge], raciocinio: true, papel: 'juiz da nota automática (na sombra)' },
+}
+export const QUEM_APARECE_MODELO_PADRAO = STILL_CRITIC_MODELO
+export const modeloDaSondaValido = (m: unknown): m is string => typeof m === 'string' && Object.prototype.hasOwnProperty.call(MODELOS_DA_SONDA, m)
+/** Teto de saída de um modelo de raciocínio (o raciocínio conta como saída). */
+export const QUEM_APARECE_MAX_SAIDA_RACIOCINIO = 4000
+/** Custo da leitura pela tarifa do MODELO usado: pelo `usage` quando veio; senão estimado (texto/4 de entrada; saída: 300, ou o teto num de raciocínio).
+ *  O modelo de hoje segue com o cálculo de sempre (custoDoCriticoUsd), byte a byte. */
+export function custoDaLeituraUsd(modelo: string, usage: { prompt_tokens?: unknown; completion_tokens?: unknown } | null | undefined, caracteres: number): number {
+  if (modelo === STILL_CRITIC_MODELO) return custoDoCriticoUsd(usage, 0, caracteres)
+  const t = MODELOS_DA_SONDA[modelo]
+  if (!t) return 0
+  const e = Number(usage?.prompt_tokens), s = Number(usage?.completion_tokens)
+  const entrada = Number.isFinite(e) && e > 0 ? e : Math.ceil(caracteres / 4), saida = Number.isFinite(s) && s > 0 ? s : t.raciocinio ? QUEM_APARECE_MAX_SAIDA_RACIOCINIO : 300
+  return Math.round(((entrada * t.inPerM + saida * t.outPerM) / 1_000_000) * 1e6) / 1e6
+}
+
 export type ChamadaDePresenca = { presenca: PresencaDosPlanos | null; custoUsd: number; ms: number; erro: string | null; unclear: number
   /** [volta 2] o que o modelo respondeu, conferido, e os tokens da chamada. [volta 3] a resposta BRUTA e o motivo, só quando o esquema recusou (o diagnóstico
-   *  das "fora_do_esquema"); o fim da geração e se houve recusa do modelo. Sob o esquema estrito a resposta só tem números e enum. */
-  leitura?: LeituraDePresenca | null; tokens?: { entrada: number | null; saida: number | null }; bruta?: string | null; motivoDoEsquema?: MotivoDoEsquema | null; fim?: string | null; recusa?: boolean }
+   *  das "fora_do_esquema"); o fim da geração e se houve recusa do modelo. Sob o esquema estrito a resposta só tem números e enum.
+   *  [A/B] a versão da pergunta e o modelo usados; `leitura` vem no formato da versão (v2: por pessoa; v3: assunto e nomeados). */
+  leitura?: LeituraDePresenca | LeituraDePresencaV2 | null; tokens?: { entrada: number | null; saida: number | null }; bruta?: string | null; motivoDoEsquema?: MotivoDoEsquema | null; fim?: string | null; recusa?: boolean
+  versao?: VersaoDaPergunta; modelo?: string }
 export const BRUTA_MAX = 2000
-/** UMA leitura (rede). Nunca lança. Sem chave, prazo, HTTP, JSON torto ou fora do esquema = presenca null (a main de hoje). */
-export async function lerQuemAparece(elenco: readonly PessoaDoElenco[], planos: readonly PlanoParaLer[], opts: { timeoutMs?: number; fetchImpl?: typeof fetch; apiKey?: string; agora?: () => number } = {}): Promise<ChamadaDePresenca> {
+/** UMA leitura (rede). Nunca lança. Sem chave, prazo, HTTP, JSON torto ou fora do esquema = presenca null (a main de hoje). Versão ou modelo fora da lista
+ *  fechada = recusa SEM chamada. Sem `versao`/`modelo`: a pergunta do filme (QUEM_APARECE_VERSAO_DO_FILME) com o modelo de hoje. */
+export async function lerQuemAparece(elenco: readonly PessoaDoElenco[], planos: readonly PlanoParaLer[], opts: { timeoutMs?: number; fetchImpl?: typeof fetch; apiKey?: string; agora?: () => number; versao?: VersaoDaPergunta; modelo?: string } = {}): Promise<ChamadaDePresenca> {
   const agora = opts.agora ?? Date.now, t0 = agora()
+  const versao = opts.versao ?? QUEM_APARECE_VERSAO_DO_FILME, modelo = opts.modelo ?? QUEM_APARECE_MODELO_PADRAO
   const fim = (presenca: PresencaDosPlanos | null, custoUsd: number, erro: string | null, extra: Partial<ChamadaDePresenca> = {}): ChamadaDePresenca =>
-    ({ presenca, custoUsd, ms: Math.max(0, agora() - t0), erro, unclear: presenca ? presenca.planos.filter((p) => p === null).length : 0, ...extra })
+    ({ presenca, custoUsd, ms: Math.max(0, agora() - t0), erro, unclear: presenca ? presenca.planos.filter((p) => p === null).length : 0, versao, modelo, ...extra })
+  if (!VERSOES_DA_PERGUNTA.includes(versao)) return fim(null, 0, 'versao_fora_da_lista')
+  if (!modeloDaSondaValido(modelo)) return fim(null, 0, 'modelo_fora_da_lista')
   if (elenco.length < 1 || elenco.length > QUEM_APARECE_MAX_ELENCO || planos.length < 1 || planos.length > QUEM_APARECE_MAX_PLANOS) return fim(null, 0, 'fora_do_tamanho')
   const key = opts.apiKey ?? (typeof process !== 'undefined' ? process.env.OPENAI_API_KEY : undefined)
   if (!key) return fim(null, 0, 'sem_chave')
-  const { messages, caracteres } = pedidoDePresenca(elenco, planos)
+  const { messages, caracteres } = versao === 'v2' ? pedidoDePresencaV2(elenco, planos) : pedidoDePresenca(elenco, planos)
+  const tamanho = MODELOS_DA_SONDA[modelo]?.raciocinio ? { max_completion_tokens: QUEM_APARECE_MAX_SAIDA_RACIOCINIO } : { temperature: 0, max_tokens: versao === 'v2' ? 900 : 600 }
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), Math.max(1, opts.timeoutMs ?? QUEM_APARECE_PRAZO_MS))
   try {
     const res = await (opts.fetchImpl ?? fetch)('https://api.openai.com/v1/chat/completions', { method: 'POST', signal: ctrl.signal, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model: STILL_CRITIC_MODELO, temperature: 0, max_tokens: 600, response_format: FORMATO_DA_RESPOSTA, messages }) })
+      body: JSON.stringify({ model: modelo, ...tamanho, response_format: versao === 'v2' ? FORMATO_DA_RESPOSTA_V2 : FORMATO_DA_RESPOSTA, messages }) })
     if (!res.ok) return fim(null, 0, `http_${res.status}`)
     const data = (await res.json()) as { choices?: Array<{ finish_reason?: string; message?: { content?: string | null; refusal?: string | null } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }
-    const custo = custoDoCriticoUsd(data.usage, 0, caracteres)
+    const custo = custoDaLeituraUsd(modelo, data.usage, caracteres)
     const escolha = data.choices?.[0], conteudo = typeof escolha?.message?.content === 'string' ? escolha.message.content : ''
-    const { leitura: l, motivo } = conferirLeituraDePresenca(conteudo, elenco.length, planos.length)
     const num = (x: unknown) => (typeof x === 'number' && Number.isFinite(x) ? x : null)
-    const extra: Partial<ChamadaDePresenca> = { leitura: l, tokens: { entrada: num(data.usage?.prompt_tokens), saida: num(data.usage?.completion_tokens) },
+    const comum: Partial<ChamadaDePresenca> = { tokens: { entrada: num(data.usage?.prompt_tokens), saida: num(data.usage?.completion_tokens) },
       fim: typeof escolha?.finish_reason === 'string' ? escolha.finish_reason.slice(0, 40) : null, recusa: !!escolha?.message?.refusal }
+    if (versao === 'v2') {
+      const l2 = lerLeituraDePresencaV2(conteudo, elenco.length, planos.length)
+      return l2 ? fim(decidirPresencaV2(l2, elenco), custo, null, { ...comum, leitura: l2 }) : fim(null, custo, 'fora_do_esquema', { ...comum, leitura: null, bruta: conteudo.slice(0, BRUTA_MAX), motivoDoEsquema: null })
+    }
+    const { leitura: l, motivo } = conferirLeituraDePresenca(conteudo, elenco.length, planos.length)
+    const extra: Partial<ChamadaDePresenca> = { ...comum, leitura: l }
     return l ? fim(decidirPresenca(l, elenco, planos), custo, null, extra) : fim(null, custo, 'fora_do_esquema', { ...extra, bruta: conteudo.slice(0, BRUTA_MAX), motivoDoEsquema: motivo })
   } catch {
-    return fim(null, custoDoCriticoUsd(null, 0, caracteres), ctrl.signal.aborted ? 'prazo' : 'fetch')
+    return fim(null, custoDaLeituraUsd(modelo, null, caracteres), ctrl.signal.aborted ? 'prazo' : 'fetch')
   } finally { clearTimeout(timer) }
 }
 
@@ -219,7 +346,7 @@ export function relatoQuemAparece(c: ChamadaDePresenca, elenco: readonly PessoaD
 export const SONDA_PRESENCA_TETO_POR_INSTANCIA = 120
 export type EstadoDaSondaDePresenca = { ocupada: boolean; feitas: Set<string>; leituras: number; tempos: number[] }
 export const novoEstadoDaSondaDePresenca = (): EstadoDaSondaDePresenca => ({ ocupada: false, feitas: new Set(), leituras: 0, tempos: [] })
-export type PedidoDePresenca = { elenco: PessoaDoElenco[]; planos: PlanoParaLer[] }
+export type PedidoDePresenca = { elenco: PessoaDoElenco[]; planos: PlanoParaLer[]; /** [A/B] sem o campo: v2 */ versao: VersaoDaPergunta; /** [A/B] sem o campo: o de hoje */ modelo: string }
 const txt = (x: unknown, max: number, vazio = false) => (typeof x === 'string' && x.length <= max && (vazio || x.trim()) && !/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(x) ? x.trim() : null)
 /** O corpo do POST da sonda, campo a campo. Fora do formato = null. */
 export function lerPedidoDePresenca(body: unknown): PedidoDePresenca | null {
@@ -244,9 +371,19 @@ export function lerPedidoDePresenca(body: unknown): PedidoDePresenca | null {
     planos.push({ fala, marcador, visual })
   }
   if (elenco.filter((e) => e.protagonista).length > 1) return null
-  return { elenco, planos }
+  // [A/B] versão e modelo: opcionais, de listas FECHADAS; fora da lista = o pedido inteiro recusado (nenhuma chamada)
+  const versao = b.versao === undefined ? QUEM_APARECE_VERSAO_DA_SONDA : VERSOES_DA_PERGUNTA.includes(b.versao as VersaoDaPergunta) ? (b.versao as VersaoDaPergunta) : null
+  const modelo = b.modelo === undefined ? QUEM_APARECE_MODELO_PADRAO : modeloDaSondaValido(b.modelo) ? b.modelo : null
+  if (!versao || !modelo) return null
+  return { elenco, planos, versao, modelo }
 }
-export const chaveDaPresenca = (p: PedidoDePresenca) => JSON.stringify([p.elenco.map((e) => [e.nome, e.tipo, e.genero, e.descricao ?? null, e.protagonista === true]), p.planos.map((x) => [x.fala, x.marcador, x.visual])])
+export const chaveDaPresenca = (p: PedidoDePresenca) => JSON.stringify([p.elenco.map((e) => [e.nome, e.tipo, e.genero, e.descricao ?? null, e.protagonista === true]), p.planos.map((x) => [x.fala, x.marcador, x.visual]), p.versao, p.modelo]) // [A/B] o mesmo caso em outra versão ou outro modelo não é repetido
+/** [A/B] A leitura no formato da versão que respondeu (v2: others e, por pessoa, on_screen/how; v3: subject e named), para a sonda. */
+export function leituraParaASonda(c: ChamadaDePresenca): unknown {
+  if (!c.leitura) return null
+  if (c.versao === 'v2') return (c.leitura as LeituraDePresencaV2).map((linha) => ({ others: linha.outros ?? null, cast: linha.map((x) => ({ on_screen: x.naTela, how: x.como })) }))
+  return (c.leitura as LeituraDePresenca).map((p) => ({ subject: p.assunto, named: p.nomeados.map((k) => k + 1) }))
+}
 export type AdmissaoDePresenca = 'ok' | 'nao_e_da_casa' | 'ocupada' | 'repetida' | 'teto'
 /** A trava, antes da chamada. 'ok' reserva a vez; o chamador libera com liberarSondaDePresenca. */
 export function admitirSondaDePresenca(e: EstadoDaSondaDePresenca, email: string | null | undefined, chave: string): AdmissaoDePresenca {
