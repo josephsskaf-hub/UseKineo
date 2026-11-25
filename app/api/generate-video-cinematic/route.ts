@@ -27,6 +27,7 @@ import { KLING4_TRIAL_LIVE, kling4TrialEligible } from '@/lib/kling4TrialPolicy'
 import { KLING4_TRIAL_MAX_SECONDS, KLING4_TRIAL_MAX_SECONDS_ENSAIO, kling4TrialTetoDaFala, kling4TrialClipSeconds, kling4TrialClipCostUsd } from '@/lib/kling4TrialPolicy' // KINEO-K4-GRATIS-20S-1711
 import { submitKling4TrialVideo, orchestrateKling4Trial, buildKling4TrialInput, kling4TrialSceneDurations, kling4TrialClipTotal /* KINEO-K4-GRATIS-20S-1711 */, approvedKling4TrialStills, KLING4_DURACAO_PELA_VOZ, duracaoPelaVozLigada, type Kling4TrialResult } from '@/lib/kling4Trial' // KINEO-K4-DURACAO-PELA-VOZ-1311: + interruptor
 import { reserveKling4Trial, recordKling4TrialFilm } from '@/lib/kling4TrialBudget'
+import { motorDoFilmeGratis2511 } from '@/lib/cinematic/chaveDoMotor2511' // KINEO-TOMADA-DO-MOTOR-2511 — o motor do filme grátis sem deploy
 import { gravarSeloDoFilmeGratis2511 } from '@/lib/kling4TrialBudget' // KINEO-GEMINI-NA-ESTEIRA-2511 [revisora 25/11, conserto 1]
 import { medirFalaDoKling4Trial as medirFalaK4Crua } from '@/lib/kling4TrialScript' // KINEO-K4-SEMPRE-0511 [TRAVA 8.2 — fundador 05/11 "vai"]
 import { K4_REGUA_DO_FECHO_1911, reguaDoFechoLigada } from '@/lib/kling4TrialEncaixe' // KINEO-REGUA-DO-FECHO-1911
@@ -8640,7 +8641,11 @@ async function manipularPost(req: NextRequest) {
     // = ambíguo, sem reenviar (como o Kling 4 hoje). Cliente e 'off': nenhum pedido ao Gemini, nada muda.
     const gemini2511: { entrada: EntradaDoGemini | null; kling4: { model: string; input: Record<string, unknown> } | null; recusaNoEnvio: number | null } = { entrada: null, kling4: null, recusaNoEnvio: null }
     const tentarGemini2511 = async () => {
-      if (!geminiNaEsteiraLigado(GEMINI_NA_ESTEIRA_2511, user.email)) return null
+      // KINEO-TOMADA-DO-MOTOR-2511 [CEO 25/11 16:25] a chave sem deploy (tabela chaves_de_motor): 'kling4'/'reserva' = nenhum pedido ao Gemini; 'gemini' = o Gemini
+      // mesmo com a constante desligada; sem a chave (ou erro) = o código, como antes
+      const motor2511 = typeof motorDoFilmeGratis2511 === 'function' ? await motorDoFilmeGratis2511(cinematicAdmin) : null
+      if (motor2511 === 'kling4' || motor2511 === 'reserva') return null
+      if (motor2511 !== 'gemini' && !geminiNaEsteiraLigado(GEMINI_NA_ESTEIRA_2511, user.email)) return null
       const e = kling4PorSecao({ prompts: kling4Prompts, approvedStills: kling4ApprovedStills, timing: kling4Timing })
       const wire = buildKling4TrialInput(e.prompts, e.approvedStills, e.timing)
       if (wire.model !== KLING4_REFERENCE_MODEL) return null

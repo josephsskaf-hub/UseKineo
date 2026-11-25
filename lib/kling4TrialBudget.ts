@@ -10,7 +10,7 @@ type Identity = { jobId: string; userId: string; country?: string | null }
 // reserva aceita: o orquestrador a chama SÓ quando a fal recusa o envio com 4xx (nada cobrado) e os US$ 2,355 voltam ao dia.
 export type Kling4TrialReservation =
   | { allowed: true; reservedUsd: number; release: () => Promise<boolean> }
-  | { allowed: false; reason: 'cap' | 'duplicate' | 'unavailable' | 'teto_24h' }
+  | { allowed: false; reason: 'cap' | 'duplicate' | 'unavailable' | 'teto_24h' | 'chave_reserva' /* KINEO-TOMADA-DO-MOTOR-2511 */ }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu
 const validIdentity = (i: Identity) => UUID.test(i.userId) && typeof i.jobId === 'string' && i.jobId.trim().length > 0 && i.jobId.length <= 200
@@ -33,6 +33,9 @@ const country = (value: string | null | undefined) => typeof value === 'string' 
 export async function reserveKling4Trial(admin: SupabaseClient, i: Identity & { clipSeconds?: number | null }): Promise<Kling4TrialReservation> {
   if (!validIdentity(i)) return { allowed: false, reason: 'unavailable' }
   const reserva = kling4TrialReserveMilliusd(i.clipSeconds) // KINEO-K4-TETO-FILME-LONGO-1711
+  // KINEO-TOMADA-DO-MOTOR-2511 [CEO 25/11 16:25] a chave 'reserva' (sem deploy): o Kling 4 grátis nem reserva e o filme vai à reserva de hoje (o mesmo caminho
+  // de 'unavailable', com o motivo próprio no marcador). Sem a chave, tabela ausente ou erro = o código. Import dinâmico: este módulo segue sem import no topo.
+  try { const { motorDoFilmeGratis2511 } = await import('@/lib/cinematic/chaveDoMotor2511'); if ((await motorDoFilmeGratis2511(admin)) === 'reserva') return { allowed: false, reason: 'chave_reserva' } } catch { /* o código */ }
   if (reserva === null) return { allowed: false, reason: 'unavailable' }
   try {
     // KINEO-K4-DEVOLUCAO-1111 — a casa fica FORA da regra das 24 h (p_cap_24h=false); o resto chama com os 3 argumentos de
