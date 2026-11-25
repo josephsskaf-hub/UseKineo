@@ -125,10 +125,15 @@ function citacaoDoPersonagem(texto: string, nomes: readonly string[]): 'sujeito'
   }
   return posse ? 'posse' : null
 }
+/** KINEO-DUAS-REFERENCIAS-2411 [revisora, volta 2] a ficha É do personagem quando começa pelo nome dele ("Identity: Mara, …", "…consistent design: Mara, …"). */
+function fichaComecaPor(ficha: string, nomes: readonly string[]): boolean {
+  const corpo = ficha.replace(/^(?:The same main character appears in this scene, consistent design:|(?:Identity|Visible(?:, seen from behind)?):)\s*/u, '').replace(/^(?:the|a|an)\s+/iu, '').toLowerCase()
+  return nomes.some((n) => { const k = String(n ?? '').trim().toLowerCase().replace(/^(?:the|a|an)\s+/, ''); return Array.from(k).length >= 3 && corpo.startsWith(k) && !/^[\p{L}\p{N}]/u.test(corpo.slice(k.length)) })
+}
 /** A ficha/ordem/cláusula DELE que o código pôs no plano (a ordem do protagonista é dele por definição, mesmo sem o nome na canônica). */
 function temFichaDele(prompt: string, nomes: readonly string[], protagonista = true): boolean {
   const t = String(prompt ?? '')
-  return (protagonista && (t.match(ORDEM_DO_PROTAGONISTA_RE)?.length ?? 0) > 0) || [CLAUSULA_DA_FICHA_RE, LINHA_DA_FICHA_RE].some((re) => (t.match(re) ?? []).some((m) => citacaoDoPersonagem(m, nomes) !== null))
+  return (protagonista && (t.match(ORDEM_DO_PROTAGONISTA_RE)?.length ?? 0) > 0) || [CLAUSULA_DA_FICHA_RE, LINHA_DA_FICHA_RE].some((re) => (t.match(re) ?? []).some((m) => protagonista ? citacaoDoPersonagem(m, nomes) !== null : fichaComecaPor(m, nomes)))
 }
 const palavrasDe = (t: string): Set<string> => new Set((String(t ?? '').toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []).filter((w) => Array.from(w).length >= 4))
 /** A ação repete a descrição DELE: `minimo` palavras (4+ letras) da descrição do autor/pedido ("bearded inventor in an 1880s suit"). Sem descrição = não. */
@@ -144,7 +149,7 @@ export function planoMostraOPersonagem(prompt: string, nomes: readonly string[],
   const acao = acaoDoPlano(prompt)
   const cita = citacaoDoPersonagem(acao, nomes)
   if (cita === 'sujeito') return true
-  if (cita === 'posse' && visualMostraAlguem(acao)) return true
+  if (cita === 'posse' && quem.protagonista !== false && visualMostraAlguem(acao)) return true // KINEO-DUAS-REFERENCIAS-2411: a posse não põe o 2º no plano
   if (repeteADescricao(acao, quem.descricao)) return true
   if (!temFichaDele(prompt, nomes, quem.protagonista !== false)) return false
   return quem.metade === true ? visualMostraAlguem(acao) || repeteADescricao(acao, quem.descricao, 1) : !planoNegaGente(acao)

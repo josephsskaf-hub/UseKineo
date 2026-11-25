@@ -687,7 +687,7 @@ const mutants = [
 ]
 // KINEO-REFERENCIA-UNICA-PUBLIC-2411 — mutantes por COMPORTAMENTO (cada um cai nos 3 filmes da prova, nos 8 roteiros da revisora ou nos casos do ponto 2)
 mutants.push(
-  [transport, 'if (cita === \'posse\' && visualMostraAlguem(acao)) return true', 'if (cita === \'posse\') return true'], // frase em plano de ausência (Slocum 4)
+  [transport, 'if (cita === \'posse\' && quem.protagonista !== false && visualMostraAlguem(acao)) return true', 'if (cita === \'posse\') return true'], // frase em plano de ausência (Slocum 4)
   [transport, '  if (repeteADescricao(acao, quem.descricao)) return true\n', ''], // a frase sai do plano que o mostra sem nome nem ficha (Le Prince 1)
   [transport, 'if (dele.has(w) && ++n >= minimo) return true', 'if (dele.has(w) && ++n >= 1) return true'], // estranho com 1 palavra em comum ganha a frase
   [transport, '  if (!temFichaDele(prompt, nomes, quem.protagonista !== false)) return false\n', '  if (!temFichaDele(prompt, nomes, quem.protagonista !== false)) return visualMostraAlguem(acao)\n'], // pessoa sem nome que não é ele ganha a frase

@@ -140,6 +140,37 @@ async function suite(change) {
     const p = admitir(route, { ...f, REFERENCIA_UNICA_2411: 'public' }, fr, vp, { email: CLIENTE, snapshot: retrato() })
     assert.ok(p.referenciaUnica && !('segundo' in p.referenciaUnica), "referência 'public' + cliente: uma referência") }
 
+  // 7. [revisora independente 24/11, VOLTA, docs/revisoes-2311/CEO-DUAS-REFERENCIAS-2411.md §9] os quatro furos e os três mutantes vivos
+  { const marcas = w => w.input.multi_prompt.map(m => (m.prompt.includes('@Image1') ? '1' : '') + (m.prompt.includes('@Image2') ? '2' : '') || '-')
+    const monta = (planos, metades) => api.buildKling4ReferenciaUnicaInput(planos.map((prompt, i) => ({ prompt, duration: [7, 8][i] })), { ...t.referenciaUnica, ...(metades ? { metades } : {}) })
+    // 1. posse não é presença do 2º
+    igual(marcas(monta(['Photoreal film. Identity: Elias, an old keeper. Elias holds Mara\'s radio close to his ear.' + BOCA, 'Photoreal film. Mara and Elias wave.' + BOCA])), ['1', '12'], 'posse: só @Image1')
+    // 2. o nome do 2º dentro da ficha do protagonista não é a ficha do 2º
+    igual(marcas(monta(['Photoreal film. Identity: Elias, Mara\'s grandfather, an old keeper. Elias stands alone on the gallery.' + BOCA, 'Photoreal film. Identity: Mara, a radio operator. She listens to the radio.' + BOCA])), ['1', '2'], 'a ficha dele cita a Mara')
+    // M13: metade só do 2º com a ficha do protagonista herdada: a ficha dele sai e entra só @Image2
+    { const m = monta(['Photoreal film. Identity: Elias, an old keeper. Elias climbs the stairs.' + BOCA, 'Photoreal film. Identity: Elias, an old keeper. Mara steps onto the pier.' + BOCA], [false, true])
+      igual(marcas(m), ['1', '2']); assert.ok(!m.input.multi_prompt[1].prompt.includes('Identity: Elias'), 'a ficha do protagonista sai da metade só dela'); assert.equal(typeof m.fichaRetirada[1], 'string') }
+    // M8: plano com os dois perto de 512: as duas frases cabem, o plano não passa de 512
+    { const longo = 'Photoreal film. Elias and Mara ' + 'walk slowly through the long corridor of mirrors, '.repeat(12) + 'and stop.' + BOCA
+      const m = monta([longo, 'Photoreal film. Elias waits.' + BOCA])
+      assert.ok(Array.from(m.input.multi_prompt[0].prompt).length <= 512, 'teto de 512 com as duas frases'); igual(marcas(m)[0], '12')
+      assert.ok(m.input.multi_prompt[0].prompt.endsWith(F1 + ' ' + F2 + BOCA)) }
+    // 3. nomes que se contêm: uma referência
+    for (const [a, b] of [['Ana Maria', 'Ana'], ['Ana', 'Ana Maria'], ['Elias', 'Elias Junior']]) {
+      const el = [{ ...CEDD.elenco[0], nome: a, nucleo: a }, { ...CEDD.elenco[1], nome: b, nucleo: b }]
+      const x = admitir(route, f, fr, vp, { email: CASA, snapshot: retrato([{ nome: a, url: FOLHA_E }, { nome: b, url: FOLHA_M }], el) })
+      assert.ok(x.referenciaUnica && !('segundo' in x.referenciaUnica), a + ' / ' + b + ': uma referência')
+    }
+    // 4. o protagonista pela imagem-chave + 2 coadjuvantes com folha = 3 pessoas com referência: uma referência
+    { const tom = { nome: 'Tom', nucleo: 'Tom', tipo: 'humano', protagonista: false, canonica: 'Tom, a fisherman' }
+      const snap = { ...retrato([{ nome: 'Mara', url: FOLHA_M }, { nome: 'Tom', url: 'https://example.org/offline/folha-tom.png' }], [...CEDD.elenco, tom]), approvedStills: [{ url: 'https://example.org/offline/k-elias.png', characterNames: ['Elias'] }] }
+      const x = admitir(route, f, fr, vp, { email: CASA, snapshot: snap })
+      assert.ok(x.referenciaUnica && x.referenciaUnica.origem === 'imagem_chave' && !('segundo' in x.referenciaUnica), 'protagonista pela imagem-chave: uma referência') }
+    // M11: 2º de tipo fora do elenco de gente, bicho e criatura (objeto): uma referência
+    { const x = admitir(route, f, fr, vp, { email: CASA, snapshot: retrato(undefined, [CEDD.elenco[0], { ...CEDD.elenco[1], tipo: 'objeto' }]) })
+      assert.ok(x.referenciaUnica && !('segundo' in x.referenciaUnica), '2º objeto: uma referência') }
+  }
+
   // 6. o montador sem o 2º = byte a byte o de uma referência (os filmes de uma pessoa); 2º torto = ignorado
   for (const torto of [{ ...t.referenciaUnica.segundo, imageUrl: 'http://x.org/m.png' }, { ...t.referenciaUnica.segundo, frase: F1 }, { ...t.referenciaUnica.segundo, imageUrl: FOLHA_E }]) {
     const { segundo, ...uma } = ref
@@ -154,7 +185,7 @@ const mutants = [
   [feature, "boolean =>\n  modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))\nexport const FRASE_SEGUNDA_PESSOA", "boolean =>\n  modo === 'public' || (modo === 'internal')\nexport const FRASE_SEGUNDA_PESSOA"], // todo e-mail vira casa (só aqui)
   [feature, 'comSegundaReferencia2411(r, snapshot, duasReferenciasLigadas(DUAS_REFERENCIAS_2411, email))', 'comSegundaReferencia2411(r, snapshot, true)'], // sem o interruptor
   // (o mutante "cliente recebendo pelo caminho do cliente" ficou equivalente sobre 7855f3a52: o aperto 9317d3141 nunca admite cliente com 2 folhas, e o 2º pede exatamente 2; o cliente pelo caminho da casa, em "public", está no caso 5)
-  [feature, '  if (comFolha.length !== 2) return ref\n', ''], // 3ª folha vira 2º
+  [feature, 'if (comFolha.length !== 2 || !comFolha', 'if (comFolha.length < 2 || !comFolha'], // 3ª folha vira 2º
   [feature, "outro.tipo === 'humano' ? FRASE_SEGUNDA_PESSOA : FRASE_SEGUNDA_DESENHO", "FRASE_REFERENCIA_PESSOA"], // o 2º com @Image1
   [feature, '  if (!https(url) || url === ref.imageUrl) return ref\n', ''], // 2º sem folha https
   [transport, 'image_urls: usaSegundo && seg ? [ref.imageUrl, seg.imageUrl] : [ref.imageUrl]', 'image_urls: usaSegundo && seg ? [seg.imageUrl, ref.imageUrl] : [ref.imageUrl]'], // imagens trocadas
@@ -165,6 +196,14 @@ const mutants = [
   [transport, "&& ref.segundo.imageUrl !== ref.imageUrl && /@Image2\\b/.test(ref.segundo.frase)", "&& /@Image2\\b/.test(ref.segundo.frase)"], // a mesma imagem duas vezes
   [transport, "&& /@Image2\\b/.test(ref.segundo.frase) && /@Image1\\b/.test(ref.frase)", "&& /@Image1\\b/.test(ref.frase)"], // frase do 2º sem @Image2
   [feature, "(marcados[i] === true || segundos[i] === true) && typeof m?.prompt", "marcados[i] === true && typeof m?.prompt"], // o juiz lê a frase do 2º
+  // [revisora independente 24/11, VOLTA] os quatro furos e os três vivos dela
+  [transport, "if (cita === 'posse' && quem.protagonista !== false && visualMostraAlguem(acao))", "if (cita === 'posse' && visualMostraAlguem(acao))"], // 1. posse vira presença do 2º
+  [transport, 'protagonista ? citacaoDoPersonagem(m, nomes) !== null : fichaComecaPor(m, nomes)', 'citacaoDoPersonagem(m, nomes) !== null'], // 2. o nome dele na ficha de outro
+  [feature, '  if (nomes.some((a) => ref.nomes.some((b) => palavra(a, b) || palavra(b, a)))) return ref\n', ''], // 3. nomes que se contêm
+  [feature, ' || !comFolha.some((c) => c.protagonista === true)) return ref', ') return ref'], // 4. protagonista pela imagem-chave + 2 folhas
+  [transport, 'KLING4_TETO_DO_PLANO - Array.from(frases).length', 'KLING4_TETO_DO_PLANO - Array.from(frase).length'], // M8: reserva só uma frase
+  [feature, " || (outro.tipo !== 'humano' && outro.tipo !== 'animal' && outro.tipo !== 'criatura')) return ref", ') return ref'], // M11: 2º objeto
+  [transport, 'if (!comPersonagem[i]) { const sem = semFichaDoPersonagem(texto, ref.nomes);', 'if (false) { const sem = semFichaDoPersonagem(texto, ref.nomes);'], // M13: a ficha dele fica na metade só dela
   [feature, "...(Array.isArray(wire.planosComSegunda) ? { planos_com_segunda:", "...(false ? { planos_com_segunda:"], // o claim não conta o 2º
 ]
 let mortos = 0

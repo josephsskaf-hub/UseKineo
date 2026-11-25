@@ -87,12 +87,16 @@ export const FRASE_SEGUNDA_DESENHO = 'Keep the exact character design of @Image2
 export function comSegundaReferencia2411(ref: ReferenciaUnica2411, snapshot: FilmQualitySnapshot | null | undefined, ligada: boolean): ReferenciaUnica2411 {
   if (!ligada || !retratoNoFormato(snapshot)) return ref
   const comFolha = snapshot.characters.filter((c) => snapshot.characterReferences.some((r) => r.nome === c.nome && https(r.url)))
-  if (comFolha.length !== 2) return ref
+  // [revisora, volta 2] exatamente 2 com folha E o protagonista entre eles, (protagonista pela imagem-chave + 2 folhas = 3 pessoas com referência: fica uma)
+  if (comFolha.length !== 2 || !comFolha.some((c) => c.protagonista === true)) return ref
   const outro = comFolha.find((c) => c.protagonista !== true)
   if (!outro || typeof outro.nome !== 'string' || !outro.nome.trim() || (outro.tipo !== 'humano' && outro.tipo !== 'animal' && outro.tipo !== 'criatura')) return ref
   const url = snapshot.characterReferences.find((r) => r.nome === outro.nome)?.url
   if (!https(url) || url === ref.imageUrl) return ref
   const nomes = [outro.nome, outro.nucleo].filter((n, i, all): n is string => typeof n === 'string' && !!n.trim() && all.indexOf(n) === i)
+  // [revisora, volta 2] um nome que CONTÉM o outro como palavra ("Ana Maria" e "Ana", "Elias" e "Elias Junior"): o texto não separa os dois = uma referência
+  const palavra = (a: string, b: string) => { const k = b.trim().toLowerCase().replace(/^(?:the|a|an)\s+/, ''); return Array.from(k).length >= 3 && new RegExp(`(?<![\\p{L}\\p{N}])${k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`, 'iu').test(a) }
+  if (nomes.some((a) => ref.nomes.some((b) => palavra(a, b) || palavra(b, a)))) return ref
   const descricao = descricaoDoAutor(outro.canonica)
   return { ...ref, segundo: { imageUrl: url, frase: outro.tipo === 'humano' ? FRASE_SEGUNDA_PESSOA : FRASE_SEGUNDA_DESENHO, nomes, ...(descricao ? { descricao } : {}) } }
 }
