@@ -16,6 +16,7 @@
 //      país, has_paid baixado, plano baixado) NÃO abre a compra sem a PROVA DE SERVIDOR (trial_region_excluded com país
 //      IN/PK/NG e nenhum payment_success/region_film_199_paid na história).
 import fs from 'node:fs'
+import { scenePreviewWithFilmLook } from './test-support/scene-preview-film-look.mjs'
 import path from 'node:path'
 import vm from 'node:vm'
 import { execSync } from 'node:child_process'
@@ -324,6 +325,10 @@ for (const rel of ['lib/scenePreview.ts', 'lib/freeFilmPolicy.ts', 'lib/regionPa
       ok(releaseVisibleIntacto(m, read(rel)), `${rel}: o bloco de releaseVisible idêntico à main`)
       ok(releaseVisibleMutantes(read(rel)).every((x) => x !== read(rel) && !releaseVisibleIntacto(m, x)), `${rel}: mutantes de releaseVisible (linha nova dentro, 2ª definição) são pegos`)
     }
+    continue
+  }
+  if (rel === 'lib/scenePreview.ts') {
+    ok(scenePreviewWithFilmLook(m) === read(rel), 'scenePreview: só o transporte do estilo pode mudar em relação à main')
     continue
   }
   ok(m !== null && m === read(rel), `${rel} idêntico à main`)

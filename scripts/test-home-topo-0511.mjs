@@ -88,7 +88,7 @@ function problemas(mut = {}) {
   const filmes = filmesDaPorta0511()
   checa('12 filmes: 4 x 3 e 2 x 6, sem cartão sobrando', filmes.length === 12 && filmes.length % 4 === 0 && filmes.length % 2 === 0)
   checa('nenhum filme repetido', new Set(filmes.map((f) => f.id)).size === filmes.length)
-  checa('a página usa a lista', fonte(F.studio).includes('<StudioSimples filmes={filmesDaPorta0511()}'))
+  checa('a página usa a lista', /<StudioSimples\b[^>]*\bfilmes=\{filmesDaPorta0511\(\)\}/.test(fonte(F.studio)))
   checa('todo cartão tem pôster de verdade, em arquivo pequeno', filmes.every((f) => { const a = path.join(raiz, 'public', f.poster); return f.poster.startsWith('/posters/') && fs.existsSync(a) && fs.statSync(a).size > 2048 && fs.statSync(a).size < 80_000 }))
   const artemis = filmes.find((f) => f.id === ID_ARTEMIS)
   checa('o filme da Artemis, com o título e a primeira frase', artemis?.title === "NASA's rocket tore a hole in the sky" && artemis?.ideia === "NASA's rocket tore a hole in the sky.")
@@ -96,7 +96,7 @@ function problemas(mut = {}) {
   const simples = fonte(F.simples)
   checa('o cartão parte da ideia, sem ela do título', simples.includes('setTexto(f.ideia ?? f.title)'))
   checa('4 colunas no computador e 2 no celular', simples.includes('.ksx-films{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))') && /@media \(max-width:560px\)\{\.ksx-films\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/.test(simples))
-  checa('o Studio completo segue com a escolha dele', fonte(F.studio).includes('<StudioClient engineHeroes={engineHeroes} bestFilms={bestFilms} />') && fonte(F.studio).includes('const BEST_FILM_IDS = ['))
+  checa('o Studio completo segue com a escolha dele', /<StudioClient\b[^>]*\bengineHeroes=\{engineHeroes\}[^>]*\bbestFilms=\{bestFilms\}/.test(fonte(F.studio)) && fonte(F.studio).includes('const BEST_FILM_IDS = ['))
 
   // ─── 4. Os dois trailers no limite de card ───────────────────────────────────────────────────────────────────────────────────
   for (const nome of Object.values(QUATRO_CARDS)) {
@@ -127,7 +127,7 @@ const MUTANTES = {
   'visitante vai à rede': troca(F.caixa, 'if (visitante) {', 'if (false) {'),
   'a porta com 11 filmes': troca(F.porta, "  'a09706da-a79f-4029-b213-69f43d6a2775', // a Ilha de Páscoa\n", ''),
   'filme repetido': troca(F.porta, "'a09706da-a79f-4029-b213-69f43d6a2775', // a Ilha de Páscoa", "'90bd8367-60c6-4811-8fdd-3a5b0200eec6',"),
-  'a página volta para os 5 de antes': troca(F.studio, '<StudioSimples filmes={filmesDaPorta0511()}', '<StudioSimples filmes={[]}'),
+  'a página volta para os 5 de antes': troca(F.studio, 'filmes={filmesDaPorta0511()}', 'filmes={[]}'),
   'o cartão ignora a ideia': troca(F.simples, 'setTexto(f.ideia ?? f.title)', 'setTexto(f.title)'),
   'pôster que não existe': troca(F.porta, '`/posters/studio-door-${id}.webp`', '`/posters/nao-existe-${id}.webp`'),
 }

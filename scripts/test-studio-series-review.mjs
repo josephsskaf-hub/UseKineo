@@ -32,6 +32,7 @@ for (const source of ['studio_milestone', 'studio_video_tile']) {
       assert.equal(output.get('continuation_source'), source)
       assert.equal(output.get('duration'), '35')
       assert.equal(output.get('script_mode'), 'ai')
+      assert.equal(output.has('look'), false)
       assert.equal(output.get('intent_campaign'), 'studio_series_review_v1')
     })
   }

@@ -99,6 +99,7 @@ export function roundTrip(href, initial = {}, edits = {}) {
     sexualRefusal: { refuse: false, namedPerson: false, version: 'sim' }, setSexualRefusalShown: () => {},
     searchSignature: query,
     carryStudioSeriesReview: review.carryStudioSeriesReview,
+    filmLook: undefined, // A continuation link does not carry an explicit film look.
     campaignRef, onboardingGoalRef,
     sessionStorage,
     ...scriptInput, ...episode, ...scriptLanguage,

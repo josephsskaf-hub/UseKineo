@@ -9,6 +9,7 @@
 //   (6) eventos de medição de servidor, fora do alcance do navegador; o aviso invertido marca os seus eventos;
 //   (7) mutantes: cada regra quebrada derruba pelo menos uma verificação.
 import fs from 'node:fs'
+import { scenePreviewWithFilmLook } from './test-support/scene-preview-film-look.mjs'
 import path from 'node:path'
 import { execSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
@@ -72,6 +73,10 @@ for (const rel of ['lib/scenePreview.ts', 'app/api/scene-preview/route.ts', 'lib
       ok(releaseVisibleIntacto(m, read(rel)), `${rel}: o bloco de releaseVisible idêntico à main`)
       ok(releaseVisibleMutantes(read(rel)).every((x) => x !== read(rel) && !releaseVisibleIntacto(m, x)), `${rel}: mutantes de releaseVisible (linha nova dentro, 2ª definição) são pegos`)
     }
+    continue
+  }
+  if (rel === 'lib/scenePreview.ts') {
+    ok(scenePreviewWithFilmLook(m) === read(rel), 'scenePreview: só o transporte do estilo pode mudar em relação à main')
     continue
   }
   ok(m !== null && m === read(rel), `${rel} idêntico à main`)
