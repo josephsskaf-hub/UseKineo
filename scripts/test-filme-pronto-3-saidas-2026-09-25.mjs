@@ -294,15 +294,15 @@ function provasRecarga(src) {
 }
 for (const [n, c] of provasRecarga(COMP_SRC)) ok(c, n)
 const ANCORA_RAMO = '      {recarga ? (\n'
-const ANCORA_HOOK = 'const recarga = useRecargaEntrada(FILM_READY_TOPUP_SURFACE)'
+const ANCORA_HOOK = 'const recarga = useRecargaEntrada(FILM_READY_TOPUP_SURFACE, showPurchaseLinks)'
 mutante('oferta do servidor ignorada (assinante cai em /pricing)', COMP_SRC, ANCORA_RAMO, '      {false ? (\n', provasRecarga)
 mutante('botão da recarga para quem não tem oferta', COMP_SRC, ANCORA_RAMO, '      {true ? (\n', provasRecarga)
-mutante('barra aberta para quem não tem oferta', COMP_SRC, '{recargaOpen && recarga ? <BuyCreditsModal', '{recargaOpen ? <BuyCreditsModal', provasRecarga)
+mutante('barra aberta para quem não tem oferta', COMP_SRC, '{showPurchaseLinks && recargaOpen && recarga ? <BuyCreditsModal', '{showPurchaseLinks && recargaOpen ? <BuyCreditsModal', provasRecarga)
 mutante('destino do evento mentindo (recarga grava pricing)', COMP_SRC, "track('more_credits', 'topup_modal')", "track('more_credits', String('pricing'))", provasRecarga)
 mutante('destino do evento mentindo (planos grava topup_modal)', COMP_SRC, "track('more_credits', 'pricing')", "track('more_credits', String('topup_modal'))", provasRecarga)
 mutante('oferta inventada pelo plano', COMP_SRC, ANCORA_HOOK,
-  "const recarga = useRecargaEntrada(FILM_READY_TOPUP_SURFACE) ?? (plan === 'pro' ? { show: true, go: '/x', qa: false } : null)", provasRecarga)
-mutante('superfície errada na leitura', COMP_SRC, ANCORA_HOOK, "const recarga = useRecargaEntrada('sidebar_chip')", provasRecarga)
+  "const recarga = useRecargaEntrada(FILM_READY_TOPUP_SURFACE, showPurchaseLinks) ?? (plan === 'pro' ? { show: true, go: '/x', qa: false } : null)", provasRecarga)
+mutante('superfície errada na leitura', COMP_SRC, ANCORA_HOOK, "const recarga = useRecargaEntrada('sidebar_chip', showPurchaseLinks)", provasRecarga)
 mutante('2ª leitura ao abrir (TopupOuRecargaModal no lugar da oferta lida)', COMP_SRC, '<BuyCreditsModal offer={recarga}', '<TopupOuRecargaModal offer={recarga}', provasRecarga)
 mutante('clique da recarga abre a barra antiga', COMP_SRC, '            setRecargaOpen(true)\n', '            setTopupOpen(Boolean(1))\n', provasRecarga)
 
@@ -398,8 +398,8 @@ function provasMontagem(src) {
   if (montagens.length !== 1 || !acoes) return R
   const m = montagens[0]
   const attrs = m.attributes.properties.map((p) => p.getText(ast)).sort()
-  R.push(['(e) só videoId={publicVideoId} e plan={commercialPlan} (nenhum on*/href novo para a trava do done-workspace)',
-    attrs.join('|') === 'plan={commercialPlan}|videoId={publicVideoId}'])
+  R.push(['(e) só videoId, plan e a regra do slot comercial (nenhum on*/href novo para a trava do done-workspace)',
+    attrs.join('|') === 'plan={commercialPlan}|showPurchaseLinks={!useUnifiedDeliveryOffer}|videoId={publicVideoId}'])
   R.push(['(e) mora no cabeçalho do resultado', m.getStart(ast) > acoes.getStart(ast) && m.getEnd() < acoes.getEnd()])
   const downloads = []
   const dentro = (n) => {
@@ -431,7 +431,7 @@ mutante('refazer cena desaparece no filme elegível', GEN_SRC,
   'publicVideoId ? <SceneRedoPanel videoId={publicVideoId} /> : null',
   'false ? <SceneRedoPanel videoId={publicVideoId} /> : null', provasMontagem)
 {
-  const linha = '                <FilmReadyExits videoId={publicVideoId} plan={commercialPlan} />\n'
+  const linha = '                <FilmReadyExits videoId={publicVideoId} plan={commercialPlan} showPurchaseLinks={!useUnifiedDeliveryOffer} />\n'
   const semMontagem = GEN_SRC.split(linha).length === 2 ? GEN_SRC.replace(linha, '') : null
   ok(semMontagem !== null, 'mutante "montagem acima do download": linha única encontrada')
   if (semMontagem) {

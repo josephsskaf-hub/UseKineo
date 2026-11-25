@@ -51,7 +51,7 @@ check('GenerateClient importa o ajuste', gen.includes("import { fitFrameToVideo 
 check('a moldura do resultado está marcada', gen.includes('data-kineo-frame\n') || gen.includes('data-kineo-frame\r\n') || /data-kineo-frame$/m.test(gen))
 check('filme deitado ganha largura de verdade (460px viraria uma tarja)', gen.includes('data-kineo-frame-wide="min(780px, 94vw)"'))
 check('o ajuste roda no onLoadedMetadata que já existia', gen.includes('fitFrameToVideo(e.currentTarget)'))
-check('NÃO REGREDIU: a leitura da duração real (#283) continua no mesmo handler', gen.includes('if (Number.isFinite(d) && d > 1) setFinalVideoSeconds(Math.round(d))'))
+check('NÃO REGREDIU: a leitura da duração real (#283) continua no mesmo handler', gen.includes('if (Number.isFinite(d) && d > 1 && finalVideoUrl) setFinalVideoTiming({ url: finalVideoUrl, seconds: Math.round(d) })'))
 check('9:16 continua sendo o valor INICIAL da moldura (quadro de ~100% do acervo)', gen.includes("aspectRatio: '9 / 16',"))
 
 console.log('3 · página pública /v/[id] (a que o cliente compartilha)')

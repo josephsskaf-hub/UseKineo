@@ -21,7 +21,7 @@ function problems(code) {
 
 assert.deepEqual(problems(source), [])
 const mutants = [
-  ['<FilmReadyExits videoId={publicVideoId} plan={commercialPlan} />', '', 'O download vem antes dos atalhos e da oferta, todos antes do player no HTML'],
+  ['<FilmReadyExits videoId={publicVideoId} plan={commercialPlan} showPurchaseLinks={!useUnifiedDeliveryOffer} />', '', 'O download vem antes dos atalhos e da oferta, todos antes do player no HTML'],
   ['<div className="done-ready-offer">', '<div className="done-ready-offer"><FilmReadyFullVersionUpsell videoId={publicVideoId} />', 'Cada oferta tem uma só posição'],
   ['{fullVersionOfferEligible\n', '{!fullVersionOfferEligible\n', 'A oferta corresponde à conta e ao filme'],
   [": deliveryOfferSlot === 'next_film'\n", ": deliveryOfferSlot === 'full_version'\n", 'A oferta corresponde à conta e ao filme'],

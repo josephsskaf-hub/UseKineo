@@ -286,6 +286,7 @@ import MrrShareFooter from '@/components/growth/MrrShareFooter'
 import FilmReadyExits from '@/components/FilmReadyExits' // KINEO-FLUXO-NOVO-2026-09-25 — as 3 saídas do filme pronto
 import SceneRedoPanel from '@/components/video/SceneRedoPanel'
 import FilmReadyFullVersionUpsell from '@/components/FilmReadyFullVersionUpsell'
+import FilmDeliveryPlanOffer, { decideFilmDeliveryOffer } from '@/components/premiere/FilmDeliveryPlanOffer'
 import { FILM_COMPLETE_TARGET_SECONDS, FILM_COMPLETE_VERSION } from '@/lib/growth/filmComplete'
 import { decidirDescidaFilmeGratis, lerDescidaDaUrl, notaDaDescida, DESCIDA_FILME_GRATIS_EVENT, DESCIDA_FILME_GRATIS_PARAM, DESCIDA_FILME_GRATIS_VERSION } from '@/lib/growth/descidaFilmeGratis' // KINEO-PRIMEIRO-FILME-2026-10-13
 import { AUTOANALYZE_SESSION_PREFIX, autoanalyzeSessionKey, jaConsumidoNaAba, enderecoSemAutoanalyze, decidirAutoanalyze, decidirAindaNoForno, filmeDoAvisoChegou, CHECKING_CREDITS_COPY, CREDITS_READ_FAILED_COPY, STILL_RENDERING_COPY, STILL_RENDERING_POLL_MAX_MS, STILL_RENDERING_POLL_EVERY_MS } from '@/lib/growth/studioFantasma' // KINEO-STUDIO-FANTASMA-1510
@@ -356,7 +357,6 @@ import {
 import useReadyBeacon from '@/components/video/useReadyBeacon'
 import { PremiereStage, type PremiereItem } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110
 import FirstFilmWaitOffer, { firstFilmWaitOfferVisible } from '@/components/premiere/FirstFilmWaitOffer'
-import FilmDeliveryPlanOffer, { decideFilmDeliveryOffer } from '@/components/premiere/FilmDeliveryPlanOffer'
 import PublishEarnCta from '@/components/PublishEarnCta' // KINEO-PUBLICAR-GANHAR-3110 — "Publish your film — get 10 credits each time someone makes their own version"
 import useWaitAbandon from '@/components/video/useWaitAbandon'
 // KINEO-COMPLETAR-ROTEIRO-2026-08-22 — a mesma constante que o servidor usa
@@ -2269,7 +2269,8 @@ export default function GenerateClient({
     used: number | null
     limit: number | null
   } | null>(null)
-  const [finalVideoSeconds, setFinalVideoSeconds] = useState<number | null>(null)
+  const [finalVideoTiming, setFinalVideoTiming] = useState<{ url: string; seconds: number } | null>(null)
+  const finalVideoSeconds = finalVideoTiming?.seconds ?? null
   // KINEO-COMPLETAR-ROTEIRO-2026-08-22 — a recusa por narração curta e a
   // oferta de completar. `null` = não há recusa pendente.
   const [scriptTooShort, setScriptTooShort] = useState<{
@@ -5953,11 +5954,11 @@ export default function GenerateClient({
     delivered: phase === 'done' && Boolean(finalVideoUrl),
     confirmedFree: activationAccountStatus === 'free' && notPaidProven,
     activePlan: hasPaid || isStarter || isCreator || isStudio || (planTier !== null && planTier !== 'free'),
-    finishedSeconds: finalVideoSeconds,
+    finishedSeconds: finalVideoTiming && finalVideoTiming.url === finalVideoUrl ? finalVideoTiming.seconds : null,
     fullVersionEligible: legacyFullVersionOfferEligible,
   })
-  const useUnifiedDeliveryOffer = deliveryOfferSlot !== 'legacy'
-  const fullVersionOfferEligible = useUnifiedDeliveryOffer ? deliveryOfferSlot === 'full_version' : legacyFullVersionOfferEligible
+  const useUnifiedDeliveryOffer = deliveryOfferSlot === 'full_version' || deliveryOfferSlot === 'next_film'
+  const fullVersionOfferEligible = deliveryOfferSlot === 'legacy' ? legacyFullVersionOfferEligible : deliveryOfferSlot === 'full_version'
   const showPostVideoExportChoice =
     !useUnifiedDeliveryOffer && phase === 'done' && Boolean(finalVideoUrl) && currentResultHasWatermark &&
     !trialActive && !wmUnlocking && trialPostVideoPhase === null && !fullVersionOfferEligible
@@ -12506,7 +12507,7 @@ export default function GenerateClient({
     playerRetryAttemptRef.current = 0
     // #283 — vídeo novo, medição nova (senão o rótulo herda os segundos do
     // filme anterior até o metadata do novo carregar).
-    setFinalVideoSeconds(null)
+    setFinalVideoTiming(null)
   }, [finalVideoUrl])
 
   // Push #095 — robust player startup with retry + backoff.
@@ -17958,7 +17959,7 @@ export default function GenerateClient({
                 </a>
                 {/* KINEO-DOWNLOAD-OFERTA-2810 — a oferta nasce ao lado do botão apertado; filme limpo pago ganha o HD. */}
                 {renderDownloadUpsell('top')}
-                <FilmReadyExits videoId={publicVideoId} plan={commercialPlan} />
+                <FilmReadyExits videoId={publicVideoId} plan={commercialPlan} showPurchaseLinks={!useUnifiedDeliveryOffer} />
                 {(fullVersionOfferEligible || deliveryOfferSlot === 'next_film' || firstFilmContinuation) && (
                   <div className="done-ready-offer">
                     {fullVersionOfferEligible
@@ -18104,7 +18105,7 @@ export default function GenerateClient({
                     onLoadedMetadata={(e) => {
                       { const retomar = retomarPlayerEmRef.current; if (retomar) { retomarPlayerEmRef.current = null; try { e.currentTarget.muted = retomar.muted; if (retomar.t > 0 && retomar.t < e.currentTarget.duration) e.currentTarget.currentTime = retomar.t } catch { /* segue do começo */ } } } // KINEO-FILME-RAPIDO-1710 — troca do link: o player volta ao mesmo ponto
                       const d = e.currentTarget.duration
-                      if (Number.isFinite(d) && d > 1) setFinalVideoSeconds(Math.round(d))
+                      if (Number.isFinite(d) && d > 1 && finalVideoUrl) setFinalVideoTiming({ url: finalVideoUrl, seconds: Math.round(d) })
                       fitFrameToVideo(e.currentTarget)
                     }}
                     autoPlay

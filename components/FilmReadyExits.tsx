@@ -22,12 +22,12 @@ import {
   type FilmReadyExit,
 } from '@/lib/growth/filmReadyExits'
 
-export default function FilmReadyExits({ videoId, plan }: { videoId: string | null; plan: string | null }) {
+export default function FilmReadyExits({ videoId, plan, showPurchaseLinks = true }: { videoId: string | null; plan: string | null; showPurchaseLinks?: boolean }) {
   const [topupOpen, setTopupOpen] = useState(false)
   // KINEO-FILME-PRONTO-RECARGA-2311 [dono 12/11: "quero TODOS que são sub podendo comprar"; 23/11: recarga SÓ para assinante] —
   // quem decide é o SERVIDOR (GET da recarga, superfície film_ready; grava recarga_assinante_shown UMA vez, aqui). Com oferta, "More
   // credits" abre a barra da recarga com a oferta já lida (sem 2ª leitura). Sem oferta, lendo, ou leitura que falhou: o link de sempre.
-  const recarga = useRecargaEntrada(FILM_READY_TOPUP_SURFACE)
+  const recarga = useRecargaEntrada(FILM_READY_TOPUP_SURFACE, showPurchaseLinks)
   const [recargaOpen, setRecargaOpen] = useState(false)
   // O href do SSR é o padrão sem escolhas; no navegador ganha motor/duração/modo da URL atual.
   const [nextFilmHref, setNextFilmHref] = useState(() => filmReadyNextFilmHref(''))
@@ -50,7 +50,7 @@ export default function FilmReadyExits({ videoId, plan }: { videoId: string | nu
     const emit = () => {
       if (shownForRef.current === key) return
       shownForRef.current = key
-      void trackEvent('film_ready_exits_shown', filmReadyExitsShownMetadata({ videoId, plan }))
+      void trackEvent('film_ready_exits_shown', { ...filmReadyExitsShownMetadata({ videoId, plan }), ...(!showPurchaseLinks ? { purchases_visible: false } : {}) })
     }
     if (typeof IntersectionObserver === 'undefined') {
       emit()
@@ -64,7 +64,7 @@ export default function FilmReadyExits({ videoId, plan }: { videoId: string | nu
     }, { threshold: 0.5 })
     observer.observe(el)
     return () => observer.disconnect()
-  }, [videoId, plan])
+  }, [videoId, plan, showPurchaseLinks])
 
   const track = (exit: FilmReadyExit, destination?: FilmReadyDestination) => {
     void trackEvent('film_ready_exit_clicked', filmReadyExitClickedMetadata({ exit, videoId, plan, destination }))
@@ -77,7 +77,7 @@ export default function FilmReadyExits({ videoId, plan }: { videoId: string | nu
       data-kineo="film-ready-exits"
       role="group"
       aria-label="What next"
-      className="mt-2 grid w-full grid-cols-3 gap-2"
+      className={showPurchaseLinks ? "mt-2 grid w-full grid-cols-3 gap-2" : "mt-2"}
     >
       <Link
         href={nextFilmHref}
@@ -87,6 +87,7 @@ export default function FilmReadyExits({ videoId, plan }: { videoId: string | nu
       >
         Next film
       </Link>
+      {showPurchaseLinks && <>
       {recarga ? (
         <button
           type="button"
@@ -131,14 +132,15 @@ export default function FilmReadyExits({ videoId, plan }: { videoId: string | nu
       >
         {filmReadyPlanLabel(plan)}
       </a>
+      </>}
     </div>
     {/* Portal no <body>: o cartão do filme pronto tem transform (animação fadeUp com fill both), que prende o
         position:fixed do modal dentro do cartão (revisão adversarial de 25/09). */}
-    {topupOpen && (typeof document !== 'undefined'
+    {showPurchaseLinks && topupOpen && (typeof document !== 'undefined'
       ? createPortal(<TopupOuRecargaModal surface={FILM_READY_TOPUP_SURFACE} onClose={() => setTopupOpen(false)} />, document.body)
       : <TopupOuRecargaModal surface={FILM_READY_TOPUP_SURFACE} onClose={() => setTopupOpen(false)} />)}
     {/* A barra da recarga: BuyCreditsModal já vai por portal no <body> sozinho (o mesmo motivo do transform acima). */}
-    {recargaOpen && recarga ? <BuyCreditsModal offer={recarga} surface={FILM_READY_TOPUP_SURFACE} onClose={() => setRecargaOpen(false)} /> : null}
+    {showPurchaseLinks && recargaOpen && recarga ? <BuyCreditsModal offer={recarga} surface={FILM_READY_TOPUP_SURFACE} onClose={() => setRecargaOpen(false)} /> : null}
     </>
   )
 }

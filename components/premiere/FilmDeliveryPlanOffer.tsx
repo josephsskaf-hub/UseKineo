@@ -17,7 +17,8 @@ type DeliveryEvidence = {
 }
 
 export function decideFilmDeliveryOffer(evidence: DeliveryEvidence, release: 'on' | 'off' = RELEASE) {
-  if (release === 'off' || !evidence.delivered || !evidence.confirmedFree || evidence.activePlan) return 'legacy'
+  if (release === 'off') return 'legacy'
+  if (!evidence.delivered || !evidence.confirmedFree || evidence.activePlan) return 'no_new_offer'
   const finishedSeconds = evidence.finishedSeconds
   return evidence.fullVersionEligible && finishedSeconds !== null
     && Number.isFinite(finishedSeconds) && finishedSeconds > 0 && finishedSeconds < FILM_COMPLETE_TARGET_SECONDS
