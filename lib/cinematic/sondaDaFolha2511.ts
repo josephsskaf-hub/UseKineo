@@ -3,13 +3,16 @@
 // filme usou, com ou sem o nome próprio (KINEO-FICHA-SEM-NOME-2511), guarda a imagem no nosso bucket e roda o conferente UMA vez (lerAFolha +
 // decidirDaFolha, KINEO-JUIZ-DA-FOLHA-2411 com a pergunta de forma KINEO-FORMA-DA-FOLHA-2511). Não regera, não grava no banco, não cobra crédito.
 // Travas: lista exata da casa; uma chamada por vez (por instância); o mesmo pedido (canônica, nome, look, com/sem nome, semente) não repete; teto de
-// chamadas por instância. Custo por chamada: a folha (PERSONAGEM_FOLHA_USD = US$ 0,015: FLUX dev 9:16, 0,59 MP × US$ 0,025/MP) + a leitura (o filme
-// addef2b6 gravou US$ 0,000559).
+// chamadas por instância. Custo por chamada: a folha SONDA_FOLHA_USD = US$ 0,025 [revisora 25/11, §2, catálogo da fal: fal-ai/flux/dev arredonda para o
+// megapixel de cima; 9:16 = 0,59 MP → 1 MP × US$ 0,025] + a leitura (o filme addef2b6 gravou US$ 0,000559). PERSONAGEM_FOLHA_USD (0,015) fica: é a
+// estimativa de log do filme (custoDoPersonagemUsd, a folha nova do conferente), não entra em crédito; corrigir é outra entrega.
+// A forma: a sonda pergunta (formaNaSonda), o filme não (FORMA_DA_FOLHA_2511 = 'sonda').
 import { contaDaCasaExata } from '@/lib/internalAccounts'
-import { PERSONAGEM_FOLHA_USD, promptDaFolha, type FichaDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
-import { decidirDaFolha, descricaoParaOJuiz, especieDaDescricao, type ChamadaDaFolha, type LeituraDaFolha, type VereditoDaFolha } from '@/lib/cinematic/juizDaFolha2411'
+import { promptDaFolha, type FichaDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
+import { decidirDaFolha, descricaoParaOJuiz, especieDaDescricao, formaNaSonda, type ChamadaDaFolha, type LeituraDaFolha, type VereditoDaFolha } from '@/lib/cinematic/juizDaFolha2411'
 
 export const SONDA_DA_FOLHA_TETO_POR_INSTANCIA = 8
+export const SONDA_FOLHA_USD = 0.025
 const CANONICA_MAX = 1200, NOME_MAX = 80, LOOK_MAX = 400
 
 export type PedidoDaSonda = { nome: string; tipo: FichaDePersonagem['tipo']; canonica: string; lookPhrase: string; filmeFotorreal: boolean; semNome: boolean; seed: number }
@@ -54,14 +57,14 @@ export async function rodarSondaDaFolha(p: PedidoDaSonda, deps: {
 }): Promise<ResultadoDaSonda> {
   const ficha: FichaDePersonagem = { nome: p.nome, nucleo: p.nome, tipo: p.tipo, canonica: p.canonica, origem: 'autor', protagonista: true, genero: null }
   const prompt = promptDaFolha(ficha, { lookPhrase: p.lookPhrase }, p.semNome)
-  const descricao = descricaoParaOJuiz(ficha), especie = especieDaDescricao(descricao)
+  const modoForma = formaNaSonda(), descricao = descricaoParaOJuiz(ficha), especie = especieDaDescricao(descricao, modoForma)
   const base = { prompt, descricao, especie, leitura: null, veredito: null }
   const falUrl = await deps.gerar(prompt, p.seed).catch(() => null)
-  if (!falUrl) return { ...base, url: null, custo_usd: PERSONAGEM_FOLHA_USD, erro: 'folha_falhou' }
+  if (!falUrl) return { ...base, url: null, custo_usd: SONDA_FOLHA_USD, erro: 'folha_falhou' }
   const url = await deps.guardar(falUrl).catch(() => null)
-  if (!url) return { ...base, url: null, custo_usd: PERSONAGEM_FOLHA_USD, erro: 'bucket_falhou' }
+  if (!url) return { ...base, url: null, custo_usd: SONDA_FOLHA_USD, erro: 'bucket_falhou' }
   const r = await deps.ler(descricao, url)
-  const custo = Math.round((PERSONAGEM_FOLHA_USD + r.custoUsd) * 1e6) / 1e6
+  const custo = Math.round((SONDA_FOLHA_USD + r.custoUsd) * 1e6) / 1e6
   if (!r.leitura) return { ...base, url, custo_usd: custo, erro: r.erro ?? 'sem_leitura' }
-  return { ...base, url, leitura: r.leitura, veredito: decidirDaFolha(r.leitura, p.filmeFotorreal, descricao), custo_usd: custo, erro: null }
+  return { ...base, url, leitura: r.leitura, veredito: decidirDaFolha(r.leitura, p.filmeFotorreal, descricao, modoForma), custo_usd: custo, erro: null }
 }

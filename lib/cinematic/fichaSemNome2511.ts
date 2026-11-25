@@ -7,7 +7,8 @@
 import { contaDaCasaExata } from '@/lib/internalAccounts'
 
 export type ModoFichaSemNome2511 = 'off' | 'internal' | 'public'
-export const FICHA_SEM_NOME_2511: ModoFichaSemNome2511 = 'internal'
+// [CEO 25/11, volta 2: causa antes do conserto] 'off' até a sonda mostrar se o nome é a causa; a sonda lê `sem_nome` do corpo e não depende disto.
+export const FICHA_SEM_NOME_2511: ModoFichaSemNome2511 = 'off'
 export const FICHA_SEM_NOME_2511_VERSAO = 'ficha_sem_nome_2511_v1'
 export function fichaSemNomeLigada(modo: ModoFichaSemNome2511, email: string | null | undefined): boolean {
   return modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))

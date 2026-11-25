@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateCinematicSceneStill } from '@/lib/hollywood/anchors'
 import { persistFastStill } from '@/lib/fastAiScene'
-import { lerAFolha } from '@/lib/cinematic/juizDaFolha2411'
+import { formaNaSonda, lerAFolha } from '@/lib/cinematic/juizDaFolha2411'
 import { admitirSonda, chaveDaSonda, lerPedidoDaSonda, liberarSonda, novoEstadoDaSonda, rodarSondaDaFolha } from '@/lib/cinematic/sondaDaFolha2511'
 
 export const dynamic = 'force-dynamic'
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     const r = await rodarSondaDaFolha(pedido, {
       gerar: (prompt, seed) => generateCinematicSceneStill({ scenePrompt: prompt, styleSuffix: '', seed, pollWindowMs: 25_000, aspect: '9:16' }),
       guardar: (url) => persistFastStill(url, 10_000),
-      ler: (descricao, url) => lerAFolha(descricao, url),
+      ler: (descricao, url) => lerAFolha(descricao, url, { forma: formaNaSonda() }), // a sonda pergunta a forma; o filme não
     })
     return NextResponse.json(r, { status: r.erro ? 502 : 200 })
   } finally {

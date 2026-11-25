@@ -24,7 +24,9 @@ import { ESPECIES_DA_FOLHA, PERSONAGEM_FOLHA_USD, PESSOAS_DA_FOLHA } from '@/lib
 // ("robot"; gente = "person"), o modelo responde duas perguntas fechadas de FORMA: o corpo e a cabeça são daquele ser? há parte de OUTRO ser? O código
 // decide: 'no' na 1ª = 'nao_e'; 'yes' na 2ª = 'outra_especie'; 'unclear' não reprova. Híbrido que o autor pediu ("a robot dog", "a cat-like robot",
 // "half man"), descrição com dois seres, com negação ou sem ser escrito = não julga ('nao_julgada'). Reprovou: a folha nova pede o corpo e a cabeça do ser.
-// Interruptor FORMA_DA_FOLHA_2511: 'off' = byte a byte o de antes (nada perguntado, nada decidido).
+// Interruptor FORMA_DA_FOLHA_2511: 'off' = byte a byte o de antes (nada perguntado, nada decidido); 'sonda' = [CEO 25/11, volta 2] só a sonda da casa
+// (lib/cinematic/sondaDaFolha2511) pergunta e decide a forma — o filme (casa e cliente) é byte a byte o de antes: pedido, leitura, corpo à OpenAI e
+// relato; 'on' = o filme também.
 // [revisora 24/11, VOLTA, docs/revisoes-2311/CEO-JUIZ-DA-FOLHA-2411.md §11] v3: (1) só conta, e só vai à folha nova, o traço do modelo que EXISTE palavra por palavra na
 // descrição do autor e não é negação; o resto é descartado e contado; (2) sem descrição do AUTOR (Slocum; o Elias do cedd1250: a canônica é biografia/ação),
 // o eixo traços não julga — só um personagem e o meio; (3) folha sem personagem reprova ('nenhum'); (4) o custo grava a folha nova e o relato grava a 1ª leitura;
@@ -47,8 +49,10 @@ export type FormaDaFolha = 'ok' | 'nao_e' | 'outra_especie' | 'nao_julgada'
 export type VereditoDaFolha = { tracos: 'ok' | MotivoDosTracos; meio: 'ok' | 'meio'; ausentes: string[]; descartados: number; forma: FormaDaFolha; especie: string | null }
 export const formaPassa = (v: Pick<VereditoDaFolha, 'forma'>): boolean => v.forma === 'ok' || v.forma === 'nao_julgada'
 export const folhaPassa = (v: VereditoDaFolha): boolean => v.tracos === 'ok' && v.meio === 'ok' && formaPassa(v)
-export type ModoFormaDaFolha2511 = 'off' | 'on'
-export const FORMA_DA_FOLHA_2511: ModoFormaDaFolha2511 = 'on'
+export type ModoFormaDaFolha2511 = 'off' | 'sonda' | 'on'
+export const FORMA_DA_FOLHA_2511: ModoFormaDaFolha2511 = 'sonda'
+/** O modo que a SONDA usa: pergunta a forma sempre que o interruptor não está 'off'. */
+export const formaNaSonda = (modo: ModoFormaDaFolha2511 = FORMA_DA_FOLHA_2511): ModoFormaDaFolha2511 => (modo === 'off' ? 'off' : 'on')
 const SER_RE = new RegExp(`(?<![\\p{L}\\p{N}])(${ESPECIES_DA_FOLHA.animais}|${ESPECIES_DA_FOLHA.criaturas})(?:s|es)?(?![\\p{L}\\p{N}])`, 'giu')
 const GENTE_RE = new RegExp(`(?<![\\p{L}\\p{N}])(?:${PESSOAS_DA_FOLHA})(?:s|es)?(?![\\p{L}\\p{N}])`, 'iu')
 const HIBRIDO_RE = /(?<![\p{L}\p{N}])(?:like|half|part|hybrid|mixed|mix|cross|crossbreed)(?![\p{L}\p{N}])/iu // "cat-like", "half man", "part dragon"
@@ -126,14 +130,14 @@ export function lerLeituraDaFolha(raw: string, exigeForma = false /* KINEO-FORMA
 }
 
 /** A regra, no código, POR EIXO. Traços: contagem > espécie/forma/tamanho > outros traços. Meio: cartum em filme fotorreal, foto em filme desenhado. */
-export function decidirDaFolha(l: LeituraDaFolha, filmeFotorreal: boolean, descricao: string = ''): VereditoDaFolha {
+export function decidirDaFolha(l: LeituraDaFolha, filmeFotorreal: boolean, descricao: string = '', modoForma: ModoFormaDaFolha2511 = FORMA_DA_FOLHA_2511): VereditoDaFolha {
   const doAutor = l.tracos.filter((t) => tracoDoAutor(t.traco, descricao)) // sem descrição do autor = nenhum traço conta
   const ausentes = (cats: readonly CategoriaDoTraco[]) => doAutor.filter((t) => t.visivel === 'no' && cats.includes(t.categoria)).map((t) => t.traco)
   const forma = ausentes(['species', 'shape', 'size']), outros = ausentes(['color', 'feature', 'clothing'])
   const tracos: VereditoDaFolha['tracos'] = l.personagens > 1 ? 'mais_de_um' : l.personagens < 1 ? 'nenhum' : forma.length ? 'forma_especie' : outros.length ? 'traco' : 'ok'
   const cartum = l.meio === 'cartoon_3d' || l.meio === 'cartoon_2d'
   const meio: VereditoDaFolha['meio'] = (filmeFotorreal ? cartum : l.meio === 'photo_or_realistic_render') ? 'meio' : 'ok'
-  const especie = especieDaDescricao(descricao) // KINEO-FORMA-DA-FOLHA-2511
+  const especie = especieDaDescricao(descricao, modoForma) // KINEO-FORMA-DA-FOLHA-2511
   const formaV: FormaDaFolha = !especie || !l.forma ? 'nao_julgada' : l.forma.corpo === 'no' ? 'nao_e' : l.forma.outra === 'yes' ? 'outra_especie' : 'ok'
   return { tracos, meio, ausentes: tracos === 'forma_especie' ? forma : tracos === 'traco' ? outros : [], descartados: l.tracos.length - doAutor.length, forma: formaV, especie }
 }
@@ -149,10 +153,10 @@ export function instrucaoDaFolhaNova(v: VereditoDaFolha, lookPhrase: string): st
 
 export type ChamadaDaFolha = { leitura: LeituraDaFolha | null; custoUsd: number; erro: string | null }
 /** Uma leitura (rede). Nunca lança. Sem chave, prazo ou JSON torto = leitura null. */
-export async function lerAFolha(descricao: string, url: string, opts: { timeoutMs?: number; fetchImpl?: typeof fetch; apiKey?: string } = {}): Promise<ChamadaDaFolha> {
+export async function lerAFolha(descricao: string, url: string, opts: { timeoutMs?: number; fetchImpl?: typeof fetch; apiKey?: string; forma?: ModoFormaDaFolha2511 } = {}): Promise<ChamadaDaFolha> {
   const key = opts.apiKey ?? (typeof process !== 'undefined' ? process.env.OPENAI_API_KEY : undefined)
   if (!key) return { leitura: null, custoUsd: 0, erro: 'sem_chave' }
-  const especie = especieDaDescricao(descricao) // KINEO-FORMA-DA-FOLHA-2511
+  const especie = especieDaDescricao(descricao, opts.forma ?? FORMA_DA_FOLHA_2511) // KINEO-FORMA-DA-FOLHA-2511 (a sonda passa formaNaSonda())
   const { messages, imagens, caracteres } = pedidoAoJuizDaFolha(descricao, url, especie)
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), Math.max(1, opts.timeoutMs ?? JUIZ_DA_FOLHA_TIMEOUT_MS))
@@ -173,7 +177,7 @@ export type RelatoDaFolha = { tipo: 'humano' | 'animal' | 'criatura' | null; tra
   serve: boolean; tentativa: 1 | 2 | null; regerou: boolean; custo_usd: number
   tracos_1: 'ok' | MotivoDosTracos | 'sem_leitura'; meio_1: 'ok' | 'meio' | 'sem_leitura'; descartados: number /* [revisora, v3] a 1ª leitura e os traços do modelo que não eram do autor */
   tracos_nao_julgados: 'negacao' | null /* [CEO, volta 5] a descrição do autor tem negação: nenhum traço julgado (só meio e contagem) */
-  forma: FormaDaFolha | 'sem_leitura'; forma_1: FormaDaFolha | 'sem_leitura' /* KINEO-FORMA-DA-FOLHA-2511 */ }
+  forma?: FormaDaFolha | 'sem_leitura'; forma_1?: FormaDaFolha | 'sem_leitura' /* KINEO-FORMA-DA-FOLHA-2511: só com o interruptor 'on' */ }
 /** O juiz inteiro para UMA folha: lê; reprovou → UMA folha nova com a instrução → lê de novo; a tolerância do meio só na 2ª e só para bicho e criatura
  *  em filme fotorreal. Devolve a URL que serve (a nova, se foi ela) ou null. */
 export async function julgarAFolha(args: { ficha: { nome: string; canonica: string; tipo?: unknown }; url: string; filmeFotorreal: boolean; lookPhrase: string },
@@ -184,7 +188,8 @@ export async function julgarAFolha(args: { ficha: { nome: string; canonica: stri
   const fim = (url: string | null, v: VereditoDaFolha | null, meio: RelatoDaFolha['meio'] | null, tentativa: 1 | 2 | null, regerou: boolean) =>
     ({ url, nome: args.ficha.nome, relato: { tipo, tracos: v ? v.tracos : 'sem_leitura' as const, meio: meio ?? (v ? v.meio : 'sem_leitura' as const), serve: url !== null, tentativa, regerou, custo_usd: Math.round(custo * 1e6) / 1e6,
       tracos_1: v1 ? v1.tracos : 'sem_leitura' as const, meio_1: v1 ? v1.meio : 'sem_leitura' as const, descartados,
-      tracos_nao_julgados: temNegacao(descricao) ? 'negacao' as const : null, forma: v ? v.forma : 'sem_leitura' as const, forma_1: v1 ? v1.forma : 'sem_leitura' as const } })
+      tracos_nao_julgados: temNegacao(descricao) ? 'negacao' as const : null,
+      ...(FORMA_DA_FOLHA_2511 === 'on' ? { forma: v ? v.forma : 'sem_leitura' as const, forma_1: v1 ? v1.forma : 'sem_leitura' as const } : {}) } })
   const r1 = await deps.ler(descricao, args.url)
   custo += r1.custoUsd
   if (!r1.leitura) return fim(null, null, null, null, false) // não julgada = não serve (é o furo que o juiz fecha)
