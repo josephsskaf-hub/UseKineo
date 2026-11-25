@@ -2,6 +2,7 @@
 //   0. [CEO 25/11 12:00, só-sonda] a chave é 'sonda': a leitura não entra em filme nenhum, nem da casa — o trecho real da rota, na casa, sai byte a byte
 //      igual ao da main de ANTES do "quem aparece" (9270f6e05), sem chamada; a sonda, executada, dá 200 à casa e 403 fora. O caminho da leitura segue
 //      testado com a chave forçada em 'internal' só dentro do guardião;
+//   0b. [volta 2, CEO 25/11 11:55] descrição do elenco ao leitor, 'others' por plano, a assimetria do protagonista, o 2º só visto, json_schema estrito;
 //   1. a chave ('internal' = só a casa exata), o pedido (sem exemplo), o esquema (qualquer desvio = leitura falhou), a regra do código e a rede (sem chave,
 //      HTTP, prazo, JSON torto = null, com o tempo medido);
 //   2. o trecho REAL da rota (do elenco do ajuste até a ordem do protagonista), executado na casa com a leitura injetada (Alcatraz, Umudara, Shiro em paráfrase:
@@ -16,7 +17,7 @@ import { readFileSync } from 'node:fs'
 import { execSync } from 'node:child_process'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
-import { PARTE_B, AMOSTRA, LINGUA, FILMES, leituraCerta, CORPOS_DA_SONDA } from './test-support/quem-aparece-2511-casos.mjs'
+import { PARTE_B, AMOSTRA, LINGUA, FILMES, leituraCerta, CORPOS_DA_SONDA, NUNCA_NO } from './test-support/quem-aparece-2511-casos.mjs'
 
 const Q = 'lib/cinematic/quemAparece2511.ts', PA = 'lib/cinematic/personagemAjuste.ts', F15 = 'lib/filmes/filme15Elenco.ts', FQ = 'lib/cinematic/filmQuality.ts', EE = 'lib/cinematic/elencoEpoca.ts', K = 'lib/kling4Trial.ts'
 const routeFile = 'app/api/generate-video-cinematic/route.ts', sondaRoute = 'app/api/admin/sonda-presenca/route.ts'
@@ -77,28 +78,55 @@ async function suite(change) {
   const ped = q.pedidoDePresenca(EL, PL), sis = ped.messages[0].content, usr = ped.messages[1].content
   assert.ok(!/e\.g\.|for example|for instance|such as|like this|"Mara|"Elias/i.test(sis), 'sem exemplo e sem nome no pedido')
   for (const k2 of ['"on_screen": "yes" | "no" | "unclear"', '"voice_only"', '"stated_absent"', '"memory"', '"not_mentioned"', 'never as the only reason']) assert.ok(sis.includes(k2), k2)
-  assert.ok(usr.includes('1. Elias Ward (person, male)') && usr.includes('2. Mara Quinn (person, female)') && usr.includes("Author's shot note: empty office") && usr.includes('Generated visual (ours): Elias at the window.') && usr.includes("Author's shot note: (none)"), 'o texto do cliente só no papel de dado')
-  const ok = (cast) => JSON.stringify({ shots: [{ shot: 1, cast }, { shot: 2, cast }] })
+  for (const k2 of ['a pronoun', 'another language', 'an ordinary word', 'decide from the sentence', '"unclear" for that cast member', '"others": "none" | "unnamed_figure" | "distinct_people"', 'clearly not any cast member']) assert.ok(sis.includes(k2), 'volta 2: ' + k2)
+  { const pd = q.pedidoDePresenca([{ nome: 'Elias Ward', tipo: 'humano', genero: 'man', canonica: 'Elias Ward, a lighthouse keeper with a grey beard' }, { nome: 'Mara Quinn', tipo: 'humano', genero: 'woman', descricao: 'a radio operator in a yellow raincoat', canonica: 'ignorada', protagonista: true }, { nome: 'Tomas', tipo: 'humano', genero: 'man', descricao: 'x'.repeat(250) }], PL).messages[1].content
+    assert.ok(pd.includes('1. Elias Ward (person, male): a lighthouse keeper with a grey beard\n'), 'a canônica da ficha, sem repetir o nome')
+    assert.ok(pd.includes('2. Mara Quinn (person, female, main character): a radio operator in a yellow raincoat\n'), 'a descrição vence a canônica; o protagonista marcado')
+    assert.ok(pd.includes('3. Tomas (person, male): ' + 'x'.repeat(200) + '\n'), 'a descrição cortada em 200') }
+  assert.ok(usr.includes('1. Elias Ward (person, male, main character)\n') && usr.includes('2. Mara Quinn (person, female)\n') && usr.includes("Author's shot note: empty office") && usr.includes('Generated visual (ours): Elias at the window.') && usr.includes("Author's shot note: (none)"), 'o texto do cliente só no papel de dado')
+  const ok = (cast, others = 'none') => JSON.stringify({ shots: [{ shot: 1, others, cast }, { shot: 2, others, cast }] })
+  const S = (shot, cast, others = 'none') => ({ shot, others, cast })
   const C2 = [{ id: 1, on_screen: 'no', how: 'not_mentioned' }, { id: 2, on_screen: 'yes', how: 'shown' }]
   igual(q.lerLeituraDePresenca(ok(C2), 2, 2), [[{ naTela: 'no', como: 'not_mentioned' }, { naTela: 'yes', como: 'shown' }], [{ naTela: 'no', como: 'not_mentioned' }, { naTela: 'yes', como: 'shown' }]])
-  const ruins = { 'plano a mais': JSON.stringify({ shots: [{ shot: 1, cast: C2 }, { shot: 2, cast: C2 }, { shot: 3, cast: C2 }] }), 'plano faltando': JSON.stringify({ shots: [{ shot: 1, cast: C2 }] }),
-    'plano fora de ordem': JSON.stringify({ shots: [{ shot: 2, cast: C2 }, { shot: 1, cast: C2 }] }), 'elenco a mais': ok([...C2, { id: 3, on_screen: 'no', how: 'not_mentioned' }]), 'elenco faltando': ok([C2[0]]),
+  igual(['none', 'unnamed_figure', 'distinct_people'].map((o) => q.lerLeituraDePresenca(ok(C2, o), 2, 2).map((l) => l.outros)), [['none', 'none'], ['unnamed_figure', 'unnamed_figure'], ['distinct_people', 'distinct_people']], 'others lido por plano')
+  const ruins = { 'plano a mais': JSON.stringify({ shots: [S(1, C2), S(2, C2), S(3, C2)] }), 'plano faltando': JSON.stringify({ shots: [S(1, C2)] }),
+    'others fora': ok(C2, 'someone'), 'sem others': JSON.stringify({ shots: [{ shot: 1, cast: C2 }, S(2, C2)] }), 'others nulo': ok(C2, null),
+    'plano fora de ordem': JSON.stringify({ shots: [S(2, C2), S(1, C2)] }), 'elenco a mais': ok([...C2, { id: 3, on_screen: 'no', how: 'not_mentioned' }]), 'elenco faltando': ok([C2[0]]),
     'índice fora da lista': ok([C2[0], { ...C2[1], id: 3 }]), 'índice fora de ordem': ok([{ ...C2[0], id: 2 }, { ...C2[1], id: 1 }]), 'enum fora': ok([C2[0], { ...C2[1], on_screen: 'maybe' }]),
-    'how fora': ok([C2[0], { ...C2[1], how: 'seen' }]), 'número em texto': JSON.stringify({ shots: [{ shot: '1', cast: C2 }, { shot: 2, cast: C2 }] }), 'id em texto': ok([C2[0], { ...C2[1], id: '2' }]),
-    'sem shots': JSON.stringify({ plans: [] }), 'json torto': '{"shots": [', 'nulo': 'null', 'cast não lista': JSON.stringify({ shots: [{ shot: 1, cast: {} }, { shot: 2, cast: C2 }] }) }
+    'how fora': ok([C2[0], { ...C2[1], how: 'seen' }]), 'número em texto': JSON.stringify({ shots: [S('1', C2), S(2, C2)] }), 'id em texto': ok([C2[0], { ...C2[1], id: '2' }]),
+    'sem shots': JSON.stringify({ plans: [] }), 'json torto': '{"shots": [', 'nulo': 'null', 'cast não lista': JSON.stringify({ shots: [S(1, {}), S(2, C2)] }) }
   for (const [nome, raw] of Object.entries(ruins)) assert.equal(q.lerLeituraDePresenca(raw, 2, 2), null, nome)
-  const L = (...linhas) => linhas.map((l) => l.map(([naTela, como]) => ({ naTela, como })))
-  igual(q.decidirPresenca(L([['yes', 'shown'], ['no', 'stated_absent']], [['no', 'not_mentioned'], ['yes', 'memory']], [['unclear', 'shown'], ['no', 'voice_only']], [['yes', 'voice_only'], ['no', 'not_mentioned']], [['yes', 'stated_absent'], ['no', 'not_mentioned']], [['yes', 'not_mentioned'], ['no', 'not_mentioned']]), EL),
-    { elenco: ['Elias Ward', 'Mara Quinn'], planos: [['Elias Ward'], ['Mara Quinn'], null, null, null, null] }, "visto e lembrança = visível; 'unclear' e 'yes' incoerente = a regra de hoje")
+  const L = (...linhas) => linhas.map(([outros, ...l]) => Object.assign(l.map(([naTela, como]) => ({ naTela, como })), { outros }))
+  igual(q.decidirPresenca(L(['none', ['yes', 'shown'], ['no', 'stated_absent']], ['none', ['no', 'not_mentioned'], ['yes', 'shown']], ['none', ['unclear', 'shown'], ['no', 'voice_only']], ['none', ['yes', 'voice_only'], ['no', 'not_mentioned']], ['none', ['yes', 'stated_absent'], ['no', 'not_mentioned']], ['none', ['yes', 'not_mentioned'], ['no', 'not_mentioned']], ['none', ['yes', 'memory'], ['no', 'not_mentioned']]), EL),
+    { elenco: ['Elias Ward', 'Mara Quinn'], planos: [['Elias Ward'], ['Mara Quinn'], null, null, null, null, ['Elias Ward']] }, "visto = visível; o protagonista na lembrança = visível; 'unclear' e 'yes' incoerente = a regra de hoje")
+  // [volta 2 (c)] TIRAR o protagonista pede certeza: 'no' com o plano sem ninguém ou com outras pessoas claramente distintas; figura sem nome (ou sem others) = a regra de hoje
+  for (const [outros, esperado] of [['none', ['Mara Quinn']], ['distinct_people', ['Mara Quinn']], ['unnamed_figure', null], [undefined, null]])
+    for (const como of ['not_mentioned', 'stated_absent', 'voice_only']) igual(q.decidirPresenca(L([outros, ['no', como], ['yes', 'shown']]), EL).planos, [esperado], `protagonista no/${como} com others=${outros}`)
+  igual(q.decidirPresenca(L(['unnamed_figure', ['yes', 'shown'], ['no', 'not_mentioned']]), EL).planos, [['Elias Ward']], 'o 2º sai com figura sem nome (a assimetria é só para TIRAR o protagonista)')
+  // [volta 2 (d)] o 2º só entra VISTO; a lembrança dele = a regra de hoje
+  igual(q.decidirPresenca(L(['none', ['yes', 'shown'], ['yes', 'memory']], ['none', ['yes', 'shown'], ['yes', 'shown']]), EL).planos, [null, ['Elias Ward', 'Mara Quinn']], 'o 2º na lembrança = a regra de hoje')
+  // o protagonista é quem a ficha marca (sem marca, o 1º)
+  { const ELm = [EL[0], { ...EL[1], protagonista: true }]
+    igual([q.indiceDoProtagonista(EL), q.indiceDoProtagonista(ELm), q.indiceDoProtagonista([{ nome: 'a', protagonista: false }, { nome: 'b' }])], [0, 1, 0])
+    igual(q.decidirPresenca(L(['unnamed_figure', ['no', 'not_mentioned'], ['yes', 'shown']], ['unnamed_figure', ['yes', 'shown'], ['no', 'not_mentioned']], ['none', ['yes', 'memory'], ['yes', 'shown']]), ELm).planos,
+      [['Mara Quinn'], null, null], 'com a Mara protagonista, a assimetria e a lembrança viram para ela') }
   // a rede
   const corpos = []
   const rede = async (opts) => q.lerQuemAparece(EL, PL, { apiKey: 'k', timeoutMs: 20, ...opts })
   let t = 0; const relogio = () => (t += 100)
   let r = await rede({ fetchImpl: async (_u, o) => { corpos.push(JSON.parse(o.body)); return respostaDe(ok(C2)) }, agora: relogio })
   igual([r.erro, r.presenca, r.unclear, r.ms], [null, { elenco: ['Elias Ward', 'Mara Quinn'], planos: [['Mara Quinn'], ['Mara Quinn']] }, 0, 100])
-  igual([corpos[0].model, corpos[0].temperature, corpos[0].response_format], ['gpt-4o-mini', 0, { type: 'json_object' }])
+  igual([corpos[0].model, corpos[0].temperature, corpos[0].max_tokens], ['gpt-4o-mini', 0, 900])
+  { const rf = corpos[0].response_format, sc = rf.json_schema?.schema, it = sc?.properties?.shots?.items, ci = it?.properties?.cast?.items
+    igual([rf.type, rf.json_schema?.name, rf.json_schema?.strict, sc?.type, sc?.required, sc?.additionalProperties], ['json_schema', 'presenca_por_plano', true, 'object', ['shots'], false], '(e) json_schema estrito')
+    igual([it.required, it.additionalProperties, it.properties.shot, it.properties.others], [['shot', 'others', 'cast'], false, { type: 'integer' }, { type: 'string', enum: ['none', 'unnamed_figure', 'distinct_people'] }])
+    igual([ci.required, ci.additionalProperties, ci.properties.id, ci.properties.on_screen.enum, ci.properties.how.enum], [['id', 'on_screen', 'how'], false, { type: 'integer' }, ['yes', 'no', 'unclear'], ['shown', 'voice_only', 'stated_absent', 'memory', 'not_mentioned']])
+    // o modo estrito da OpenAI pede: todo objeto com additionalProperties false e TODAS as propriedades em required
+    const objetos = []; const anda = (n) => { if (n && typeof n === 'object') { if (n.type === 'object') objetos.push(n); Object.values(n).forEach(anda) } }; anda(sc)
+    assert.equal(objetos.length, 3); for (const o of objetos) igual([o.additionalProperties, [...o.required].sort()], [false, Object.keys(o.properties).sort()], 'estrito: ' + o.required) }
+  igual([r.tokens, r.leitura?.length, r.leitura?.[0]?.outros], [{ entrada: 1400, saida: 200 }, 2, 'none'], 'a leitura bruta e os tokens voltam (a sonda mostra)')
   assert.ok(r.custoUsd > 0 && r.custoUsd < 0.001, 'custo de uma leitura só texto: ' + r.custoUsd)
-  igual((await rede({ fetchImpl: async () => respostaDe(JSON.stringify({ shots: [{ shot: 1, cast: [{ id: 1, on_screen: 'unclear', how: 'shown' }, C2[1]] }, { shot: 2, cast: C2 }] })) })).unclear, 1, 'o relato conta os planos incertos')
+  igual((await rede({ fetchImpl: async () => respostaDe(JSON.stringify({ shots: [S(1, [{ id: 1, on_screen: 'unclear', how: 'shown' }, C2[1]]), S(2, C2)] })) })).unclear, 1, 'o relato conta os planos incertos')
   for (const [o, e] of [[{ fetchImpl: async () => respostaDe('', 500) }, 'http_500'], [{ fetchImpl: async () => respostaDe('{"x": 1}') }, 'fora_do_esquema'], [{ fetchImpl: async () => { throw new Error('rede') } }, 'fetch'],
     [{ fetchImpl: (_u, o) => new Promise((_r, rej) => o.signal.addEventListener('abort', () => rej(new Error('abort')))) }, 'prazo'], [{ apiKey: '' , fetchImpl: async () => assert.fail('sem chave não chama') }, 'sem_chave']])
     { const t0 = Date.now(), x = await rede(o); igual([x.presenca, x.erro], [null, e], e); assert.ok(Date.now() - t0 < 2000, e + ": o prazo (20 ms no teste) vale") }
@@ -145,9 +173,14 @@ async function suite(change) {
     // [CEO 25/11 12:00] a chave REAL ('sonda'), na CASA e no cliente: byte a byte o trecho da main de antes do "quem aparece" (9270f6e05), e a leitura nem é chamada
     for (const email of [CASA, CLIENTE]) { const so = await rodarTrecho(route, { ...tipMods, q }, { email, filme, conteudo: leituraParaInjetar(filme) })
       igual([so.prompts, so.forcadas, so.cenas, so.chamadas, so.presenca, so.mudou], [b.prompts, b.forcadas, b.cenas, 0, null, []], `${filme.id} 'sonda' (${email === CASA ? 'casa' : 'cliente'}): a main de 9270f6e05, nenhuma chamada`) }
+    assert.ok(casa.corpos[0].messages[1].content.includes(`1. ${nome} (person`) && casa.corpos[0].messages[1].content.includes(`, main character): a character (`), filme.id + ': a rota manda a canônica da ficha ao leitor')
   }
+  { const U = FILMES.umudara, lei = JSON.parse(leituraParaInjetar(U)); assert.equal(lei.shots[2].others, 'distinct_people'); lei.shots[2].others = 'unnamed_figure'
+    const x = await rodarTrecho(route, tipMods, { email: CASA, filme: U, conteudo: JSON.stringify(lei) })
+    igual(x.presenca?.planos, [['the mysterious warrior'], ['the mysterious warrior'], null], 'Umudara: figura sem nome no plano 3 = incerto')
+    assert.ok(BASE_DOS.umudara.prompts[2].includes('the mysterious warrior') && x.prompts[2] === BASE_DOS.umudara.prompts[2], 'o guerreiro não perde a ficha no plano 3 (a regra de hoje)') }
   // [revisora, volta 1] as leituras BURRAS dentro do esquema: o piso e o "no" incoerente seguram o filme
-  { const burra = (filme, f) => JSON.stringify({ shots: filme.planos.map((_, i) => ({ shot: i + 1, cast: filme.elenco.map((_, k) => ({ id: k + 1, ...f(i, k) })) })) })
+  { const burra = (filme, f, others = 'none') => JSON.stringify({ shots: filme.planos.map((_, i) => ({ shot: i + 1, others, cast: filme.elenco.map((_, k) => ({ id: k + 1, ...f(i, k) })) })) })
     const DUO = { id: 'duo', elenco: [{ nome: 'Elias Ward', tipo: 'humano', genero: 'man' }, { nome: 'Mara Quinn', tipo: 'humano', genero: 'woman' }], planos: [
       { fala: 'Elias climbs the lighthouse stairs.', marcador: 'lighthouse stairs', visual: 'Elias Ward climbs spiral stairs.' },
       { fala: 'Mara answers the radio in the harbor office.', marcador: 'harbor office radio', visual: 'Mara Quinn answers an old radio.' },
@@ -162,6 +195,8 @@ async function suite(change) {
         if (esperado === 'main') igual([x.prompts, x.forcadas, x.cenas], [b.prompts, b.forcadas, b.cenas], `${filme.id} ${nome}: a main`)
         if (nome === 'tudo no') igual([x.presenca, x.piso?.motivo], [null, 'protagonista_sumiu'], `${filme.id} tudo no: o piso derruba a leitura`)
         if (nome === 'no com shown' || nome === 'tudo unclear') igual(x.presenca?.planos, filme.planos.map(() => null), `${filme.id} ${nome}: todo plano incerto`)
+        if (nome === 'tudo no') { const y = await rodarTrecho(route, tipMods, { email: CASA, filme, conteudo: burra(filme, f, 'unnamed_figure') })
+          igual([y.prompts, y.forcadas, y.cenas, y.presenca?.planos], [b.prompts, b.forcadas, b.cenas, filme.planos.map(() => null)], `${filme.id} tudo no com figura sem nome: a main, todo plano incerto`) }
         if (nome === 'tudo yes' && filme.id === 'duo') {
           const mara = ficha(DUO.elenco[1], false).canonica
           igual(x.prompts.map((p) => p.includes(mara)), [false, true, false, false], 'duo tudo yes: a Mara só no plano que a cita pelo nome (o piso contém o 2º)')
@@ -278,7 +313,7 @@ async function suite(change) {
   for (const e of [{ rastro1911: { caminho: 'a2' } }, { kling4Trial: null }, { kling4TrialCandidate: false }, { verbatim: false }]) igual(reg({ ...reg0, ...e }), {}, JSON.stringify(e))
   const ch = { presenca: { elenco: ['the guard'], planos: [[], ['the guard'], null] }, custoUsd: 0.0004123, ms: 1830, erro: null, unclear: 1 }
   igual(reg({ ...reg0, rastro1911: { caminho: 'a2' }, chamadaQuemAparece2511: ch, elencoDoAjuste: [{ nome: 'the guard' }], mudou2511: [0, 2], semImagemChave2511: [3], pisoQuemAparece2511: { presenca: ch.presenca, motivo: null, segundo_contido: 2 } }).quem_aparece,
-    { versao: 'quem_aparece_2511_v1', fonte: 'leitura', motivo: null, ms: 1830, custo_usd: 0.000412, segundo_contido: 2, planos: [[], [1], null], unclear: 1, mudou: [1, 3], sem_imagem_chave: [3] }, 'o relato: só número')
+    { versao: 'quem_aparece_2511_v2', fonte: 'leitura', motivo: null, ms: 1830, custo_usd: 0.000412, segundo_contido: 2, planos: [[], [1], null], unclear: 1, mudou: [1, 3], sem_imagem_chave: [3] }, 'o relato: só número')
   igual(reg({ ...reg0, rastro1911: { caminho: 'a2' }, chamadaQuemAparece2511: { presenca: null, custoUsd: 0, ms: 6000, erro: 'prazo', unclear: 0 } }).quem_aparece.fonte, 'main')
   { const x = reg({ ...reg0, rastro1911: { caminho: 'a2' }, chamadaQuemAparece2511: ch, pisoQuemAparece2511: { presenca: null, motivo: 'protagonista_sumiu', segundo_contido: 0 } }).quem_aparece
     igual([x.fonte, x.motivo], ['piso', 'protagonista_sumiu'], 'o piso no relato: fonte e motivo próprios') }
@@ -306,7 +341,19 @@ async function suite(change) {
 
   // ── 5. a sonda ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   assert.equal(CORPOS_DA_SONDA.length, 86); assert.equal(new Set(CORPOS_DA_SONDA.map((c) => c.id)).size, 86)
-  for (const c of CORPOS_DA_SONDA) assert.ok(q.lerPedidoDePresenca(c.corpo), 'a sonda aceita: ' + c.id)
+  for (const c of CORPOS_DA_SONDA) { const pd = q.lerPedidoDePresenca(c.corpo); assert.ok(pd, 'a sonda aceita: ' + c.id)
+    assert.ok(c.corpo.elenco.every((e) => typeof e.descricao === 'string' && e.descricao.length > 10) && pd.elenco.every((e, i) => e.descricao === c.corpo.elenco[i].descricao), '(b) a descrição vai à sonda: ' + c.id)
+    assert.ok(q.pedidoDePresenca(pd.elenco, pd.planos).messages[1].content.includes(`): ${c.corpo.elenco[0].descricao}`), '(b) e chega ao leitor: ' + c.id) }
+  igual([PARTE_B.every((c) => q.lerPedidoDePresenca({ elenco: c.elenco, planos: c.planos }).elenco[0].protagonista === true), AMOSTRA.every((c) => !c.elenco[0].protagonista)], [true, true], 'o Elias marcado; o elenco de 1 pelo 1º')
+  { const todos = [...PARTE_B, ...AMOSTRA, ...LINGUA]; igual(NUNCA_NO.map((id) => todos.find((c) => c.id === id)?.esperado[0][0]), [true, true, true, true, true], 'os 5 casos que não podem dar no: o gabarito diz visível') }
+  { const okD = { elenco: [{ nome: 'Mara Quinn', descricao: 'a radio operator', protagonista: true }], planos: [{ fala: 'Mara waves.' }] }
+    igual(q.lerPedidoDePresenca(okD).elenco, [{ nome: 'Mara Quinn', tipo: null, genero: null, descricao: 'a radio operator', protagonista: true }])
+    assert.notEqual(q.chaveDaPresenca(q.lerPedidoDePresenca(okD)), q.chaveDaPresenca(q.lerPedidoDePresenca({ ...okD, elenco: [{ ...okD.elenco[0], descricao: 'a fisherman' }] })), 'a descrição muda a chave (não é repetida)')
+    assert.notEqual(q.chaveDaPresenca(q.lerPedidoDePresenca(okD)), q.chaveDaPresenca(q.lerPedidoDePresenca({ ...okD, elenco: [{ ...okD.elenco[0], protagonista: false }] })), 'o protagonista muda a chave')
+    for (const ruim of [{ descricao: 'x'.repeat(201) }, { descricao: 'a\u0007b' }, { descricao: 7 }, { protagonista: 'sim' }, { protagonista: 1 }])
+      assert.equal(q.lerPedidoDePresenca({ ...okD, elenco: [{ ...okD.elenco[0], ...ruim }] }), null, JSON.stringify(ruim).slice(0, 40))
+    assert.equal(q.lerPedidoDePresenca({ ...okD, elenco: [okD.elenco[0], { nome: 'Elias', protagonista: true }] }), null, 'dois protagonistas') }
+  assert.ok(rotaSonda.includes('leitura: r.leitura ? r.leitura.map((linha) => ({ others: linha.outros ?? null, cast: linha.map((c) => ({ on_screen: c.naTela, how: c.como })) })) : null, tokens: r.tokens ?? null'), 'a sonda devolve a leitura bruta e os tokens')
   const okP = { elenco: [{ nome: 'Mara Quinn', tipo: 'humano', genero: 'woman' }], planos: [{ fala: 'Mara waves.', marcador: '', visual: '' }] }
   for (const ruim of [null, {}, { ...okP, elenco: [] }, { ...okP, planos: [] }, { ...okP, planos: Array(13).fill(okP.planos[0]) }, { ...okP, elenco: Array.from({ length: 7 }, (_, i) => ({ nome: 'P' + i })) },
     { ...okP, elenco: [{ nome: 'Mara' }, { nome: 'mara' }] }, { ...okP, elenco: [{ nome: 'Mara', tipo: 'robo' }] }, { ...okP, elenco: [{ nome: 'Mara', genero: 'mulher' }] }, { ...okP, planos: [{ fala: '', marcador: '', visual: '' }] },
@@ -342,8 +389,32 @@ const mutants = [
   [Q, "export const QUEM_APARECE_2511: ModoQuemAparece2511 = 'sonda'", "export const QUEM_APARECE_2511: ModoQuemAparece2511 = 'internal'"], // a casa volta a ter a leitura no filme
   [Q, "modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))", "modo === 'public' || (modo !== 'off' && contaDaCasaExata(email))"], // 'sonda' liga na casa
   [sondaRoute, '  const admissao = admitirSondaDePresenca(estado, user.email, chaveDaPresenca(pedido))\n  if (admissao !== \'ok\')', '  const admissao = admitirSondaDePresenca(estado, user.email, chaveDaPresenca(pedido))\n  if (false)'], // a sonda deixa de recusar cliente
+  [Q, "      if (naTela === 'no' && k === prot && linha.outros !== 'none' && linha.outros !== 'distinct_people') return null\n", ''], // (c) sem a assimetria
+  [Q, " && linha.outros !== 'distinct_people') return null", ') return null'], // (c) outras pessoas deixam de permitir
+  [Q, "linha.outros !== 'none' && linha.outros", 'linha.outros'], // (c) plano sem ninguém deixa de permitir
+  [Q, "if (naTela === 'no' && k === prot && linha.outros", "if (naTela === 'no' && linha.outros"], // (c) a assimetria vale para todos
+  [Q, "linha.outros !== 'none' && linha.outros !== 'distinct_people') return null", "linha.outros === 'unnamed_figure') return null"], // (c) sem others vira certeza
+  [Q, "      if (naTela === 'yes' && k !== prot && como !== 'shown') return null\n", ''], // (d) o 2º pela lembrança
+  [Q, "if (naTela === 'yes' && k !== prot && como !== 'shown')", "if (naTela === 'yes' && como !== 'shown')"], // (d) vale para o protagonista também
+  [Q, 'const i = elenco.findIndex((p) => p.protagonista === true); return i >= 0 ? i : 0', 'return 0'], // o protagonista marcado é ignorado
+  [Q, ' || !OUTROS.includes(s.others as Outros)) return null', ') return null'], // others fora do esquema passa
+  [Q, '    linha.outros = s.others as Outros\n', ''], // others não é guardado
+  [Q, 'response_format: FORMATO_DA_RESPOSTA', "response_format: { type: 'json_object' }"], // (e)
+  [Q, "name: 'presenca_por_plano', strict: true", "name: 'presenca_por_plano', strict: false"], // (e)
+  [Q, "required: ['shot', 'others', 'cast']", "required: ['shot', 'cast']"], // (e) o estrito pede tudo em required
+  [Q, "${i === prot ? ', main character' : ''}", ''], // o leitor não sabe quem é o protagonista
+  [Q, "${d ? `: ${d}` : ''}", ''], // (b) sem a descrição
+  [Q, 'corta(p.descricao || p.canonica, ', 'corta(p.descricao, '], // (b) a canônica da rota não vai
+  [Q, 'bruta.toLowerCase().startsWith(`${nome.toLowerCase()}, `) ? bruta.slice(nome.length + 2) : bruta', 'bruta'], // o nome repetido
+  [Q, ', DESCRICAO_MAX) // a canônica', ', 1000) // a canônica'], // a descrição sem teto
+  [Q, "'The words point to a cast member in any way they can: the name, a pronoun, a description that fits that cast member\\'s description, or the same words in another language. ' + ", "'' + "], // (b) sem a regra do pronome
+  [Q, "'A cast member\\'s name can also be an ordinary word; decide from the sentence whether the word names the cast member. ", "'"], // (d) sem a palavra comum
+  [Q, 'descricao === undefined || protagonista === undefined || ', ''], // a sonda aceita descrição torta
+  [Q, '  if (elenco.filter((e) => e.protagonista).length > 1) return null\n', ''], // dois protagonistas
+  [Q, ', e.descricao ?? null, e.protagonista === true]', ']'], // a chave ignora a descrição
+  [Q, "fim(decidirPresenca(l, elenco), custo, null, extra)", "fim(decidirPresenca(l, elenco), custo, null)"], // a leitura bruta e os tokens somem
   [Q, "modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))", "modo !== 'off'"],
-  [Q, "if (!s || s.shot !== i + 1 || !Array.isArray(s.cast) || s.cast.length !== nElenco) return null", "if (!s || !Array.isArray(s.cast)) return null"],
+  [Q, "if (!s || s.shot !== i + 1 || !Array.isArray(s.cast) || s.cast.length !== nElenco || ", "if (!s || !Array.isArray(s.cast) || "],
   [Q, '!Array.isArray(shots) || shots.length !== nPlanos || nElenco < 1', '!Array.isArray(shots)'],
   [Q, '!c || c.id !== k + 1 || ', '!c || '],
   [Q, ' || !COMO.includes(c.how as Como)) return null', ') return null'],
@@ -353,7 +424,7 @@ const mutants = [
   [Q, " or flashback, \"not_mentioned\"", ', "not_mentioned"'], // (sem efeito de código: mata pelo texto do pedido? não — fica como controle)
   [Q, 'never as the only reason to put someone on screen', 'also as a reason to put someone on screen'],
   [Q, "    if (!res.ok) return fim(null, 0, `http_${res.status}`)\n", ''],
-  [Q, "return l ? fim(decidirPresenca(l, elenco), custo, null) : fim(null, custo, 'fora_do_esquema')", "return fim(l ? decidirPresenca(l, elenco) : { elenco: [], planos: [] }, custo, null)"],
+  [Q, "return l ? fim(decidirPresenca(l, elenco), custo, null, extra) : fim(null, custo, 'fora_do_esquema', extra)", "return fim(l ? decidirPresenca(l, elenco) : { elenco: [], planos: [] }, custo, null, extra)"],
   [Q, 'Math.max(1, opts.timeoutMs ?? QUEM_APARECE_PRAZO_MS)', '60_000'],
   [Q, 'export const QUEM_APARECE_PRAZO_MS = 6_000', 'export const QUEM_APARECE_PRAZO_MS = 60_000'],
   [Q, "  if (!p || !p.elenco.some((n) => mesmaPessoa(n, nome))) return null\n", '  if (!p) return null\n'], // quem a leitura não leu passa a ser decidido
@@ -409,4 +480,4 @@ for (const mutant of mutants) {
   mortos++
 }
 const sic = globalThis.__semImagemChave
-console.log(`PASS KINEO-QUEM-APARECE-2511: chave 'sonda' (a casa e o cliente = a main de 9270f6e05 byte a byte, nenhuma chamada; a sonda executada: 200 casa, 403 cliente e sem login; o caminho da leitura testado com 'internal' forçado); 'internal' (só a casa exata); pedido sem exemplo; esquema estrito (qualquer desvio = a main); visto/lembrança = visível, 'unclear' = a regra de hoje; o trecho real da rota com a leitura certa tira o protagonista dos planos que não o citam (Alcatraz 1 e 3, Umudara 3) e cliente, nulo, 'off', HTTP 500, fora do esquema e prazo = a main byte a byte; Identity: e plano do A2 sem o guarda (o mar volta); parte B 61/61 com a leitura (a main acerta ${globalThis.__mainCerta}/61); amostra 15/15 + 3 sem gabarito; pronome e língua 4/4 + 4 na parte B; Shiro fora do plano da pantera; sem imagem-chave no A2: Alcatraz ${sic.alcatraz.length}/3, Umudara ${sic.umudara.length}/3, Shiro ${sic.shiro.length}/3; registro e relato só número; sonda (403, uma por vez, sem repetir, teto, p95); ${mortos}/${mutants.length} mutantes mortos.`)
+console.log(`PASS KINEO-QUEM-APARECE-2511: chave 'sonda' (a casa e o cliente = a main de 9270f6e05 byte a byte, nenhuma chamada; a sonda executada: 200 casa, 403 cliente e sem login; o caminho da leitura testado com 'internal' forçado); volta 2: descrição do elenco ao leitor, others por plano, tirar o protagonista só com plano sem ninguém ou outras pessoas distintas, o 2º só visto, json_schema estrito, leitura bruta e tokens na sonda; 'internal' (só a casa exata); pedido sem exemplo; esquema estrito (qualquer desvio = a main); visto/lembrança = visível, 'unclear' = a regra de hoje; o trecho real da rota com a leitura certa tira o protagonista dos planos que não o citam (Alcatraz 1 e 3, Umudara 3) e cliente, nulo, 'off', HTTP 500, fora do esquema e prazo = a main byte a byte; Identity: e plano do A2 sem o guarda (o mar volta); parte B 61/61 com a leitura (a main acerta ${globalThis.__mainCerta}/61); amostra 15/15 + 3 sem gabarito; pronome e língua 4/4 + 4 na parte B; Shiro fora do plano da pantera; sem imagem-chave no A2: Alcatraz ${sic.alcatraz.length}/3, Umudara ${sic.umudara.length}/3, Shiro ${sic.shiro.length}/3; registro e relato só número; sonda (403, uma por vez, sem repetir, teto, p95); ${mortos}/${mutants.length} mutantes mortos.`)

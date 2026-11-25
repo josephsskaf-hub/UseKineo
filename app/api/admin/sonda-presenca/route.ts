@@ -1,7 +1,8 @@
 // KINEO-QUEM-APARECE-2511 — a sonda da leitura de quem aparece (lib/cinematic/quemAparece2511.ts): só a lista exata da casa, 403 sem login, uma por vez,
 // a mesma leitura não repete, teto por instância. Só texto (gpt-4o-mini, ≈ US$ 0,0004 por leitura). Não gera imagem nem filme, não grava no banco, não
 // cobra crédito. Devolve a leitura conferida, a decisão do código, o tempo da chamada e o p95 desta instância (contra o prazo de 6 s).
-//   POST { elenco: [{ nome, tipo?, genero? }], planos: [{ fala?, marcador?, visual? }] } → { presenca, unclear, ms, p95_ms, prazo_ms, custo_usd, erro }
+//   POST { elenco: [{ nome, tipo?, genero?, descricao?, protagonista? }], planos: [{ fala?, marcador?, visual? }] } → { presenca, leitura, tokens, unclear, ms, p95_ms, prazo_ms, custo_usd, erro }
+//   [volta 2, CEO 25/11 11:55] a leitura bruta (por plano: others e, por pessoa, on_screen/how) e os tokens voltam para o diagnóstico do ensaio.
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { QUEM_APARECE_PRAZO_MS, admitirSondaDePresenca, chaveDaPresenca, lerPedidoDePresenca, lerQuemAparece, liberarSondaDePresenca, novoEstadoDaSondaDePresenca, p95 } from '@/lib/cinematic/quemAparece2511'
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
   try {
     const r = await lerQuemAparece(pedido.elenco, pedido.planos)
     ms = r.ms
-    return NextResponse.json({ presenca: r.presenca, unclear: r.unclear, ms: r.ms, p95_ms: p95([...estado.tempos, r.ms]), prazo_ms: QUEM_APARECE_PRAZO_MS, custo_usd: r.custoUsd, erro: r.erro }, { status: r.erro ? 502 : 200 })
+    return NextResponse.json({ presenca: r.presenca, leitura: r.leitura ? r.leitura.map((linha) => ({ others: linha.outros ?? null, cast: linha.map((c) => ({ on_screen: c.naTela, how: c.como })) })) : null, tokens: r.tokens ?? null, unclear: r.unclear, ms: r.ms, p95_ms: p95([...estado.tempos, r.ms]), prazo_ms: QUEM_APARECE_PRAZO_MS, custo_usd: r.custoUsd, erro: r.erro }, { status: r.erro ? 502 : 200 })
   } finally {
     liberarSondaDePresenca(estado, ms)
   }
