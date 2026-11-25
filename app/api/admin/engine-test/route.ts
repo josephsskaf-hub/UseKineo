@@ -99,7 +99,10 @@ const PROBE_EVENT = 'admin_engine_probe'
 // KINEO-SONDA-TETO-6-2511 [CEO 25/11, dentro do teto dela de US$ 10 por dia de teste, docs/estrategia/TETOS-PROPOSTA-DA-CEO-2511.md] — US$ 4,66 → US$ 6,10 para o
 // 2º bloco de 15 s do filme de 30 s no Gemini (a mesma referência; ≈ US$ 1,23 a 1,35). A conta: a janela de 24 h já somava 4,561; + um Gemini de 15 s (1,2285)
 // = 5,7895 ≤ 6,10; qualquer pedido seguinte (outro Gemini, Vidu, H3 ou o Kling flash de 5 s) passaria de 6,10 e é recusado. As outras travas não mudam.
-const PROBE_DAILY_CAP_USD = 6.1
+// KINEO-SONDA-TETO-830-2511 [CEO 25/11 à noite, dentro do teto dela de US$ 10 por dia de teste] — US$ 6,10 → US$ 8,30 para o filme com PERSONAGEM FALANDO
+// (o Gemini Omni Flash 1.2 devolve o áudio nativo no mesmo pedido e no mesmo preço): dois pedidos de 15 s (um fotorreal, um desenho). A conta: a janela de 24 h
+// tem 5,7895; + 2 Gemini de 15 s (2 × 1,2285) = 8,2465 ≤ 8,30; um 3º pedido (outro Gemini, Vidu, H3 ou o Kling flash de 5 s) passaria de 8,30 e é recusado.
+const PROBE_DAILY_CAP_USD = 8.3
 const PROBE_WINDOW_MS = 24 * 60 * 60 * 1000 // "dia" = 24 h corridas antes do pedido (mais apertado que o dia do calendário)
 // Preço por segundo a 720p, lido em 23/11/2026 na página de cada modelo na fal (fal.ai/models/<endpoint>).
 const KLING4_REF_USD_PER_S_720P_2311 = 0.157
