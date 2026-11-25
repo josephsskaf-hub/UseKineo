@@ -67,6 +67,7 @@ const PORTAS: ReadonlyArray<{ card: HomeCardId; rotulo: string; img: string }> =
 
 export default function HomePortasCelular({ signedIn, entradaNova = false, focusedShowcase = false }: { signedIn: boolean; entradaNova?: boolean; focusedShowcase?: boolean }) {
   const portas = focusedShowcase ? [PORTAS[0], { card: 'films', rotulo: 'Film', img: MARS_FILM_PREVIEW.poster } as const] : PORTAS
+  const cartoonPosters = focusedShowcase ? [WOLF_CARTOON_PREVIEW.poster, '/kids-cartoon/leo.webp'] : ['/kids-cartoon/leo.webp']
   const ideia = ideiaDaPagina(usePathname()) // KINEO-CAIXA-COM-IDEIA-0611
   // KINEO-ENTRADAS-TELA-NOVA-1011 — só na home (entradaNova): a porta Film e a caixa abrem a aba Film para quem está LOGADO; o visitante segue no destino de hoje (KINEO-ENTRADAS-SO-LOGADO-1011).
   // KINEO-ENTRADAS-CARTOES-1011 [fundador 10/11: "Make my ad", "Make my UGC ad" e "Make my cartoon" abriram a tela ANTIGA] — as portas de anúncio
@@ -84,14 +85,12 @@ export default function HomePortasCelular({ signedIn, entradaNova = false, focus
             <span><img src={p.img} alt="" loading="lazy" /></span><UiLabel>{p.rotulo}</UiLabel>
           </Link>
         ))}
-        {focusedShowcase ? <Link className="kpc-porta" href={entrada(homeKidsCardHref(signedIn))} onClick={() => { void trackEvent(HOME_CARD_EVENT, { card: 'kids_cartoon', position: 3, surface: 'phone_door' }) }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <span><img src={WOLF_CARTOON_PREVIEW.poster} alt="" loading="lazy" /></span><UiLabel>Cartoon</UiLabel>
-        </Link> : null}
-        <Link className="kpc-porta" href={entrada(homeKidsCardHref(signedIn))} onClick={() => { void trackEvent(HOME_CARD_EVENT, { card: 'kids_cartoon', position: 4, surface: 'phone_door' }) }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <span><img src="/kids-cartoon/leo.webp" alt="" loading="lazy" /></span><UiLabel>Cartoon</UiLabel>
-        </Link>
+        {cartoonPosters.map((poster, index) => (
+          <Link key={poster} className="kpc-porta" href={entrada(homeKidsCardHref(signedIn))} onClick={() => { void trackEvent(HOME_CARD_EVENT, { card: 'kids_cartoon', position: portas.length + index + 1, surface: 'phone_door' }) }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <span><img src={poster} alt="" loading="lazy" /></span><UiLabel>Cartoon</UiLabel>
+          </Link>
+        ))}
       </div>
       <div className="kpc-tit">
         <span><small>Made with Kineo</small><b><UiLabel>Make one like this</UiLabel></b></span>

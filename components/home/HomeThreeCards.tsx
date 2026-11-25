@@ -117,7 +117,7 @@ const FOCUSED_HOME_CARDS: readonly HomeCardChoice[] = [
 
 // KINEO-CARDS-GIRO-2410 — all cards share the event-driven double buffer.
 function CardMedia({ card, language, featuredPlaylist }: { card: HomeCardId; language: string; featuredPlaylist?: HomeCardPlaylist }) {
-  return <HomeCardCycleMedia card={card} language={language} playlist={featuredPlaylist ?? HOME_CARD_TRAILERS_0411[card]} /> // KINEO-CARDS-TRAILER-0411 — Filmes mostra só o trailer; Produto e UGC seguem iguais
+  return <HomeCardCycleMedia card={card} language={language} playlist={HOME_CARD_TRAILERS_0411[card]} featuredPlaylist={featuredPlaylist} /> // KINEO-CARDS-TRAILER-0411 — Filmes mostra só o trailer; Produto e UGC seguem iguais
 }
 
 import HomePortasCelular from '@/components/home/HomePortasCelular' // KINEO-CELULAR-A-0611
