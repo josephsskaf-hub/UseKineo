@@ -1094,7 +1094,7 @@ async function generateCinematicDescriptions(
   modelo?: string, // KINEO-DESCRITOR-FORTE-1911 (A2) — o modelo forte (AI_TEXT_MODELS.planner) só no filme grátis com o interruptor; ausente = gpt-4o-mini, como sempre
   aoUsar?: (u: { model: string; usage: unknown; ms: number }) => void, // KINEO-DESCRITOR-FORTE-1911 (A2) — o ensaio do dry_run mede os tokens de cada chamada
 ): Promise<string[]> {
-  const pistaDeClima2511 = PISTA_DE_CLIMA_2511.has(visualPolicy) // KINEO-PLANO-SEM-LUGAR-2511 (A) — só com a chave (só a casa): a pista que é só entorno nunca vira o plano inteiro
+  const pistaDeClima2511 = typeof PISTA_DE_CLIMA_2511 !== 'undefined' && PISTA_DE_CLIMA_2511.has(visualPolicy) // KINEO-PLANO-SEM-LUGAR-2511 (A) — só com a chave (só a casa): a pista que é só entorno nunca vira o plano inteiro
   const list = scenes
     .map((s, i) => {
       const vo = (s.voiceover || '').trim()

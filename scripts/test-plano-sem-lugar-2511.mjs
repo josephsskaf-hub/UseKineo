@@ -46,7 +46,7 @@ async function suite(change) {
     igual(linhas(rota, 'planosPorSecao({'), linhas(rotaB, 'planosPorSecao({'), 'as 2 montagens = a main')
     const iAdd = rota.indexOf(`    if (typeof planoSemLugar2511 !== 'undefined' && planoSemLugar2511) PISTA_DE_CLIMA_2511.add(classicVisualPolicy)`), iPol = rota.indexOf('    const classicVisualPolicy: VisualPromptPolicy = {'), iDesc = rota.indexOf('generateCinematicDescriptions(secoesParaODescritor(parsedScript.segments)')
     assert.ok(iPol > 0 && iAdd > iPol && iDesc > iAdd, 'A: a política do pedido é marcada logo depois de nascer e antes do 1º pedido ao descritor')
-    assert.ok(rota.includes('const PISTA_DE_CLIMA_2511 = new WeakSet<object>()') && rota.includes('  const pistaDeClima2511 = PISTA_DE_CLIMA_2511.has(visualPolicy)'), 'A: o descritor lê a marca da política do seu pedido')
+    assert.ok(rota.includes('const PISTA_DE_CLIMA_2511 = new WeakSet<object>()') && rota.includes("  const pistaDeClima2511 = typeof PISTA_DE_CLIMA_2511 !== 'undefined' && PISTA_DE_CLIMA_2511.has(visualPolicy)"), 'A: o descritor lê a marca da política do seu pedido')
     const iQ = rota.indexOf('      const q = kling4PlanoPorSecao && verbatim && parsedScript.segments.length > scenes.length'), iB = rota.indexOf(`      if (q && typeof planoSemLugar2511 !== 'undefined' && planoSemLugar2511) q.prompts.splice(0, q.prompts.length, ...comLugarNasMetades2511(q.prompts, q.grupos, parsedScript.segments))`), iS = rota.indexOf('      if (q && sujeitoAparenciaLigada()', iQ)
     assert.ok(iQ > 0 && iB > iQ && iS > iB, 'B: a linha nova logo depois da montagem das metades do envio') }
   assert.equal(rota.split("...(typeof planoSemLugar2511 !== 'undefined' && planoSemLugar2511 ? { pistaDeClima: true } : {})").length - 1, 3, 'os 3 pedidos ao supervisor')
@@ -137,7 +137,7 @@ const mutants = [
   [Q, 'const molde = g.length > 1 && ', 'const molde = '],
   [Q, 'cenaComLugar2511(saida[k], i, grupos.length)', 'cenaComLugar2511(saida[k], k, saida.length)'],
   [R, `    if (typeof planoSemLugar2511 !== 'undefined' && planoSemLugar2511) PISTA_DE_CLIMA_2511.add(classicVisualPolicy)`, '    PISTA_DE_CLIMA_2511.add(classicVisualPolicy)'],
-  [R, '  const pistaDeClima2511 = PISTA_DE_CLIMA_2511.has(visualPolicy)', '  const pistaDeClima2511 = true'],
+  [R, "  const pistaDeClima2511 = typeof PISTA_DE_CLIMA_2511 !== 'undefined' && PISTA_DE_CLIMA_2511.has(visualPolicy)", '  const pistaDeClima2511 = true'],
   [Q, "  if (/Setting: /.test(p) || total < 2) return promptDaCena\n", ''],
   [Q, ' || total < 2) return promptDaCena', ') return promptDaCena'],
   [Q, 'i === 0 ? LUGAR_DO_SEGUINTE_2511 : LUGAR_DO_ANTERIOR_2511', 'LUGAR_DO_ANTERIOR_2511'],
