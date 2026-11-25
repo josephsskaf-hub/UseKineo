@@ -104,6 +104,14 @@ async function suite(change) {
     'Priya, ek choti ladki, beside her grandmother', 'Sofia, 15 anni, next to her mother', 'Ece, bir çocuk, next to a woman', 'Tito, freckles and a missing front tooth, jersey numbers 23-24',
     'Nina, the daughter of a fisherman', 'Bo, holding the hand of an old man', 'Kai, quiet, beside his uncle']) {
     for (const c of [canonica, canonica.replace(/^[^,]+/, 'Mara')]) assert.equal(motivo(retrato([ELIAS, { ...MARA, canonica: c }])), 'duas_menor', 'V3 o adulto não é dele: ' + c) }
+  // [CEO 25/11, B · V6] o TRECHO de ideia (o escritor de diálogo) tem a leitura própria; a ficha segue a régua V3
+  for (const t of ['Two fishermen argue about a storm', 'A 40-year-old mechanic fixes a truck', 'The old keeper and his wife wait'])
+    assert.ok(f.adultoNoTrechoDaIdeia2511(t) && f.adultoProvado2511({ nome: t }), 'B trecho adulto: ' + t)
+  for (const t of ['A bambina and her nonno feed the pigeons', 'A woman of seventeen and her aunt', 'Two kids and a dog', ''])
+    assert.ok(!f.adultoNoTrechoDaIdeia2511(t) && !f.adultoProvado2511({ nome: t }), 'B trecho sem adulto ou com menor: ' + t)
+  assert.equal(f.adultoProvado2511({ nome: 'Mara', nucleo: 'Mara', canonica: 'Mara, tiny, carried by a woman' }), false, 'B a FICHA segue a régua V3 (nome + canônica)')
+  assert.equal(f.adultoProvado2511({ nome: 'Mara', canonica: 'Mara, tiny, carried by a woman' }), false, 'B ficha sem núcleo também segue a V3')
+  assert.equal(f.adultoProvado2511({ nome: 'Two fishermen', nucleo: 'Two fishermen' }), false, 'B nome e núcleo sem ficha (o falante sem ficha da fala) = sem sinal = barra')
   // [V4] as formas de idade que a 2ª trava não lia
   for (const canonica of ['Theo, a young man of 17', 'Ana, 16, a woman of few words', 'Rina, a woman who looks about 15', 'Elle, a woman of seventeen with braids', 'Bea, a lady at her sweet sixteen party',
     'Lia, a woman, 16, quiet', 'Pia, a woman, ek choti ladki', 'Ece, a woman, bir çocuk', 'Lu, a woman, 15 lat', 'Ayse, a woman, 14 yaşında', 'Sara, a woman, 12 saal ki', 'Ola, a woman, dziewczynka']) {
@@ -154,6 +162,9 @@ async function suite(change) {
 
 await suite(null)
 const mutants = [
+  [feature, "  if (c.nucleo === undefined && c.canonica === undefined && typeof c.nome === 'string') return adultoNoTrechoDaIdeia2511(c.nome)\n", ''], // [B] o trecho do escritor volta a ser lido como ficha
+  [feature, "  if (c.nucleo === undefined && c.canonica === undefined && typeof c.nome === 'string')", "  if (c.canonica === undefined && typeof c.nome === 'string')"], // [B] a ficha sem núcleo vira trecho
+  [feature, "|| ADULTO_IDADE_PROPRIA_2511.test(t)) && !textoDizMenor2511(t)", "|| ADULTO_IDADE_PROPRIA_2511.test(t))"], // [B] o trecho com menor vira adulto
   [feature, "export const DUAS_PESSOAS_DO_CLIENTE_2511: ModoDuasPessoasDoCliente2511 = 'internal'", "export const DUAS_PESSOAS_DO_CLIENTE_2511: ModoDuasPessoasDoCliente2511 = 'public_humano'"], // [CEO 25/11 noite] a chave escapa para o cliente
   [feature, "if (motivo === 'mais_de_uma_folha' && duasDoCliente === 'public_humano') {", "if (motivo === 'mais_de_uma_folha') {"],
   [feature, "if (motivo === 'mais_de_uma_folha' && duasDoCliente === 'public_humano') {", "if ((motivo === 'mais_de_uma_folha' || motivo === 'nao_humano') && duasDoCliente === 'public_humano') {"],

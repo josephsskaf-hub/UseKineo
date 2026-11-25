@@ -192,6 +192,9 @@ function primeiraOracao2511(c: { nome?: unknown; nucleo?: unknown; canonica?: un
 }
 /** O personagem tem sinal POSITIVO de adulto que é DELE (o nome/núcleo, a 1ª âncora do leitor do elenco, ou a 1ª oração depois do nome)? */
 export function adultoProvado2511(c: { nome?: unknown; nucleo?: unknown; canonica?: unknown }): boolean {
+  // [CEO 25/11, B · V6] chamada só com `nome` (sem núcleo nem canônica) é um TRECHO de ideia, não uma ficha: o escritor de diálogo (be7130ba8) a faz assim
+  // ("Two fishermen argue…", "A 40-year-old mechanic…"). Lê pela régua do trecho até o escritor chamar adultoNoTrechoDaIdeia2511 direto. Ficha sempre tem canônica.
+  if (c.nucleo === undefined && c.canonica === undefined && typeof c.nome === 'string') return adultoNoTrechoDaIdeia2511(c.nome)
   if ([c.nome, c.nucleo].some((n) => typeof n === 'string' && SO_ADULTO_NO_NOME_2511.test(n.trim()) && new RegExp(ADULTO_PALAVRA_2511.source + '$', 'iu').test(n.trim()))) return true
   const ancora = typeof c.canonica === 'string' ? ANCORA_ADULTA_2511.exec(c.canonica) : null
   if (ancora && PRIMEIRA_ANCORA_ADULTA_2511.test(ancora[1].trim())) return true
@@ -199,6 +202,14 @@ export function adultoProvado2511(c: { nome?: unknown; nucleo?: unknown; canonic
   return ADULTO_IDADE_PROPRIA_2511.test(oracao) || ADULTO_PALAVRA_2511.test(oracao)
 }
 /** [mantido para a leitura do guardião antigo] o personagem diz menor? */
+/** [CEO 25/11, B · V6] a leitura do TRECHO de uma ideia (o escritor de diálogo, antes de o elenco existir): adulto por palavra de adulto da lista fechada em
+ *  qualquer posição do trecho, ou idade de 18 ou mais escrita, e nada de menor no trecho (a 2ª trava inteira). NÃO é a régua da ficha (adultoProvado2511),
+ *  que exige o sinal DO personagem; o escritor usa esta, a admissão da referência usa aquela. */
+export function adultoNoTrechoDaIdeia2511(trecho: unknown): boolean {
+  const t = typeof trecho === 'string' ? trecho : ''
+  const singular = t.replace(/(\p{L}+)men(?![\p{L}])/giu, '$1man') // "fishermen" → "fisherman" (a lista é no singular)
+  return !!t.trim() && (ADULTO_PALAVRA_2511.test(t) || ADULTO_PALAVRA_2511.test(singular) || ADULTO_IDADE_PROPRIA_2511.test(t)) && !textoDizMenor2511(t)
+}
 export function pareceMenor2511(c: { nome?: unknown; nucleo?: unknown; canonica?: unknown }): boolean {
   return textoDizMenor2511(textoDoPersonagem2511(c))
 }
