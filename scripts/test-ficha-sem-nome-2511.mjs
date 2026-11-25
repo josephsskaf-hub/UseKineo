@@ -201,8 +201,8 @@ async function suite(change) {
   const pedirFolhas = async (folhaSemNome2511, elencoP) => {
     const pedidos = []
     const corpo = ts.transpile('return (async () => {\n' + folhaDoFilme + '\nreturn folhasP })()', { target: ts.ScriptTarget.ES2022 })
-    const folhas = await Function('elencoP', 'qualidadeHerdada', 'referenciaDaCena', 'generateCinematicSceneStill', 'promptDaFolha', 'styleAnchor', 'folhaSemNome2511', 'generationSeed', 'aspectRequested', corpo)(
-      elencoP, null, () => assert.fail('herdada'), async (a) => { pedidos.push(a); return 'https://x.org/folha.png' }, L.promptDaFolha, LOOK, folhaSemNome2511, 7, '9:16')
+    const folhas = await Function('elencoP', 'qualidadeHerdada', 'referenciaDaCena', 'generateCinematicSceneStill', 'promptDaFolha', 'styleAnchor', 'folhaSemNome2511', 'generationSeed', 'aspectRequested', 'aplicarEpocaVisual', 'epocaVisual', corpo)(
+      elencoP, null, () => assert.fail('herdada'), async (a) => { pedidos.push(a); return 'https://x.org/folha.png' }, L.promptDaFolha, LOOK, folhaSemNome2511, 7, '9:16', createOfflineLoader()('@/lib/cinematic/epocaVisual2411').aplicarEpocaVisual, null)
     assert.equal(folhas.length, elencoP.length)
     return pedidos
   }
@@ -217,9 +217,9 @@ async function suite(change) {
     const ler = async (d, url) => ({ leitura: j.lerLeituraDaFolha(url.includes('nova') ? leituraJson(ROBO) : primeira), custoUsd: 0.001, erro: null })
     const corpo = ts.transpile('return (async () => {\n' + juizNaRota + '\n} return null })()', { target: ts.ScriptTarget.ES2022 })
     await Function('juizDaFolhaLigado', 'JUIZ_DA_FOLHA_2411', 'user', 'kling4TrialCandidate', 'qualidadeHerdada', 'ensaioPersonagemFixo', 'folhaDe', 'elencoP', 'julgarAFolha', 'isStylizedLook', 'styleAnchor', 'desenhoInfantil', 'lerAFolha',
-      'generateCinematicSceneStill', 'promptDaFolha', 'generationSeed', 'aspectRequested', 'folhasReprovadas2411', 'folhaSemNome2511', corpo)(
+      'generateCinematicSceneStill', 'promptDaFolha', 'generationSeed', 'aspectRequested', 'folhasReprovadas2411', 'folhaSemNome2511', 'aplicarEpocaVisual', 'epocaVisual', corpo)(
       j.juizDaFolhaLigado, j.JUIZ_DA_FOLHA_2411, { email: CASA }, true, null, false, new Map([['Bolt', 'https://x.org/folha.png']]), [BOLT], j.julgarAFolha, () => true, LOOK, { ativo: false }, ler,
-      async (a) => { gerados.push(a.scenePrompt); return 'https://x.org/nova.png' }, L.promptDaFolha, 7, '9:16', new Set(), folhaSemNome2511)
+      async (a) => { gerados.push(a.scenePrompt); return 'https://x.org/nova.png' }, L.promptDaFolha, 7, '9:16', new Set(), folhaSemNome2511, createOfflineLoader()('@/lib/cinematic/epocaVisual2411').aplicarEpocaVisual, null)
     return gerados
   }
   const SEM_SMALL = JSON.stringify({ medium: 'cartoon_3d', characters: 1, traits: TRACOS_SIM.map(t => t.trait === 'small' ? { ...t, visible: 'no' } : t) })
@@ -378,8 +378,8 @@ const mutants = [
   [SN, "export const FICHA_SEM_NOME_2511: ModoFichaSemNome2511 = 'off'", "export const FICHA_SEM_NOME_2511: ModoFichaSemNome2511 = 'internal'"], // a casa recebe antes da prova
   [SN, "export const FICHA_SEM_NOME_2511: ModoFichaSemNome2511 = 'off'", "export const FICHA_SEM_NOME_2511: ModoFichaSemNome2511 = 'public'"],
   [SN, "modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))", "modo !== 'off'"],
-  [routeFile, 'promptDaFolha(f, styleAnchor, folhaSemNome2511), styleSuffix: \'\', seed: (generationSeed + 7_919 * (101', 'promptDaFolha(f, styleAnchor), styleSuffix: \'\', seed: (generationSeed + 7_919 * (101'],
-  [routeFile, 'promptDaFolha(f, styleAnchor, folhaSemNome2511) + instrucao', 'promptDaFolha(f, styleAnchor) + instrucao'],
+  [routeFile, 'promptDaFolha(f, styleAnchor, folhaSemNome2511), epocaVisual?.ficha, true), styleSuffix: \'\', seed: (generationSeed + 7_919 * (101', 'promptDaFolha(f, styleAnchor), epocaVisual?.ficha, true), styleSuffix: \'\', seed: (generationSeed + 7_919 * (101'],
+  [routeFile, 'promptDaFolha(f, styleAnchor, folhaSemNome2511), epocaVisual?.ficha, true) + instrucao', 'promptDaFolha(f, styleAnchor), epocaVisual?.ficha, true) + instrucao'],
   [routeFile, 'const folhaSemNome2511 = fichaSemNomeLigada(FICHA_SEM_NOME_2511, user.email)', 'const folhaSemNome2511 = true'],
   // 2. a forma
   [J, "export const FORMA_DA_FOLHA_2511: ModoFormaDaFolha2511 = 'sonda'", "export const FORMA_DA_FOLHA_2511: ModoFormaDaFolha2511 = 'on'"], // o filme passa a perguntar

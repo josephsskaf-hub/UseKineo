@@ -109,6 +109,26 @@ const cases = {
       assert.equal(m.prepararEpocaVisual({internal:true,pedido,secoes:[],falas:[pedido]}), null, pedido)
     }
   },
+  formatosDeProveniencia: m => {
+    const referencias = [
+      ['a coin minted in 79 AD', 'In 79 AD the courier departs.', '79 AD'],
+      ['a sculpture carved in 300 BC', 'In 300 BC a sculptor walks to the quarry.', '300 BC'],
+      ['a camera made on November 22, 1888', 'On November 22, 1888, a photographer opens her studio.', '1888'],
+      ['a watch produced around 1888', 'Around 1888 a traveler boards the train.', '1888'],
+      ['an amphora recovered around 137 BCE', 'In 137 BCE an envoy sets sail.', '137 BCE'],
+      ['a map printed circa 72 CE', 'In 72 CE the scribe opens his workshop.', '72 CE'],
+      ['a portrait painted during the 18th century', 'During the 18th century the workshop opens.', '18th century'],
+      ["a ticket printed in the '80s", "The scene takes place in the '80s.", '1980s'],
+      ['uma gravura produzida nos anos 1970', 'Uma estação nos anos 1970.', '1970s'],
+    ]
+    const ficha = (pedido) => m.prepararEpocaVisual({internal:true,pedido,secoes:[{voiceover:pedido,pexelsQuery:pedido}],falas:[pedido]})?.ficha ?? null
+    for (const [objeto, acao, epoca] of referencias) {
+      assert.equal(ficha('A visitor examines ' + objeto + '.'),null,objeto)
+      assert.equal(ficha(objeto),null,objeto)
+      assert.equal(ficha(acao),epoca,acao)
+      assert.equal(ficha('A visitor examines ' + objeto + '. In 1920 a visitor opens the door.'),'1920',objeto)
+    }
+  },
   vazio: m => {
     assert.equal(m.aplicarEpocaVisual('', '1888'), '')
     assert.doesNotMatch(m.aplicarEpocaVisual('An empty room without people.', '1888'), /people in period-accurate clothing/i)
@@ -158,6 +178,9 @@ const cases = {
 const normal=carregar(fonte)
 for(const run of Object.values(cases)) run(normal)
 const mutantes=[
+ ['formatosDeProveniencia','new RegExp([ANO_COM_ERA, SECULO','new RegExp([SECULO'],
+ ['formatosDeProveniencia',"contexto.replace(MES_ANTES_DO_ANO, '')",'contexto'],
+ ['formatosDeProveniencia','|by|since|around|circa|about|desde)','|by|since|desde)'],
  ['proveniencia','semDatasDeObjeto(comAnosPorExtenso(texto))','comAnosPorExtenso(texto)'],
  ['proveniencia','if (origem &&','if (false &&'],
  ['proveniencia','if (participio || complemento || sujeito)','if (participio || sujeito)'],

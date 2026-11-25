@@ -87,7 +87,10 @@ export async function capture(world,borders,film,apply,mode,account) {
     : {}
   const admission=admit.run({
     ...recovered,
-    retratoSemFolhaReprovada2411: load("@/lib/cinematic/juizDaFolha2411").retratoSemFolhaReprovada2411, folhasReprovadas2411: new Set(),
+    ...(admit.source.includes('retratoSemFolhaReprovada2411(') ? {
+      retratoSemFolhaReprovada2411: load('@/lib/cinematic/juizDaFolha2411').retratoSemFolhaReprovada2411,
+      folhasReprovadas2411: new Set(),
+    } : {}),
     admitirReferenciaUnica2411:ruz.admitirReferenciaUnica2411,REFERENCIA_UNICA_2411:publicMode,
     user:{email:account?internal:'outside@example.invalid'},qualitySnapshot:snapshot,
     styleAnchor,isStylizedLook:s=>s.look!=='photoreal',desenhoInfantil:{ativo:false}

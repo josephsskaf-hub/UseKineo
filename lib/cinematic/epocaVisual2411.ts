@@ -8,12 +8,26 @@ const ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XI
 const WRITTEN_CENTURIES = 'first second third fourth fifth sixth seventh eighth ninth tenth eleventh twelfth thirteenth fourteenth fifteenth sixteenth seventeenth eighteenth nineteenth twentieth twenty-first'.split(' ')
 const ordinal = (n: number) => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : (['th','st','nd','rd'][n % 10] ?? 'th'))
 
+// Use the same calendar forms when reading a scene and when excluding an
+// exhibit's date. A year with an era (79 AD) is also a single date token.
+const ANO_COM_ERA = /\b(\d{1,4})\s*(BCE|BC|AD|CE)\b/iu
+const SECULO = /\b(\d{1,2})(?:st|nd|rd|th)[ -]century\b|\bs[ée]culo\s+([ivx]+|\d{1,2})\b/iu
+const SECULO_ESCRITO = /\b([a-z]+(?:-[a-z]+)?)[ -]century\b/iu
+const DECADA = /\b((?:1\d|20)\d0)(?:['’]?s)\b|\b(?:anos|d[ée]cada de)\s+((?:1\d|20)\d0)\b/iu
+const DECADA_CURTA = /\b(?:the\s+['’]?(\d0)s|(?:anos|d[ée]cada (?:de|dos))\s+['’]?(\d0))\b/iu
+const DATAS = new RegExp([ANO_COM_ERA, SECULO, SECULO_ESCRITO, DECADA, DECADA_CURTA, /\b(?:1\d|20)\d{2}\b/].map(re => re.source).join('|'), 'giu')
+const MES = 'january|february|march|april|may|june|july|august|september|october|november|december|janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro'
+const MES_ANTES_DO_ANO = new RegExp('\\b(?:\\d{1,2}(?:st|nd|rd|th)?\\s+(?:(?:of|de)\\s+)?)?(?:' + MES + ')(?:\\s+\\d{1,2}(?:st|nd|rd|th)?)?,?\\s+(?:de\\s+)?$', 'iu')
+
 // A year on a label or in a noun phrase dates the item, not the shot.
 // Mask just that date, so a later "in 1920" can still date the museum visit.
 function semDatasDeObjeto(texto: string): string {
-  const data = /\b(?:\d{1,2}(?:st|nd|rd|th)[ -]century|[a-z]+(?:-[a-z]+)?[ -]century|s[ée]culo\s+(?:[ivx]+|\d{1,2})|(?:1\d|20)\d{2}(?:['’]?s)?)(?![\p{L}\d])/giu
-  return texto.replace(data, (valor: string, i: number) => {
-    const antes = texto.slice(0, i).split(/[.!?;:\n]/u).pop() ?? ''
+  return texto.replace(DATAS, (valor: string, ...args: unknown[]) => {
+    // Captures come from the shared parsers. The replace callback puts the
+    // character offset immediately before the original input string.
+    const i = args[args.length - 2] as number
+    const contexto = texto.slice(0, i).split(/[.!?;:\n]/u).pop() ?? ''
+    const antes = contexto.replace(MES_ANTES_DO_ANO, '')
     const depois = texto.slice(i + valor.length)
     const de = /\b(?:from|of|de)\s+(?:(?:the|o|el)\s+)?(?:(?:year|a[nñ]o)\s+(?:(?:of|de)\s+)?)?(?:(?:circa|about|early|mid|late)\s+)?$/iu.exec(antes)
     if (de) {
@@ -24,9 +38,9 @@ function semDatasDeObjeto(texto: string): string {
     }
     // A passive/participial origin or use ("first used", "manufactured back
     // in") is different from staging an action ("boards a jet in 1971").
-    const predicado = antes.replace(/\b(?:back\s+)?(?:in|em|en)\s+(?:(?:the\s+)?year\s+)?$/iu, '').trimEnd()
+    const predicado = antes.replace(/\b(?:back\s+)?(?:in|on|em|en|nos?|nas?|during|throughout|by|since|around|circa|about|desde)\s+(?:(?:about|around|circa|early|late|mid)\s+)?(?:the\s+)?(?:year\s+)?$/iu, '').trimEnd()
     if (predicado !== antes.trimEnd()) {
-      const participio = /\b(?:made|built|taken|written|drawn|worn|used|manufactured|constructed|produced|created|restored|dated|printed|published|recorded|invented|fabricad[oa]|constru[ií]d[oa]|produzid[oa]|criad[oa]|(?:was|were|been|originally|first|last)\s+[\p{L}-]+(?:ed|en))$/iu.test(predicado)
+      const participio = /\b(?:made|built|taken|written|drawn|worn|used|minted|carved|painted|recovered|manufactured|constructed|produced|created|restored|dated|printed|published|recorded|invented|fabricad[oa]|constru[ií]d[oa]|produzid[oa]|criad[oa]|(?:was|were|been|originally|first|last)\s+[\p{L}-]+(?:ed|en))$/iu.test(predicado)
       // "A student inspects [a coin minted in 1888]" has an object with a
       // reduced passive clause. This also covers previously unseen participles.
       const complemento = /\S\s+(?:an?|the|this|that|his|her|their)\s+(?:(?!(?:and|or|then)\b)[\p{L}-]+\s+){1,5}[\p{L}-]+(?:ed|en)$/iu.test(predicado)
@@ -54,22 +68,22 @@ function semDatasDeObjeto(texto: string): string {
 function dataDoTrecho(texto: string): string {
   const t = semDatasDeObjeto(comAnosPorExtenso(texto))
     .replace(/\b\d+\s*(?:[x×]|\bby\b|\bpor\b)\s*\d+\b|[$€£]\s*[\d,.]+|\b\d[\d,.]*\s*(?:px|p\b|fps|hz|km|kg|m|metres?|meters?|metros?|miles?|dollars?|euros?|reais|pesos|people|pessoas|years|anos|units?|copies|unidades|years?\s+old)\b/giu, ' ')
-  const seculo = /\b(\d{1,2})(?:st|nd|rd|th)[ -]century\b|\bs[ée]culo\s+([ivx]+|\d{1,2})\b/iu.exec(t)
-  const escrito = /\b([a-z]+(?:-[a-z]+)?)[ -]century\b/iu.exec(t)
+  const seculo = SECULO.exec(t)
+  const escrito = SECULO_ESCRITO.exec(t)
   const numero = seculo ? seculo[1] ? Number(seculo[1]) : Number(seculo[2]) || ROMAN.indexOf(seculo[2].toUpperCase()) + 1
     : escrito ? WRITTEN_CENTURIES.indexOf(escrito[1].toLowerCase()) + 1 : 0
   const anoAtual = new Date().getUTCFullYear()
   const seculoValido = numero >= 1 && numero < Math.ceil(anoAtual / 100)
-  const decada = /\b((?:1\d|20)\d0)(?:['’]?s)\b|\b(?:anos|d[ée]cada de)\s+((?:1\d|20)\d0)\b/iu.exec(t)
+  const decada = DECADA.exec(t)
   const ano = /(?:^|(?:\b(?:in|by|since|circa|around|from|em|desde|de|ano|year|of|en)\s+)|(?:\b\d{1,2},\s*)|(?:\b(?:the|a|an|long|vintage)\s+))((?:1\d|20)\d{2})(?![\p{L}\d.,]\d|[\p{L}\d]|\s*[x×])/iu.exec(t)
-  const antigo = /\b(\d{1,4})\s*(BCE|BC|AD|CE)\b/iu.exec(t)
+  const antigo = ANO_COM_ERA.exec(t)
   if (antigo && (!/^(?:AD|CE)$/iu.test(antigo[2]) || Number(antigo[1]) < anoAtual)) return antigo[1] + ' ' + antigo[2].toUpperCase()
   if (ano) return Number(ano[1]) < anoAtual ? ano[1] : ''
   if (decada) {
     const inicio = decada[1] ?? decada[2]
     return Number(inicio) + 9 < anoAtual ? inicio + 's' : ''
   }
-  const curta = /\b(?:the\s+['’]?(\d0)s|(?:anos|d[ée]cada (?:de|dos))\s+['’]?(\d0))\b/iu.exec(t)
+  const curta = DECADA_CURTA.exec(t)
   if (curta) return String(1900 + Number(curta[1] ?? curta[2])) + 's'
   return seculoValido ? ordinal(numero) + ' century' : ''
 }
