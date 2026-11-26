@@ -34,7 +34,7 @@ export function pedidoDoStudioSimples(p: { motor: string; texto: string; duracao
   const q = new URLSearchParams({ engine: p.motor, prompt: p.texto, duration: String(p.duracao), script_mode: p.palavraPorPalavra ? 'verbatim' : 'ai', autoanalyze: '1', studio: '1', intent_campaign: p.campanha })
   if (p.formato !== '9:16') q.set('aspect', p.formato)
   const lingua = p.lingua === 'auto' ? linguaDoRoteiro({ hint: 'en', texto: p.texto, motor: p.motor }).language : p.lingua // KINEO-ROTEIRO-NA-LINGUA-0411 — sem escolha, a língua do texto
-  if (lingua !== 'en') q.set('language', lingua)
+  if (lingua !== 'en' || (p.voiceMode === 'characters' && p.look === 'photoreal' && p.lingua === 'en')) q.set('language', lingua)
   if (p.look) q.set('look', p.look)
   const { voice_mode } = voiceModeFields(p.voiceMode)
   if (voice_mode) q.set('voice_mode', voice_mode)

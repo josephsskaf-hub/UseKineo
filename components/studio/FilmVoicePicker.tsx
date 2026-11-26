@@ -19,11 +19,14 @@ const CSS = `
 .film-voice-picker p{margin:0;font-size:13px;line-height:1.4;color:var(--rc-body,var(--muted,var(--text2,currentColor)))}
 `
 
-export default function FilmVoicePicker({ value = 'narrator', onSelect, disabled, available = false }: {
+export default function FilmVoicePicker({ value = 'narrator', onSelect, disabled, available = false, adjustOnSelect = false, notice, undo }: {
   value?: FilmVoiceMode
   available?: boolean
   onSelect?: (mode: FilmVoiceMode) => void
   disabled?: boolean
+  adjustOnSelect?: boolean
+  notice?: string
+  undo?: () => void
 }) {
   const label = useId()
   const hint = useId()
@@ -31,8 +34,9 @@ export default function FilmVoicePicker({ value = 'narrator', onSelect, disabled
     <style>{CSS}</style>
     <span className="film-voice-label" id={label}>Voice</span>
     <div className="film-voice-options">
-      {OPTIONS.map(option => <button key={option.mode} type="button" aria-pressed={(available ? value : 'narrator') === option.mode} disabled={disabled || !onSelect || (!available && option.mode === 'characters')} onClick={() => onSelect?.(option.mode)}>{option.label}</button>)}
+      {OPTIONS.map(option => <button key={option.mode} type="button" aria-pressed={(available ? value : 'narrator') === option.mode} disabled={disabled || !onSelect || (!adjustOnSelect && !available && option.mode === 'characters')} onClick={() => onSelect?.(option.mode)}>{adjustOnSelect && option.mode === 'characters' ? 'Character dialogue' : option.label}</button>)}
     </div>
-    <p id={hint}>{available ? 'For a 15-second photorealistic film in English, write 29–45 spoken words for up to two adults. Use an approved character photo. Other films use narration.' : 'This film uses narration. Character dialogue is available for 15-second photorealistic films in English.'}</p>
+    {adjustOnSelect ? <p id={hint} role="status">{notice || 'Eligible films: 15 s, Realistic, English and 29–45 spoken words for up to two adults.'}{undo && <> <button type="button" onClick={undo} style={{ minHeight: 44, paddingInline: 8, font: 'inherit', textDecoration: 'underline' }}>Undo</button></>}</p>
+      : <p id={hint}>{available ? 'For a 15-second photorealistic film in English, write 29–45 spoken words for up to two adults. Use an approved character photo. Other films use narration.' : 'This film uses narration. Character dialogue is available for 15-second photorealistic films in English.'}</p>}
   </div>
 }

@@ -2041,6 +2041,7 @@ export default function GenerateClient({
   const [tasks, setTasks] = useState<TaskHandle[]>([])
   const [taskStates, setTaskStates] = useState<Record<string, TaskState>>({})
   const [error, setError] = useState<string | null>(null)
+  const [dialogueEditHint, setDialogueEditHint] = useState('')
   const [recusaResposta, setRecusaResposta] = useState<Record<string, unknown> | null>(null) // KINEO-RECUSA-BOTAO-3110 — o corpo da última recusa (o `fix` do servidor)
   const recusaDespachoRef = useRef<{ at: number; started: boolean } | null>(null) // KINEO-RECUSA-BOTAO-3110 — o conserto reanalisou: despacha UMA vez quando a análise chegar em 'options'
   const filmeGratisDespachoRef = useRef<{ at: number; started: boolean; analisou: boolean; segundos: Duration; pedido: TextoDoFilmeGratis } | null>(null) // KINEO-FILME-GRATIS-COMECA-0211 — o clique do filme grátis: analisa no próximo render e despacha UMA vez em 'options'
@@ -10538,7 +10539,11 @@ export default function GenerateClient({
           onboardingAutoGenerateRef.current = false
           setPrompt(trimmed)
           setScriptMode('verbatim')
-          setError(typeof data.error === 'string' && data.error.trim() ? data.error : 'Add more spoken dialogue before generating your film.')
+          const count = data.missingWords
+          setDialogueEditHint(typeof count === 'number' && Number.isInteger(count) && count > 0
+            ? `Add about ${count} more spoken ${count === 1 ? 'word' : 'words'}.`
+            : 'Add more spoken words to the dialogue.')
+          setError(null)
           setPhase('idle')
           return
         }
@@ -15918,10 +15923,13 @@ export default function GenerateClient({
               )}
             </div>
           )}
+          {dialogueEditHint && <p id="dialogue-edit-hint" role="status" className="mb-2 text-sm font-semibold">{dialogueEditHint}</p>}
           <textarea
+            aria-describedby={dialogueEditHint ? 'dialogue-edit-hint' : undefined}
             value={prompt}
             onChange={(e) => {
               setPrompt(e.target.value)
+              if (dialogueEditHint) setDialogueEditHint('')
               // #362 — a manual edit becomes the new source of truth; drop the
               // stored structured script so we submit exactly what the user sees.
               structuredScriptRef.current = null

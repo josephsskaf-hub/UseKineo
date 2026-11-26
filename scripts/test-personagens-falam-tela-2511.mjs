@@ -43,11 +43,11 @@ function calls(file, path, source = read(file)) {
 function evaluate(code, context) {
   return vm.runInNewContext(ts.transpileModule(code, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, context, { timeout: 4000 })
 }
-const voiceButton = (props, tag) => tag === 'button' && ['Narrator', 'Characters talk'].includes(props.children)
+const voiceButton = (props, tag) => tag === 'button' && ['Narrator', 'Characters talk', 'Character dialogue'].includes(props.children)
 const picked = tab => tab.all(voiceButton).filter(node => node.props['aria-pressed']).map(node => node.props.children)
 const action = (props, tag) => tag === 'button' && /^studio-(simple|moldura)-generate$/.test(props['data-testid'] ?? '')
 
-const charactersButton = (p, t) => voiceButton(p, t) && p.children === 'Characters talk'
+const charactersButton = (p, t) => voiceButton(p, t) && p.children !== 'Narrator'
 function setSeconds(tab, seconds) {
   const settings = p => p['data-testid'] === 'studio-simple-settings'
   const chip = p => p['data-cx-chip'] === 'duracao'
@@ -62,17 +62,30 @@ function launch(file, props, overrides, selection) {
   tab.mount(React.createElement(tab.m(file).default, { filmes: [], motor: 'seedance', campanha: 'voice_test', ideiaInicial: idea, ...props }))
   if (selection) {
     assert.deepEqual(picked(tab), ['Narrator'])
-    assert.equal(tab.one(charactersButton, 'long film').props.disabled, true)
+    const oneTap = file.includes('StudioNaMoldura')
+    assert.equal(Boolean(tab.one(charactersButton, 'long film').props.disabled), !oneTap)
+    if (oneTap) {
+      tab.click(charactersButton, 'adjust settings with one click')
+      assert.deepEqual(picked(tab), ['Character dialogue'])
+      assert.match(tab.html(), /Dialogue set to 15 s, Realistic and English/)
+      tab.click((p,t) => t === 'button' && p.children === 'Undo', 'restore prior settings')
+      assert.deepEqual(picked(tab), ['Narrator'])
+      assert.match(tab.html(), /60 s|60<!-- --> s|60s/)
+    }
     setSeconds(tab, 15)
     assert.ok(!tab.one(charactersButton, 'short film').props.disabled)
     if (selection === 'characters') {
       tab.click(charactersButton, 'Characters talk')
       setSeconds(tab, 35)
-      assert.equal(tab.one(charactersButton, '35s').props.disabled, true)
+      assert.equal(Boolean(tab.one(charactersButton, '35s').props.disabled), !oneTap)
       assert.deepEqual(picked(tab), ['Narrator'])
       setSeconds(tab, 15)
+      if (oneTap) {
+        assert.deepEqual(picked(tab), ['Narrator'], 'a compatible duration alone cannot reactivate dialogue')
+        tab.click(charactersButton, 'explicitly choose again')
+      }
     }
-    assert.deepEqual(picked(tab), [selection === 'characters' ? 'Characters talk' : 'Narrator'])
+    assert.deepEqual(picked(tab), [selection === 'characters' ? oneTap ? 'Character dialogue' : 'Characters talk' : 'Narrator'])
   } else assert.deepEqual(picked(tab), [])
   const html = tab.html()
   tab.click(action, 'Generate')
@@ -147,6 +160,64 @@ assert.deepEqual(filmRequests(onFields, 'characters', read(film), 'fast').slice(
     tab.click((p,t) => t === 'button' && p.children === style, style)
     assert.deepEqual(picked(tab), [style === 'Realistic' ? 'Characters talk' : 'Narrator'], style)
     assert.equal(Boolean(tab.one(charactersButton, style).props.disabled), style !== 'Realistic')
+  }
+}
+
+// Real controls of the Film entry: the handoff keeps the literal text, including an explicit Anime cue.
+{
+  const literal = 'Anime: Íris asks Rowan, “Is the moon still there?” & waits.\nRowan: Always.'
+  const external = 'viewer@example.invalid'
+  const decideLook = live('@/lib/cinematic/filmLook2511Server').selectedFilmLook
+  const selectable = (p,t) => t === 'select' && p.id === 'sm-lingua'
+  for (const showFilmStyle of [false, true]) {
+    const tab = aba(active)
+    tab.mount(React.createElement(tab.m('components/create/StudioNaMoldura.tsx').default,
+      { motor:'seedance',campanha:'voice_test',ideiaInicial:literal,showFilmStyle }))
+    if (showFilmStyle) tab.click((p,t) => t === 'button' && p.children === 'Anime','choose Anime')
+    tab.select(selectable,'pt','Portuguese')
+    tab.click(charactersButton,'dialogue from 60s in Portuguese')
+    assert.deepEqual(picked(tab),['Character dialogue'])
+    assert.equal(tab.one(selectable,'language').props.value,'en')
+    const style = tab.all((p,t) => t === 'button' && p.children === 'Realistic')
+    assert.equal(style.length, Number(showFilmStyle), 'external visitor never gets private style selector')
+    if (showFilmStyle) assert.equal(style[0].props['aria-pressed'],true)
+    tab.click((p,t) => t === 'button' && p.children === 'Undo','restore the whole prior choice')
+    assert.deepEqual(picked(tab), ['Narrator'])
+    assert.equal(tab.one(selectable,'restored language').props.value,'pt')
+    if (showFilmStyle) assert.equal(tab.one((p,t) => t==='button' && p.children==='Anime','original style').props['aria-pressed'],true)
+    tab.click(charactersButton,'select again')
+    if (showFilmStyle) {
+      tab.click((p,t) => t==='button' && p.children==='Anime','manual incompatible style')
+      assert.deepEqual(picked(tab),['Narrator'])
+      assert.match(tab.html(),/Narrator selected because dialogue needs Realistic/)
+      tab.click((p,t) => t==='button' && p.children==='Realistic','manual compatible style')
+      assert.deepEqual(picked(tab),['Narrator'])
+      tab.click(charactersButton,'dialogue again')
+    }
+    tab.select(selectable,'es','incompatible language')
+    assert.deepEqual(picked(tab), ['Narrator'])
+    assert.match(tab.html(), /Narrator selected because dialogue needs English/)
+    tab.select(selectable,'en','compatible language')
+    assert.deepEqual(picked(tab), ['Narrator'])
+    tab.click(charactersButton,'final explicit choice')
+    assert.equal(tab.log.pushes.length,0)
+    tab.click(action,'Generate')
+    const query=Object.fromEntries(new URL(tab.log.pushes[0],'https://example.invalid').searchParams)
+    assert.deepEqual([query.prompt,query.language,query.duration,query.look,query.voice_mode],[literal,'en','15','photoreal','characters'])
+    const filmLook=decideLook(query.look,external,query)
+    assert.equal(filmLook,'photoreal')
+    const requests=filmRequests(onFields,query.voice_mode,read(film),'cinematic_ai',{filmLook, trimmed:literal, ideia:literal, rawSource:literal})
+    for (const [i,payload] of requests.entries()) {
+      const request={...payload,duration:payload.targetSeconds ?? payload.duration}
+      assert.equal(decideLook(request.look,external,request),'photoreal','server look at '+i)
+      assert.equal(request.voice_mode,'characters')
+      assert.equal(i===2 ? request.prompt : request.topic,literal)
+    }
+    for (const bad of [{duration:60},{language:'pt'},{engine:'fast'},{look:'anime'},{aspect:'1:1'},{kids_cartoon:'fixture'},{voice_mode:'narrator'}]) {
+      const input={...query,...bad}
+      assert.equal(decideLook(input.look,external,input),undefined,JSON.stringify(bad))
+    }
+    assert.equal(off('@/lib/cinematic/filmLook2511Server').selectedFilmLook(query.look,external,query),undefined,'rollback closes public preset')
   }
 }
 
@@ -232,11 +303,11 @@ assert.ok(refusal)
 function onResponse(status, data) {
   const seen = []
   const context = {res: {status}, data, trimmed: speakers, generationInFlightRef: { current: true }, activationAutoGenerateRef: { current: true }, onboardingAutoGenerateRef: { current: true }}
-  for (const setter of ['setPrompt','setScriptMode','setPhase','setError']) context[setter] = value => seen.push([setter,value])
+  for (const setter of ['setPrompt','setScriptMode','setPhase','setError','setDialogueEditHint']) context[setter] = value => seen.push([setter,value])
   vm.runInNewContext('(function(){'+refusal.getText()+'})()',context)
   return seen
 }
-assert.deepEqual(onResponse(422,{narrationTooShort:true,reason:'fala_curta_cliente',error:'There are 24 spoken words.'}),[['setPrompt',speakers],['setScriptMode','verbatim'],['setError','There are 24 spoken words.'],['setPhase','idle']])
+assert.deepEqual(onResponse(422,{narrationTooShort:true,reason:'fala_curta_cliente',missingWords:5,error:'There are 24 spoken words.'}),[['setPrompt',speakers],['setScriptMode','verbatim'],['setDialogueEditHint','Add about 5 more spoken words.'],['setError',null],['setPhase','idle']])
 assert.deepEqual(onResponse(422,{narrationTooShort:true,reason:'narration_too_short'}),[])
 assert.deepEqual(onResponse(503,{narrationTooShort:true,reason:'fala_curta_cliente'}),[])
 
@@ -374,7 +445,7 @@ for (const [label, duration, cartoon, look, original, words, expected] of [
   if (expected === '422') {
     assert.equal(result.status, 422)
     assert.equal(result.data.reason, 'fala_curta_cliente')
-    assert.deepEqual(onResponse(result.status,result.data), [['setPrompt',speakers],['setScriptMode','verbatim'],['setError',result.data.error],['setPhase','idle']])
+    assert.deepEqual(onResponse(result.status,result.data), [['setPrompt',speakers],['setScriptMode','verbatim'],['setDialogueEditHint','Add about 1 more spoken word.'],['setError',null],['setPhase','idle']])
   } else assert.equal(result, expected === 'characters', label)
   console.log(label, '→', expected)
 }

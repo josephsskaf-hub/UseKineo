@@ -433,7 +433,7 @@ export async function POST(req: NextRequest) {
     // nenhuma linha nova roda. Depois da moderação do tema (acima): a política vale igual. Volta 4 (T3): o diálogo com prazo curto (até 12 s, só o que sobra
     // depois de guardar os 35 s INTEIROS da 1ª chamada do narrado dentro do maxDuration 60); sem tempo = nem chama. Volta 5: a casa segue com a régua da
     // volta 4; o cliente só com a chave própria (CLIENTE_FALA_NO_ROTEIRO, nasce 'off') e sempre com a régua POSITIVA (dialogue_rule 'client' = a casa no ensaio dela). ═══
-    if (lerVoiceMode(body.voice_mode) === 'characters' && language === 'en' && characterVoiceAvailable(alvoSegundos, language, topic, selectedFilmLook(body.look, user.email), Boolean(body.kids_cartoon)) && !hasViralMarkers(topic) && reguaDoDialogo2511(user.email, body.dialogue_rule) !== null) {
+    if (lerVoiceMode(body.voice_mode) === 'characters' && language === 'en' && characterVoiceAvailable(alvoSegundos, language, topic, selectedFilmLook(body.look, user.email, { ...body, duration: alvoSegundos, language }), Boolean(body.kids_cartoon)) && !hasViralMarkers(topic) && reguaDoDialogo2511(user.email, body.dialogue_rule) !== null) {
       const dialogo2511 = await escreverDialogo2511({ ideia: topic, segundos: alvoSegundos, regua: reguaDoDialogo2511(user.email, body.dialogue_rule), prazoMs: prazoDoDialogo2511(Date.now() - inicioDaRota, OPENAI_SCRIPT_TIMEOUT_MS), chamar: async (corpo, prazoDialogo2511) => {
         const c = await openai.chat.completions.create(corpo as unknown as Parameters<typeof openai.chat.completions.create>[0], { timeout: prazoDialogo2511, maxRetries: 0 }) as { choices?: Array<{ message?: { content?: string | null } }> }
         return c.choices?.[0]?.message?.content ?? null } })

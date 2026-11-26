@@ -1735,7 +1735,7 @@ async function manipularPost(req: NextRequest) {
     // com A1, A2 e o portão do sujeito, contra o filme do defeito. Revisor: é mudança de porta (só a conta exata; cliente continua sem o parâmetro).
     // [revisor 19/11, condição 6] em 'public' o portão leria `events` em TODO pedido da rota, sem prazo: 2 s, e passou = sem a ideia (o caminho de hoje)
     const roteiroDoEscritor1911 = portaoDoSujeito1911 ? (Boolean(await Promise.race([recuperarIdeiaDoEscritor(user.id, body.prompt), new Promise<null>((ok) => setTimeout(() => ok(null), PORTAO_LEITURA_TETO_MS_1911))])) || (isDryRunAccount(user.email) && body.k4_gratis_ensaio === true && (body as { k4_roteiro_do_escritor?: unknown }).k4_roteiro_do_escritor === true)) : false
-    const explicitFilmLook = selectedFilmLook(body.look, user.email)
+    const explicitFilmLook = selectedFilmLook(body.look, user.email, body)
     const pedidoEstacionado = pedidoEstacionavel({ ...body, look: explicitFilmLook }) // KINEO-FILA-QUEDA-FAL-2810 — a cópia fechada do pedido, ANTES de a rota mexer no body (script_mode do monumento etc.); null = não estaciona
 
     // KINEO-FACELESS-2026-08-25 — tag [faceless] no script = filme SEM avatar:

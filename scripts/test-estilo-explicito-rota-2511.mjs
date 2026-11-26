@@ -42,8 +42,8 @@ function casesExplicit(resolve) {
 }
 casesExplicit(resolve)
 for (const [before, after, reason] of [
-  ['selectedFilmLook(body.look, user.email)', 'undefined','explicit realistic'],
-  ['selectedFilmLook(body.look, user.email)', 'body.look','external bypassed gate'],
+  ['selectedFilmLook(body.look, user.email, body)', 'undefined','explicit realistic'],
+  ['selectedFilmLook(body.look, user.email, body)', 'body.look','external bypassed gate'],
   ['if (romanceAdulto.ativo)', 'if (false)','romance must remain photoreal'],
 ]) {
   assert.ok(block.includes(before))

@@ -89,7 +89,7 @@ export default async function StudioCreatePage({ searchParams }: StudioCreatePag
     data: { user },
     error: authError,
   } = await supabase.auth.getUser()
-  const filmLook = selectedFilmLook(searchParams?.look, authError ? null : user?.email)
+  const filmLook = selectedFilmLook(searchParams?.look, authError ? null : user?.email, searchParams)
   const { voice_mode: initialVoiceMode } = voiceModeFields(searchParams?.voice_mode)
   const activationEntry = firstParam(searchParams, 'signup') === '1'
     ? 'oauth_signup'

@@ -125,10 +125,22 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
     initialFilmLook ? { initial: initialFilmLook, chosen: initialFilmLook, changed: false } : null,
   )
   const [voiceMode, setVoiceMode] = useState<FilmVoiceMode>(initialVoiceMode ?? 'narrator')
+  const [beforeDialogue, setBeforeDialogue] = useState<{
+    duration: number; language: string; style: typeof styleChoice; aspect: string; engine: string; voice: FilmVoiceMode
+  } | null>(null)
+  const [voiceNotice, setVoiceNotice] = useState('')
+  function useNarration(reason: string) {
+    if (!moldura || voiceMode !== 'characters') return
+    setVoiceMode('narrator')
+    setBeforeDialogue(null)
+    setVoiceNotice(reason)
+  }
   const suggestedLook = showFilmStyle ? suggestedFilmLook(texto) : null
-  const selectedLook = showFilmStyle ? styleChoice?.chosen : undefined
+  const dialoguePreset = Boolean(moldura && beforeDialogue && voiceMode === 'characters')
+  const selectedLook = dialoguePreset ? 'photoreal' : showFilmStyle ? styleChoice?.chosen : undefined
   const look = selectedLook ?? suggestedLook
-  const filmStylePicker = look && <FilmStylePicker look={look} text={texto} onSelect={next => {
+  const filmStylePicker = showFilmStyle && look && <FilmStylePicker look={look} text={texto} onSelect={next => {
+    if (next !== 'photoreal') useNarration('Narrator selected because dialogue needs Realistic.')
     setStyleChoice(choice => ({
       initial: choice?.initial ?? look,
       chosen: next,
@@ -140,7 +152,6 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
   const [lingua, setLingua] = useState<string>('auto') /* KINEO-ROTEIRO-NA-LINGUA-0411 — sem escolha, o filme fala a língua do texto */
   const voiceAvailable = filmVoiceEnabled() && characterVoiceAvailable(duracao, lingua, texto, selectedLook)
   const effectiveVoice = voiceAvailable ? voiceMode : 'narrator'
-  const filmVoicePicker = filmVoiceEnabled() && <FilmVoicePicker value={voiceMode} onSelect={setVoiceMode} available={voiceAvailable} />
   const [palavraPorPalavra, setPalavraPorPalavra] = useState(false)
   const [folha, setFolha] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
@@ -157,6 +168,38 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
   const motor = moldura ? escolhido : motorDoLink
   const nomeMotor = nomeDoMotorEscolhido(motor)
   const opcoesDuracao = moldura ? duracoesDoMotor(motor, kling4AoVivo(kling4)) : motor === 'seedance' ? DURACOES : DURACOES.filter((d) => d >= MIN_DURATION_ALL_ENGINES) // KINEO-MOTOR-OPCIONAL-1011: na moldura, a tabela do servidor
+  function selectVoice(next: FilmVoiceMode) {
+    if (!moldura) { setVoiceMode(next); return }
+    if (next === 'narrator') {
+      setVoiceMode(next)
+      setBeforeDialogue(null)
+      setVoiceNotice('Narrator selected.')
+      return
+    }
+    if (dialoguePreset) return
+    setBeforeDialogue({ duration: duracao, language: lingua, style: styleChoice, aspect: formato, engine: motor, voice: effectiveVoice })
+    setDuracao(15)
+    setLingua('en')
+    setFormato('9:16')
+    setEscolhido('seedance')
+    if (showFilmStyle) setStyleChoice({ initial: styleChoice?.initial ?? look ?? 'photoreal', chosen: 'photoreal', changed: look !== 'photoreal' })
+    setVoiceMode('characters')
+    const extra = [formato !== '9:16' && 'vertical', motor !== 'seedance' && 'Standard engine'].filter(Boolean)
+    setVoiceNotice('Dialogue set to 15 s, Realistic and English' + (extra.length ? ' · ' + extra.join(', ') : '') + '.')
+  }
+  function undoDialogue() {
+    if (!beforeDialogue) return
+    setDuracao(beforeDialogue.duration)
+    setLingua(beforeDialogue.language)
+    setFormato(beforeDialogue.aspect)
+    setEscolhido(beforeDialogue.engine)
+    setStyleChoice(beforeDialogue.style)
+    setVoiceMode(beforeDialogue.voice)
+    setBeforeDialogue(null)
+    setVoiceNotice('Previous settings restored.')
+  }
+  const filmVoicePicker = filmVoiceEnabled() && <FilmVoicePicker value={voiceMode} onSelect={selectVoice} available={voiceAvailable}
+    adjustOnSelect={Boolean(moldura)} notice={voiceNotice} undo={beforeDialogue ? undoDialogue : undefined} />
   const limite = useMemo(() => promptLimitState(texto, analyzePromptMaxChars(palavraPorPalavra ? 'verbatim' : 'ai')), [texto, palavraPorPalavra])
 
   useEffect(() => { void trackEvent('studio_simple_viewed', { engine: motorDoLink, campaign: campanha }) }, [motorDoLink, campanha]) // KINEO-MOTOR-OPCIONAL-1011: o motor do link (trocar no passo não recarrega nada)
@@ -190,10 +233,13 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
     if (texto.trim() && texto.length < 1500) q.set('prompt', texto)
     if (selectedLook) q.set('look', selectedLook)
     const { voice_mode } = voiceModeFields(effectiveVoice)
-    if (voice_mode === 'characters') q.set('duration', String(duracao))
+    if (voice_mode === 'characters') {
+      q.set('duration', String(duracao))
+      if (dialoguePreset) q.set('language', 'en')
+    }
     if (voice_mode) q.set('voice_mode', voice_mode)
     return `/studio?${q.toString()}`
-  }, [motor, campanha, texto, selectedLook, effectiveVoice, duracao])
+  }, [motor, campanha, texto, selectedLook, effectiveVoice, duracao, dialoguePreset])
 
   function gerar() {
     const t = texto.trim()
@@ -237,12 +283,17 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
     const escolherMotor = (k: string) => {
       const livre = k === motorDoLink || (motores ?? []).some((o) => o.key === k && o.estado === 'livre')
       if (!livre) return
+      if (k !== 'seedance') useNarration('Narrator selected because dialogue uses the Standard engine.')
       setEscolhido(k)
       const opcoes = duracoesDoMotor(k, kling4AoVivo(kling4))
       if (!opcoes.includes(duracao)) setDuracao(opcoes.find((d) => d >= duracao) ?? opcoes[opcoes.length - 1])
       void trackEvent('create_engine_chosen', { engine: k, from: motor })
     }
-    return <>{moldura({ motor, texto, escrever, caixa, aviso, limiteMax: limite.max, duracao, opcoesDuracao, setDuracao, formato, formatos: FORMATOS, setFormato, lingua, setLingua, palavraPorPalavra, setPalavraPorPalavra, maisOpcoes, temFilmeGratis, gerar, contaPaga, motores, motoresEstado, abrirMotores, escolherMotor, kling4, filmStylePicker, ...(filmVoicePicker ? { filmVoicePicker } : {}) })}</>
+    return <>{moldura({ motor, texto, escrever, caixa, aviso, limiteMax: limite.max, duracao, opcoesDuracao,
+      setDuracao: d => { if (d !== 15) useNarration('Narrator selected because dialogue needs 15 s.'); setDuracao(d) },
+      formato, formatos: FORMATOS, setFormato: f => { if (f !== '9:16') useNarration('Narrator selected because dialogue needs vertical video.'); setFormato(f) },
+      lingua, setLingua: l => { if (l !== 'en') useNarration('Narrator selected because dialogue needs English.'); setLingua(l) },
+      palavraPorPalavra, setPalavraPorPalavra, maisOpcoes, temFilmeGratis, gerar, contaPaga, motores, motoresEstado, abrirMotores, escolherMotor, kling4, filmStylePicker, ...(filmVoicePicker ? { filmVoicePicker } : {}) })}</>
   }
 
   return (
