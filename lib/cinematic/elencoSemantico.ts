@@ -634,6 +634,34 @@ function evidenciaEscrita(p: PersonagemSemantico, texto: string): EvidenciaEscri
 }
 
 /**
+ * C1 26/11: evidência conservadora de gênero de um papel humano sem nome, só no caminho sem marcadores.
+ * O leitor tem de afirmar o mesmo gênero; o texto precisa apresentar esse papel como sujeito e a frase seguinte
+ * começar com o pronome. Outra pessoa do elenco na apresentação, diálogo citado ou conflito = não inferimos.
+ * Não traduz idade nem aparência. Quando houver ficha literal, copia também o pronome como evidência.
+ */
+export function pronomeDoPapelSemNome(p: PersonagemSemantico, elenco: readonly PersonagemSemantico[], original: string): { genero: 'male' | 'female'; texto: string } | null {
+  if (p.name || p.kind !== 'human' || !p.role_text || !p.gender || generoEscrito(p)) return null
+  const texto = String(original ?? '').replace(/\[[^\]]*\]/gu, ' ').replace(/"[^"\n]*"|“[^”\n]*”|‘[^’\n]*’/gu, ' ').replace(/\*\*/gu, '')
+  const frases = texto.split(/(?:[.!?…;]+\s+|\n+)/u).map(limpa).filter(Boolean)
+  const outros = elenco.filter((q) => q !== p).flatMap((q) => [q.name, q.role_text, q.role_text?.split(' ').pop()]).filter((s): s is string => !!s)
+  const achados: Array<{ genero: 'male' | 'female'; texto: string }> = []
+  for (let i = 0; i < frases.length - 1; i++) {
+    const f = frases[i]
+    const at = f.toLowerCase().indexOf(p.role_text.toLowerCase())
+    if (at < 0 || !palavraNoTexto(f, p.role_text)) continue
+    // Antes do papel só cabe artigo e a idade já conferida: nenhum outro sujeito ou fala.
+    const prefixo = f.slice(0, at).replace(/^(?:a|an|the|o|a|um|uma|el|la|un|una)\s+/iu, '').trim()
+    if (prefixo && prefixo.toLowerCase() !== p.age_text?.toLowerCase()) continue
+    if (outros.some((s) => palavraNoTexto(f, s)) || /[:"“”‘’]/u.test(f)) continue
+    const m = /^(he|she|ele|ela|él|ella)(?![\p{L}])/iu.exec(frases[i + 1])
+    if (!m) continue
+    achados.push({ genero: /^(he|ele|él)$/iu.test(m[1]) ? 'male' : 'female', texto: m[1].toLowerCase() })
+  }
+  if (!achados.length || achados.some((a) => a.genero !== p.gender)) return null
+  return achados[0]
+}
+
+/**
  * A ficha de quem o determinístico errou. Rodada 14: gente com trecho do autor aceito = fichaDoAutor (só o trecho; o gênero da ficha só da
  * palavra escrita). Sem trecho: o gerador determinístico da base (canonicaDeterministica), como antes — papel escrito (sem nome) ou o
  * gênero confirmado; sem nenhum dos dois, as janelas do nome. Bicho/criatura/objeto: como antes.
@@ -687,12 +715,14 @@ export interface ElencoAplicado {
 }
 
 /**
- * O elenco do pedido com o semântico. Só age com protagonista NOMEADO (onde o defeito acontece); senão null = o elenco de
+ * O elenco do pedido com o semântico. Por padrão só age com protagonista NOMEADO; semMarcadores admite gente pelo papel. Senão null = o elenco de
  * sempre. Quem o determinístico já acertou (mesmo nome + mesmo tipo + mesma espécie) e figura mítica ficam com a ficha de antes —
  * exceto quando o protagonista tem aparência no texto e a ficha de antes não é do autor (o "red scarf" da Hope não some).
  */
-export function aplicarElencoSemantico(base: ReadonlyArray<FichaDePersonagem>, sem: ElencoSemantico | null, textoOriginal: string): ElencoAplicado | null {
-  if (!sem || !sem.protagonist || !sem.protagonist.name) return null
+export function aplicarElencoSemantico(base: ReadonlyArray<FichaDePersonagem>, sem: ElencoSemantico | null, textoOriginal: string, op: { semMarcadores?: boolean } = {}): ElencoAplicado | null {
+  // C1 26/11: só a rota hoje/sem_marcadores admite a leitura conferida de gente pelo papel, sem nome próprio.
+  const semNome = op.semMarcadores === true && sem?.protagonist?.kind === 'human' && !!sem.protagonist.role
+  if (!sem || !sem.protagonist || (!sem.protagonist.name && !semNome)) return null
   const texto = semTags(textoOriginal)
   const todos = [sem.protagonist, ...sem.supporting]
   // rodada 9: gente nomeada de quem o texto não diz o que é (sem papel escrito: "Meet Emma.") e que o determinístico não tem
@@ -713,9 +743,17 @@ export function aplicarElencoSemantico(base: ReadonlyArray<FichaDePersonagem>, s
     // rodada 10: o que o TEXTO escreve desta pessoa (gênero confirmado por pronome) vence a ficha antiga da base que o contradiz
     // ("Walter, a woman…" com "waits for him"). Rodada 12: o trecho literal aceito (papel/idade copiados do texto) que a ficha antiga não
     // traz também vence ("Riley, a woman in their early thirties" com "seven"). Ficha do autor e figura mítica ficam; sem evidência, a base.
-    const evid: EvidenciaEscrita | undefined = p.kind === 'human' ? evidenciaEscrita(p, texto) : undefined
+    let evid: EvidenciaEscrita | undefined = p.kind === 'human' ? evidenciaEscrita(p, texto) : undefined
+    const pronome = op.semMarcadores === true && !p.name ? pronomeDoPapelSemNome(p, todos, textoOriginal) : null
+    if (evid && op.semMarcadores === true && !p.name && p.role_text) {
+      // A ficha nova copia papel/idade e o pronome provado. Origem autor impede casting/juiz de sortear outra pessoa.
+      const literal = evid.literal ? (evid.literal.includes(p.role_text) ? evid.literal : p.role_text + ', ' + evid.literal) : p.role_text
+      evid = { genero: generoEscrito(p) ?? pronome?.genero ?? null, literal: literal + (pronome ? '; pronoun from script: ' + pronome.texto : '') }
+    }
     const contradiz = (f: FichaDePersonagem) => {
       if (!evid || (f.origem as string) === 'mitica') return false
+      if (op.semMarcadores === true && !p.name && f.origem !== 'autor') return true
+      if (pronome && (f.genero !== (pronome.genero === 'male' ? 'man' : 'woman') || (!!evid.literal && !f.canonica.includes(evid.literal)))) return true
       // rodada 12: a ficha "do autor" da base (deriveExplicitCharacter, regex) que não traz NENHUM dos trechos que o modelo copiou e o código
       // conferiu é de outra pessoa ("Leo, grandson of a 78-year-old fisherman" → a base dava "Leo, a 78-year-old fisherman"): vence o trecho.
       // A que traz um deles ("Roland …, a gruff old man with shoulder-length gray-brown hair") é do autor e fica.
