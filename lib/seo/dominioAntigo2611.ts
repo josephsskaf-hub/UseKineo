@@ -49,8 +49,30 @@ export const CHAMADAS_AO_ABRIR_2611: ReadonlySet<string> = new Set([
 /** As duas ESCRITAS que a página faz sozinha (POST): o rastro de evento e a escolha da faixa de consentimento. Sem elas, o POST levaria o 308 e quebraria. */
 export const ESCRITAS_AO_ABRIR_2611: ReadonlySet<string> = new Set(['/api/events', '/api/consent'])
 
-/** Arquivos da pasta public que o matcher do middleware não exclui (o matcher já deixa _next, imagens e a fonte manrope fora). */
-const ARQUIVO_DA_PAGINA_2611 = /\.(?:mp4|webm|mov|mp3|wav|ogg|woff2?|ttf|otf|ico|webmanifest|css|js|avif)$/i
+/** [revisora 2c5749dd, V1] Arquivo da página só dentro de uma pasta REAL da public que não é rota do app (lista fechada; o guardião confere contra
+ *  `ls public` e `app/`). Antes, qualquer caminho com final .js/.css/.mp4 passava e rota dinâmica EXECUTAVA no host antigo (/admin/people/x.css,
+ *  /api/render/x.mp4, /a/CODE.js). Ficam fora de propósito: auth, ads, kids-cartoon e trending (também são rotas do app), design e gpt (a página não pede). */
+export const PASTAS_DA_PUBLIC_2611: ReadonlySet<string> = new Set([
+  'previews', 'videos', 'fonts', 'sfx', 'pwa', 'home-images', 'home-mosaic', 'posters', 'screening-room', 'nav-thumbs', 'ads-exemplos', 'ads-styles', 'models', 'og',
+])
+/** Os dois arquivos da raiz que o navegador pede sozinho (app/favicon.ico e app/manifest.ts: estáticos). */
+const ARQUIVOS_DA_RAIZ_2611: ReadonlySet<string> = new Set(['/favicon.ico', '/manifest.webmanifest'])
+const FINAL_DE_ARQUIVO_2611 = /\.(?:mp4|webm|mov|mp3|wav|ogg|woff2?|ttf|otf|ico|webmanifest|css|js|avif)$/i
+function arquivoDaPagina2611(p: string): boolean {
+  if (ARQUIVOS_DA_RAIZ_2611.has(p)) return true
+  const pasta = /^\/([a-z0-9-]+)\//.exec(p)?.[1]
+  return pasta !== undefined && PASTAS_DA_PUBLIC_2611.has(pasta) && FINAL_DE_ARQUIVO_2611.test(p) && !p.includes('..') && !p.includes('%')
+}
+
+/** [revisora 2c5749dd, V2] Nenhuma sessão no host antigo: o pedido chega ao app SEM os cookies sb-* (Supabase) e a resposta os apaga (Max-Age=0).
+ *  Assim nada renova, lê nem cria sessão lá (change-plan, checkout/resume?go=1, páginas). Puro: recebe o cabeçalho Cookie, devolve o novo e os nomes. */
+export function semSessaoNoHostAntigo2611(cabecalhoCookie: string | null): { cookie: string | null; apagar: string[] } {
+  const partes = String(cabecalhoCookie ?? '').split(';').map((p) => p.trim()).filter(Boolean)
+  const nome = (p: string) => p.split('=')[0].trim()
+  const apagar = partes.filter((p) => nome(p).startsWith('sb-')).map(nome)
+  const ficam = partes.filter((p) => !nome(p).startsWith('sb-'))
+  return { cookie: ficam.length ? ficam.join('; ') : null, apagar: [...new Set(apagar)] }
+}
 
 export type DecisaoDominioAntigo2611 =
   | { acao: 'segue' } // serve no próprio host, como em www
@@ -70,7 +92,7 @@ export function decidirDominioAntigo2611(a: { host: string; pathname: string; me
     if (a.doProprioSite === true && url.clique_vai_a_www) return a.buscaDaPagina ? { acao: 'pre_carga_204' } : { acao: 'redireciona' }
     return url.mostra === a.pathname ? { acao: 'segue' } : { acao: 'reescreve', para: url.mostra }
   }
-  if (CHAMADAS_AO_ABRIR_2611.has(a.pathname) || ARQUIVO_DA_PAGINA_2611.test(a.pathname)) return { acao: 'segue' }
+  if (CHAMADAS_AO_ABRIR_2611.has(a.pathname) || arquivoDaPagina2611(a.pathname)) return { acao: 'segue' }
   if (a.buscaDaPagina) return { acao: 'pre_carga_204' }
   return { acao: 'redireciona' }
 }

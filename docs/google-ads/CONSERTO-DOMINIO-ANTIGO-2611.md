@@ -55,9 +55,16 @@ Nenhum anúncio tem URL de celular, sufixo de URL final, modelo de acompanhament
   - **A pré-carga de outra página:** o fetch da página (cabeçalho `Sec-Fetch-Dest: empty`) a uma página fora da lista recebe **204** no mesmo host. O Next então abre a página por navegação normal, que leva o 308.
     - O Next 14 apaga o cabeçalho `RSC` e o `_rsc` antes do middleware (`next/dist/server/web/adapter.js`, FLIGHT_PARAMETERS), por isso o sinal é o `Sec-Fetch-Dest`.
   - **Fora da regra:** `/api/stripe/webhook` e `/api/youtube/*` (o callback do OAuth registrado em `shortsforgeai.vercel.app/api/youtube/callback`). Nesses caminhos o middleware nem chama a regra e faz o de hoje: roda no lugar.
+  - **[V1 da revisora] Arquivo da página só nas pastas reais da public:** lista fechada `PASTAS_DA_PUBLIC_2611` (previews, videos, fonts, sfx, pwa, home-images, home-mosaic, posters, screening-room, nav-thumbs, ads-exemplos, ads-styles, models, og) e os dois arquivos da raiz que o navegador pede (`/favicon.ico`, `/manifest.webmanifest`).
+    - Antes, qualquer caminho com final `.js`, `.css` ou `.mp4` passava, e rota dinâmica EXECUTAVA no host antigo (`/admin/people/x.css`, `/api/render/x.mp4`, `/a/CODE.js`, `/s/tiktok.js`). Agora esses caminhos dão 308.
+    - Ficam fora de propósito: `auth`, `ads`, `kids-cartoon` e `trending` (também são rotas do app), `design` e `gpt` (a página não pede).
+    - O guardião confere no disco que cada pasta da lista existe na `public` e NÃO é rota do app.
+  - **[V2 da revisora] Nenhuma sessão no host antigo:** tudo o que a regra serve sai do middleware ANTES do `updateSession`. O pedido chega ao app SEM os cookies `sb-*` e a resposta os apaga (`Max-Age=0`). Vale nos três hosts.
+    - Assim nada renova, lê nem cria sessão lá: a página é a de visitante, `/api/stripe/change-plan` não lê plano, `/api/stripe/checkout/resume?go=1` não acha conta.
+    - O guardião prova no MIDDLEWARE REAL (com dublês só do que não é desta regra): cookie `sb-*` velho no pedido → o app recebe o pedido sem ele, a resposta traz `sb-*` com valor vazio e Max-Age 0, e o `updateSession` não roda. Em www.usekineo.com e no `/api/youtube/callback`, o caminho de sempre.
   - **Todo o resto:** o 308 de hoje.
 - **`middleware.ts`:** aplica a regra antes do bloco do 308, exceto nos caminhos que já rodavam no host antigo. Passa `Sec-Fetch-Dest` e `Sec-Fetch-Site`. Os hosts, as exceções e o destino www.usekineo.com ficam como estão.
-- **`scripts/test-dominio-antigo-2611.mjs` (guardião):** os três hosts × as 7 URLs, quem chega × clique de dentro, webhook e YouTube fora; 22/22 mutantes mortos.
+- **`scripts/test-dominio-antigo-2611.mjs` (guardião):** os três hosts × as 7 URLs, quem chega × clique de dentro, webhook e YouTube fora, V1 contra o disco, V2 no middleware real; 29/29 mutantes mortos.
 
 ## Tabela final: host × URL × resposta (depois do deploy e da mudança na Vercel)
 "Antes" foi medido em produção por curl: todo endereço dos três hosts dava `308 → https://www.usekineo.com/<mesmo caminho>` (Vercel no .com e no www; middleware no vercel.app). "Depois" sai da regra, provado pelo guardião. As linhas marcadas com * também foram medidas no build de produção desta branch (rodada anterior, só .com e www); as demais ainda não foram medidas em build.
@@ -71,6 +78,8 @@ Nenhum anúncio tem URL de celular, sufixo de URL final, modelo de acompanhament
 | as mesmas, clicadas de dentro da página | 308 → www (mesmo caminho) | 308 → www | 308 → www |
 | pré-carga de outra página (fetch da página) | **204** * | **204** * | **204** |
 | `/studio`, `/login`, `/admin`, `/generate/…`, `/signup/` | 308 → www * | 308 → www * | 308 → www |
+| `/admin/people/x.css`, `/api/render/x.mp4`, `/a/CODE.js`, `/s/tiktok.js` (final de arquivo fora das pastas da public) | 308 → www | 308 → www | 308 → www |
+| qualquer URL servida acima, com cookie `sb-*` velho | **200** sem sessão, `sb-*` apagado | o mesmo | o mesmo |
 | `/api/stripe/checkout?…` (botão de compra), POST `/api/stripe/checkout` | 308 → www * | 308 → www * | 308 → www |
 | `/robots.txt`, `/sitemap.xml`, `/llms.txt` | 308 → www * | 308 → www * | 308 → www |
 | as 12 leituras da página, POST `/api/events`, POST `/api/consent`, `/previews/*.mp4` | **200** * | **200** * | **200** |
@@ -91,6 +100,10 @@ Nenhum anúncio tem URL de celular, sufixo de URL final, modelo de acompanhament
   - O login e o cookie nascem em www, como hoje.
 - **Quem chega pelo anúncio em `/signup`** vê a home; o clique em "Get started" ali dentro leva a www.usekineo.com/signup.
 - **Limite conhecido:** navegador sem `Sec-Fetch-Site` (Safari antes de 16.4) não distingue o clique de dentro. Nele, clicar em "Get started" numa página que já é `/signup` mostra a home de novo; o "Log in" funciona.
+- **Por que o clique se distingue pelo `Sec-Fetch-Site` e não só pelo host (V3 da revisora):** quem chega do anúncio e quem clica em "Get started" dentro da página pedem a MESMA URL (`/signup`) no MESMO host. Só o host não separa os dois.
+  - Para decidir só pelo host, os botões de conta da página teriam de apontar direto para www.usekineo.com quando a página roda no host antigo. Isso é mudança na tela (o par login/signup e a home, área do GPT).
+  - Sem tocar em tela, o sinal que sobra é um cabeçalho que o NAVEGADOR manda (`Sec-Fetch-Site`), nunca o user-agent. Para o robô do Google e para quem chega do anúncio, a resposta é a mesma.
+  - Se a CEO preferir a versão só por host, o pedido ao GPT é: no host antigo, os botões de conta da home e do /pricing navegam para `https://www.usekineo.com/signup` com a mesma query. Depois disso o `Sec-Fetch-Site` sai da regra.
 - **Comprar:** os botões de plano do /pricing navegam para `/api/stripe/checkout?tier=…` (navegação de página, `app/pricing/PricingClient.tsx` ~815). No host antigo ela leva 308 para www com a mesma query, e o checkout segue em www.
 
 ## Risco para a busca e para as citações do ChatGPT
@@ -109,25 +122,35 @@ Nenhum anúncio tem URL de celular, sufixo de URL final, modelo de acompanhament
 - **Ou na Vercel:** pôr de volta "Redirect to www.usekineo.com (308)" nos dois domínios.
 
 ## Rascunho da 4ª contestação (inglês; NÃO enviada)
-Enviar só depois de (1) este código no ar, (2) a mudança na Vercel feita e (3) cada URL da tabela das URLs finais conferida no ar com curl (200, sem `Location`), com AdsBot-Google e com navegador comum. Se algum item não estiver verdadeiro, tirar a frase correspondente.
+**Antes de enviar, conferir e preencher cada colchete.** Nada que só vale depois do deploy vai no presente sem a conferência no ar:
+1. Este código está no ar (SHA e hora do deploy).
+2. A Vercel não redireciona mais shortsforgeai.com e www.shortsforgeai.com.
+3. Cada URL da lista abaixo, conferida com `curl -sI` com o user-agent `AdsBot-Google` e com o de um navegador comum: 200 e sem `Location`. Anotar data e hora.
+
+Se algum item não estiver verdadeiro, tirar a frase dele. Os nomes e os números vêm da conta, lidos em 26/11 (fotos em `docs/google-ads/retirada-2611/`):
+- **4 campanhas:**
+  - "ShortsForgeAI - Conversao - US", com 3 anúncios reprovados por "Destino não correspondente";
+  - "ShortsForgeAI - Search - US - Launch Test", "ShortsForgeAI - Search - Vendas" e "ShortsForgeAI - Search - US - Free Trial", com 1 anúncio cada.
+- **6 anúncios no total.**
+- **Recursos da conta:** 6 sitelinks e 4 frases de destaque.
 
 > Subject: Appeal – Circumventing systems (Cloaking) – account 186-928-2523
 >
 > Hello,
 >
-> We understand the suspension was triggered by the destinations in our account. On June 30, 2026 we renamed the product from ShortsForgeAI to Kineo (usekineo.com). Since then, every URL on our former domains (shortsforgeai.com, www.shortsforgeai.com and shortsforgeai.vercel.app) sent visitors to the same path on www.usekineo.com with a permanent redirect. We now understand that a redirect to a different domain from the advertised one is treated as cloaking, even when it is the same for every visitor.
+> We understand the suspension was triggered by the destinations in our account. The account has 4 campaigns ("ShortsForgeAI - Conversao - US", "ShortsForgeAI - Search - US - Launch Test", "ShortsForgeAI - Search - Vendas" and "ShortsForgeAI - Search - US - Free Trial") with 6 ads in total, plus 6 account-level sitelinks. All of their final URLs are on our former domains (shortsforgeai.com, www.shortsforgeai.com and shortsforgeai.vercel.app). We renamed the product from ShortsForgeAI to Kineo (usekineo.com), and those domains sent every visitor to the same path on www.usekineo.com with a permanent redirect. We now understand that a redirect to a different domain from the advertised one is treated as cloaking, even when it is the same for every visitor.
 >
-> What we changed (verifiable now):
-> 1. Every final URL used in this account now returns HTTP 200 on its own domain, with no redirect: https://www.shortsforgeai.com/signup, https://www.shortsforgeai.com/, https://shortsforgeai.com/start, and https://shortsforgeai.vercel.app/, /pricing, /generate and /my-videos (the sitelinks).
-> 2. The response is the same for every visitor and every crawler; it does not depend on the user agent. You can fetch these URLs with AdsBot-Google, AdsBot-Google-Mobile, Googlebot or a normal browser and receive the same HTML.
+> What we changed, checked on [DATE, TIME UTC]:
+> 1. Every final URL used in this account returns HTTP 200 on its own domain, with no redirect: https://www.shortsforgeai.com/signup, https://www.shortsforgeai.com/, https://shortsforgeai.com/start, https://shortsforgeai.vercel.app/, https://shortsforgeai.vercel.app/pricing, https://shortsforgeai.vercel.app/generate and https://shortsforgeai.vercel.app/my-videos.
+> 2. The response does not depend on the user agent. Fetching these URLs with AdsBot-Google, AdsBot-Google-Mobile, Googlebot or a normal browser returns the same page.
 > 3. Each of these pages declares its canonical URL on www.usekineo.com, our current brand domain, which is the same product and the same company.
 >
-> We tried to remove the outdated ads and the account-level sitelinks and callouts ourselves, but the suspended account is read-only and does not allow it. We ask you to reinstate the account so we can delete them, or to remove them on our behalf. From now on we will advertise only on www.usekineo.com.
+> We tried to remove the outdated ads, sitelinks and callouts ourselves, from the web interface and from the mobile app, but the suspended account is read-only and does not allow it. We ask you to reinstate the account so we can delete them, or to remove them on our behalf. From now on we will advertise only on www.usekineo.com.
 >
 > Thank you.
 
 ## Provas (como rodar)
-- **Guardião:** `node scripts/test-dominio-antigo-2611.mjs` (22/22 mutantes, só AssertionError).
+- **Guardião:** `node scripts/test-dominio-antigo-2611.mjs` (29/29 mutantes, só AssertionError).
 - **tsc:** `--noEmit -p .`, 0.
 - **`novos-vermelhos`** sobre os guardiões que citam o `middleware.ts` ou a regra: 21 guardiões; 5 vermelhos, todos já vermelhos na main; **0 vermelho novo** (rodado sobre esta regra).
   - O `test-afiliados-40-2026-10-06` monta o middleware real com um dublê da regra, inerte em www.usekineo.com como a real: 31 ok e 0 falha.
