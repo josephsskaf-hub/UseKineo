@@ -24,6 +24,7 @@ import { computeCeoData } from '@/app/api/admin/ceo/compute'
 import CeoClient from '@/app/(dashboard)/admin/ceo/CeoClient'
 // KINEO-ADMIN-JORNADA-1510 — abas no topo: Visão geral (esta tela, conteúdo intocado) | Clientes (/admin/clientes, só carrega quando aberta).
 import { redirect } from 'next/navigation'
+import FilmMonitor from '@/components/admin/FilmMonitor'
 import AdminAbas from '@/components/admin/AdminAbas'
 import FunilDoDia3110 from '@/components/admin/FunilDoDia3110' // KINEO-EP2-PAINEL-3110 — cartão compacto das mudanças de 31/10, só depois do portão
 
@@ -57,8 +58,11 @@ export default async function AdminHomePage({ searchParams }: { searchParams?: R
   return (
     <>
       <AdminAbas atual="visao" />
+      <FilmMonitor business={data ? { mrr: data.mrr, paying: data.payingActive, newUsers: data.newUsersThisWeek } : null} />
+      <details id="admin-full-report" className="fm-report"><summary>Relatório completo e atividade</summary>
       <CeoClient data={data ?? undefined} viewerEmail={email} home />
       <FunilDoDia3110 /> {/* KINEO-EP2-PAINEL-3110 */}
+      </details>
     </>
   )
 }
