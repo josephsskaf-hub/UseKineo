@@ -26,13 +26,13 @@ export function filmEntry(query: Query, visitor: boolean, confirmedCountry: bool
     text: typeof idea === 'string' && idea.length <= analyzePromptMaxChars(verbatim ? 'verbatim' : 'ai') ? idea : '',
     language: typeof query.language === 'string' && languageAllowed(query.language) ? query.language : 'auto',
     aspect: typeof query.aspect === 'string' && aspects.includes(query.aspect) ? query.aspect : '9:16',
-    resumed: Boolean(draftId || duration || idea || query.language || query.aspect || query.look || query.script_mode),
+    resumed: Boolean(draftId || duration),
   }
 }
 export type FilmEntry = ReturnType<typeof filmEntry>
 export type GuestFilmDraft = {
   text: string; duration: number; language: string; aspect: string; verbatim: boolean; engine: string; look?: FilmLook
-  dialogue: null | { duration: number; language: string; aspect: string; engine: string }
+  dialogue: null | { duration: number; language: string; aspect: string; engine: string; look?: FilmLook }
 }
 const prefix = 'kineo:guest-film:'
 export function filmSignup(draft: GuestFilmDraft): string {
@@ -46,7 +46,7 @@ export function filmSignup(draft: GuestFilmDraft): string {
   if (localStorage.getItem(prefix + id) !== value) throw new Error('Draft unavailable')
   const query = new URLSearchParams({ draft: id, volta: '1' })
   for (const [key, item] of new URLSearchParams(window.location.search)) {
-    if (/^(?:utm_[a-z]+|intent_campaign|ref|gclid|msclkid|fbclid|ttclid)$/.test(key)) query.set(key, item)
+    if (/^(?:utm_[a-z_]+|intent_campaign|ref|gclid|msclkid|fbclid|ttclid)$/.test(key)) query.set(key, item)
   }
   return '/signup?' + new URLSearchParams({ redirect: '/create/film?' + query })
 }

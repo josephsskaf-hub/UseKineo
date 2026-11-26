@@ -8,7 +8,7 @@ const gen = p => p['data-testid'] === 'studio-simple-generate'
 const field = p => p.id === 'cx-ideia'
 async function mount({ visitor, country, credits, query = {}, saved = [], showFilmStyle = false }) {
   const tab = aba({}, { credits })
-  global.window.location = { search: '?utm_source=travel' }
+  global.window.location = { search: '?utm_source=travel&utm_source_platform=social&utm_id=campaign-7' }
   for (const [k, v] of saved) tab.log.storage.set(k, v)
   const entry = tab.m('lib/create/publicEditor').filmEntry(query, visitor, country)
   const component = tab.m('components/create/StudioNaMoldura').default
@@ -30,6 +30,8 @@ assert.equal(signup.pathname, '/signup')
 const back = new URL(signup.searchParams.get('redirect'), signup)
 assert.equal(back.pathname, '/create/film')
 assert.equal(back.searchParams.get('utm_source'), 'travel')
+assert.equal(back.searchParams.get('utm_source_platform'), 'social')
+assert.equal(back.searchParams.get('utm_id'), 'campaign-7')
 assert.ok(!back.searchParams.has('prompt') && !back.searchParams.has('ideia'))
 assert.ok(!guest.log.storage.has('kineo:studio:go:v1'))
 const transfer = [...shared]
@@ -58,6 +60,11 @@ assert.deepEqual(expiredGrant.log.pushes, [])
 assert.ok(!expiredGrant.log.storage.has('kineo:studio:go:v1'))
 assert.match(expiredGrant.html(), /no longer available/)
 assert.doesNotMatch(expiredGrant.html(), /First film free/)
+for (const visitor of [true,false]) {
+  const seeded = await mount({ visitor, credits:first, country:true, query:{ideia:text,utm_source_platform:'social'} })
+  assert.match(seeded.html(), /First film free/)
+  assert.equal(seeded.one(field, 'ideia inicial').props.value, text)
+}
 const nonFree = await mount({ visitor: true, country: false })
 assert.ok(!nonFree.html().includes('First film free'))
 assert.match(nonFree.html(), /class="cx-custo"/)

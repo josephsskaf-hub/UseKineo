@@ -61,6 +61,7 @@ export default async function Page({ params, searchParams = {} }: { params: { ta
       delete arrival.draft
     }
     const entry = filmEntry(searchParams, false, false)
+    for (const [key,value] of Object.entries(arrival)) if (/^utm_[a-z_]+$/.test(key) && typeof value === 'string') delete arrival[key]
     if (typeof arrival.engine === 'string' && motoresCandidatos().includes(arrival.engine)) delete arrival.engine
     if (typeof arrival.prompt === 'string' && arrival.ideia === undefined && entry.text === arrival.prompt) delete arrival.prompt
     if (entry.duration) delete arrival.duration

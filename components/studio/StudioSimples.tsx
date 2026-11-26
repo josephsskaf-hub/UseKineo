@@ -249,7 +249,10 @@ export default function StudioSimples({ entry, filmes, motor: motorDoLink, campa
     if (showFilmStyle && ['photoreal', 'animated3d', 'anime'].includes(saved.look ?? '') && saved.look) setStyleChoice({ initial: saved.look, chosen: saved.look, changed: false })
     if (saved.dialogue && filmVoiceEnabled()) {
       setVoiceMode('characters')
-      setBeforeDialogue({ ...saved.dialogue, style: null, engine: allowedEngine(saved.dialogue.engine), voice: 'narrator' })
+      const previous = saved.dialogue.look
+      const style = showFilmStyle && previous && ['photoreal','animated3d','anime'].includes(previous)
+        ? { initial: previous, chosen: previous, changed: false } : null
+      setBeforeDialogue({ ...saved.dialogue, style, engine: allowedEngine(saved.dialogue.engine), voice: 'narrator' })
       setVoiceNotice('Dialogue set to 15 s, Realistic and English.')
     }
   }, [entry?.draftId])
@@ -290,7 +293,7 @@ export default function StudioSimples({ entry, filmes, motor: motorDoLink, campa
     if (entry?.visitor) {
       try {
         const next = filmSignup({ text: texto, look: styleChoice?.chosen ?? entry.look, engine: motor, duration: duracao, aspect: formato, language: lingua, verbatim: palavraPorPalavra,
-          dialogue: dialoguePreset && beforeDialogue ? { engine: beforeDialogue.engine, duration: beforeDialogue.duration, aspect: beforeDialogue.aspect, language: beforeDialogue.language } : null })
+          dialogue: dialoguePreset && beforeDialogue ? { look: beforeDialogue.style?.chosen ?? entry.look, engine: beforeDialogue.engine, duration: beforeDialogue.duration, aspect: beforeDialogue.aspect, language: beforeDialogue.language } : null })
         router.push(next)
       } catch { recusar('Your browser could not save this draft. Allow session storage and try again.') }
       return
@@ -338,7 +341,7 @@ export default function StudioSimples({ entry, filmes, motor: motorDoLink, campa
 
   // KINEO-STUDIO-NA-MOLDURA-1011 — com a moldura (só /create/film, interruptor CREATE_FILM_INPLACE), troca SÓ o desenho; sem ela, nada muda.
   if (moldura) {
-    const escrever = (v: string) => { touched.current = true; setTexto(v); setAviso(entry?.adjustment || null); if (v.trim()) registrar('mrr_idea_entered') } // o mesmo onChange da caixa abaixo
+    const escrever = (v: string) => { setTexto(v); setAviso(entry?.adjustment || null); if (v.trim()) registrar('mrr_idea_entered') } // o mesmo onChange da caixa abaixo
     // KINEO-MOTOR-OPCIONAL-1011 — abrir a linha lê as flags uma vez; falhou = só o padrão (falha fechada, como o picker do Studio).
     const abrirMotores = () => {
       if (entry?.visitor) { setMotoresEstado('falhou'); return }
@@ -358,6 +361,7 @@ export default function StudioSimples({ entry, filmes, motor: motorDoLink, campa
     const escolherMotor = (k: string) => {
       const livre = k === 'seedance' || (!entry && k === motorDoLink) || (motores ?? []).some((o) => o.key === k && o.estado === 'livre')
       if (!livre) return
+      touched.current = true
       if (k !== 'seedance') useNarration('Narrator selected because dialogue uses the Standard engine.')
       setEscolhido(k)
       const opcoes = duracoesDoMotor(k, kling4AoVivo(kling4))
