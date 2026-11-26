@@ -26,6 +26,7 @@
 // (inclusive o embrulho '/signup?redirect=…' que algumas funções da home já fazem para visitante).
 // Módulo PURO (sem rede, sem e-mail, sem env): o guardião scripts/test-entradas-tela-nova-1011.mjs o executa.
 import { CREATE_ENTRY_RELEASE, CREATE_FILM_INPLACE, CREATE_SHELL_RELEASE } from './release'
+import { publicFilmEditor } from './publicFilmEditorServer'
 import type { InternalRelease } from '@/lib/recreate/release'
 
 export type CreateEntryKind = 'film' | 'cartoon' | 'ads'
@@ -119,7 +120,11 @@ export function destinoDaChegada(tab: CreateEntryKind, query: string): string | 
 
 /** O destino da entrada. `legacyHref` é o destino de HOJE (sem o embrulho do cadastro). */
 export function createEntryHref(kind: CreateEntryKind, legacyHref: string, signedIn: boolean, opts: CreateEntryOpts = {}): string {
-  if (signedIn !== true) return legacyHref // KINEO-ENTRADAS-SO-LOGADO-1011 — visitante (ou desconhecido) fica no destino de hoje
+  // The public Films menus use these two links. Other products and advanced Studio entries keep their release policy.
+  const publicFilmMenu = signedIn === false && kind === 'film'
+    && (legacyHref === '/studio' || legacyHref === '/studio?intent_campaign=nav_door')
+    && publicFilmEditor()
+  if (signedIn !== true && !publicFilmMenu) return legacyHref
   const entry = opts.entry ?? CREATE_ENTRY_RELEASE
   const shell = opts.shell ?? CREATE_SHELL_RELEASE
   const film = opts.filmInplace ?? CREATE_FILM_INPLACE

@@ -256,7 +256,7 @@ function homeFilmHref(signedIn) {
 }
 const homeHref = homeFilmHref(true)
 assert.equal(homeHref.pathname, '/create/film')
-assert.equal(homeFilmHref(false).pathname, '/studio', 'visitante conserva a mesma entrada')
+assert.equal(homeFilmHref(false).href, homeHref.href, 'Films abre a mesma caixa pública com a mesma campanha')
 const homeQuery = Object.fromEntries(homeHref.searchParams)
 const homeBox = await entryProps(CREATE_FILM, internal, homeQuery)
 assert.equal(homeBox.caixaNova, true, 'a home logada abre What do you want to make?')

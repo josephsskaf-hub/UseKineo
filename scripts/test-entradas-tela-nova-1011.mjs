@@ -102,7 +102,10 @@ function moduleChecks(o = {}) {
     const got = entry.createEntryHref(kind, legacy, true)
     ok(got === (novo ?? legacy), `logado: ${kind} ${legacy} → ${novo ?? 'fica'} (veio ${got})`)
     // Visitante (ou login desconhecido): SEMPRE o destino de hoje, byte a byte — sem muro de cadastro novo.
-    for (const quem of [false, undefined, null, 'true', 1]) ok(entry.createEntryHref(kind, legacy, quem) === legacy && entry.createEntryForLegacyHref(legacy, quem) === legacy, `visitante (${String(quem)}): ${legacy} fica`)
+    for (const quem of [false, undefined, null, 'true', 1]) {
+      const expected = quem === false && kind === 'film' && ['/studio', '/studio?intent_campaign=nav_door'].includes(legacy) ? novo : legacy
+      ok(entry.createEntryHref(kind, legacy, quem) === expected && entry.createEntryForLegacyHref(legacy, quem) === expected, `visitor menu (${String(quem)}): ${legacy} → ${expected}`)
+    }
     if (novo) ok(auth.normalizeInternalRedirect(novo) === novo, `logado: ${novo} é um destino interno válido`)
     // Cada interruptor fora de 'public' devolve o antigo byte a byte (Film também pelo CREATE_FILM_INPLACE).
     for (const r of ['off', 'internal']) {
