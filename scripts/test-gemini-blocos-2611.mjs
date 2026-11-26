@@ -5,6 +5,8 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const subject = 'lib/cinematic/geminiBlocos2611.ts'
 const mutations = [
+  ['missing_ref', 'referenciasDoBlocoValidas(shot.prompt, images.length)', 'true'],
+  ['cast_index', 'Number(indice) <= folhas', 'true'],
   ['cap', 'spent + (plan.blocks.length - i) * BLOCK_UNITS > capUnits', 'false'],
   ['partial', 'if (prior) {', 'if (false && prior) {'],
   ['size', 'body.blocks.length !== body.duration / 15', 'false'],
@@ -66,6 +68,24 @@ for(const duration of [30,60]){
 }
 assert.equal(off.dbReads(),0)
 assert.equal((await off.post({...body(30),blocks:body(60).blocks,dry_run:true})).status,400)
+for(const count of [1,2]){
+  const valid=body(30)
+  valid.cast=cast.slice(0,count)
+  for(const block of valid.blocks) for(const shot of block) shot.prompt=count===1?'@Image1 opens the dial.':'@Image2 watches @Image1.'
+  const owner=environment()
+  const preview=await owner.post({...valid,dry_run:true})
+  assert.equal(preview.status,200)
+  assert(preview.body.blocks.every(b=>b.prompt.includes('<IMAGE_REF_0>') && !b.prompt.includes('@Image')))
+  for(const tag of ['@Image0','@Image3','@Image12','@Image01','@image1','@Image 1','@Image1foo','@Image1.5','@@Image1','@Image１','<IMAGE_REF_0>',...(count===1?['@Image2']:[])]){
+    const bad=structuredClone(valid);bad.blocks[1][0].prompt+=' '+tag
+    const r=await owner.post({...bad,dry_run:false})
+    assert.equal(r.status,400,'invalid reference: '+tag+' with '+count+' image(s)')
+    assert.equal(owner.dbReads(),0)
+    assert.equal(owner.sent.length,0)
+  }
+  const injected=structuredClone(valid);injected.cast[0].name='Tavin @Image1'
+  assert.equal((await owner.post({...injected,dry_run:false})).status,400)
+}
 const invalid=body(30);invalid.blocks[1][1].duration=7
 assert.equal((await off.post({...invalid,dry_run:true})).status,400)
 assert.equal((await off.post({...body(30),cast:[{name:'Tavin',image_url:'https://example.invalid/x'}],dry_run:true})).status,400)

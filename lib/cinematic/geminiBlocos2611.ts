@@ -11,18 +11,26 @@ export function probeUuid(text: string): string {
   return [h.slice(0,8), h.slice(8,12), '8'+h.slice(13,16), '8'+h.slice(17,20), h.slice(20,32)].join('-')
 }
 const object = (v: unknown): v is Record<string,unknown> => !!v && typeof v === 'object' && !Array.isArray(v)
+// Only the two canonical @Image markers are converted downstream. Reject lookalikes and raw provider tags
+// here so malformed or missing references cannot survive as directions to the paid model.
+function referenciasDoBlocoValidas(text: string, folhas: number): boolean {
+  const sobra = text.replace(/(?<![\p{L}\p{N}_@])@Image([12])(?![\p{L}\p{N}_]|[./-]\d)/gu,
+    (token, indice: string) => Number(indice) <= folhas ? '' : token)
+  return !/@\s*image|<\s*image[\s_-]*ref/iu.test(sobra.normalize('NFKC'))
+}
+
 export function prepararBlocos2611(body: unknown, imageAllowed: (s: string) => boolean): Plan | null {
   if (!object(body) || (body.duration !== 30 && body.duration !== 60)) return null
   if (!Array.isArray(body.cast) || body.cast.length < 1 || body.cast.length > 2 || !Array.isArray(body.blocks) || body.blocks.length !== body.duration / 15) return null
   const names: string[] = [], images: string[] = []
   for (const person of body.cast) {
-    if (!object(person) || typeof person.name !== 'string' || !person.name.trim() || person.name.length > 80 || typeof person.image_url !== 'string' || !imageAllowed(person.image_url)) return null
+    if (!object(person) || typeof person.name !== 'string' || !person.name.trim() || person.name.length > 80 || !referenciasDoBlocoValidas(person.name, 0) || typeof person.image_url !== 'string' || !imageAllowed(person.image_url)) return null
     names.push(person.name.trim()); images.push(person.image_url)
   }
   if (new Set(images).size !== images.length || new Set(names.map(n => n.toLowerCase())).size !== names.length) return null
   const blocks: EntradaDoGemini[] = []
   for (const shots of body.blocks) {
-    if (!Array.isArray(shots) || !shots.every(shot => object(shot) && typeof shot.prompt === 'string' && shot.prompt.length <= 512 && !/[\u0000-\u001F]/u.test(shot.prompt))) return null
+    if (!Array.isArray(shots) || !shots.every(shot => object(shot) && typeof shot.prompt === 'string' && shot.prompt.length <= 512 && referenciasDoBlocoValidas(shot.prompt, images.length) && !/[\u0000-\u001F]/u.test(shot.prompt))) return null
     const input = geminiDoKling4({ image_urls: images, multi_prompt: shots, duration: 15, resolution:'720p', aspect_ratio:'9:16' }, names)
     if (!input) return null
     blocks.push(input)
