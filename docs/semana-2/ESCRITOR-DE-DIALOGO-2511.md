@@ -265,6 +265,16 @@ Pedido da CEO às 09:40: o dono deu nota 10 ao filme falado da esteira.
 - **Cliente: 8 de 9** falados no leitor. Cai o f4: o irmão Tomas fala, e "brother" não prova adulto. Com só a Rosa falando, o f4 também passaria.
 - **Detalhe para o 3bbf48a0:** o `papelDaFicha2511` dele pega a ÚLTIMA palavra da 1ª oração ("Rosa, a nurse in training" vira "training"). O escritor usa a palavra ANTES da preposição ("Nurse", o D1 da revisora). Para humano com nome e papel com preposição, os dois não casam.
 
+### v8c (26/11, decisão A da CEO): o cliente mira 29 a 45 palavras ditas
+- **Por quê:** o piso do filme narrado é 29, e um falado de 12 a 28 do cliente que cai no narrado sai curto. O portão do servidor (3bbf48a0, `bb52df3da`) dá 422 `fala_curta_cliente` abaixo de 29. A casa fica como está.
+- **Os números do servidor, sem cópia:** o piso e o teto vêm de `PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611` (29) e `PALAVRAS_MAX_NO_FILME_FALADO_2511` (45).
+- **O plano pela conta do leitor:** a régua do cliente confere a fala de cada plano com o `duracoesDaFala2511` e o teto de 3 palavras por segundo (`PALAVRAS_POR_SEGUNDO_2511`). O leitor dá a cada plano 2 s mais a parte da fala dele; com 4 planos de 15 s, um fica com 3 s (9 palavras).
+  - 4 planos de 10 palavras saem `fala_longa` (motivo novo, que ganha a 2ª chamada de tamanho);
+  - uma seção acima de 11 é `secao_longa`.
+- **O alvo no pedido do cliente:** 8 a 9 palavras por plano, 32 a 36 no filme, com folga acima de 29 e dentro do plano de 3 s. A 2ª chamada de tamanho usa o mesmo alvo.
+- **Ensaio offline** (o escritor real, o `lerFalas2511` real com a opção B, o modelo simulado obedecendo o pedido novo): cliente **8 de 9** falados no leitor, com 34 a 35 palavras. Cai o f4 (o irmão).
+  - **As respostas velhas de 28 palavras:** só 2 de 10 passam na 1ª chamada; as outras vão à 2ª de tamanho.
+
 ## O risco do caminho do servidor (conferido, executado)
 O roteiro de diálogo passa intacto pelo que o caminho da ideia solta faz depois do escritor (`lib/meta95/ideiaNoEscritor.ts`):
 - `roteiroSemMetaTexto` (l. 224) não remove nenhuma linha `Nome: fala`;

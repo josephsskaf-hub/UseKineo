@@ -11,6 +11,8 @@ import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import { PRAZO_DA_ROTA_DO_ESCRITOR_MS, FOLGA_DA_ROTA_DO_ESCRITOR_MS } from '@/lib/cinematic/finalResposta' // volta 4 (T3): o maxDuration 60 da rota e a folga de 3 s
 import { figuraNaReferencia2511, textoDizMenor2511, adultoNoTrechoDaIdeia2511 } from '@/lib/cinematic/referenciaUnica2411' // volta 4 (T1/T2): a MESMA régua da admissão (KINEO-FAMOSO-SEM-REFERENCIA-2511, f9850c3b5)
 import { mentionsRealPerson } from '@/lib/hollywood/realPeople' // volta 4 (T1): a lista de pessoas reais da casa
+import { PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611, PALAVRAS_MAX_NO_FILME_FALADO_2511 } from '@/lib/cinematic/roteiroFalado2511' // v8c (CEO 26/11): o piso do cliente no portão (29) e o teto (45)
+import { duracoesDaFala2511, PALAVRAS_POR_SEGUNDO_2511 } from '@/lib/cinematic/falaDosPersonagens2511' // v8c: a duração de cada plano pela fala e o teto do leitor (3 por segundo)
 
 export const ESCRITOR_DE_DIALOGO_2511_VERSAO = 'escritor_de_dialogo_2511_v1'
 /** Os rastros: o do escritor de diálogo (só números) e o MESMO script_written de sempre (a ideia original, para o juiz de coerência), com voice_mode. */
@@ -38,6 +40,13 @@ export const PALAVRAS_DO_FILME = { min: 25, max: 35 } as const
 /** Volta 5 (ensaio da CEO 25/11: 7 de 10 "curto"): o ALVO por seção no pedido é 7 a 8 palavras (28 a 32 no filme), acima do piso de 25 com folga; o modelo
  *  escreve a contagem de cada seção ("words") e, se o tamanho sair da régua, UMA 2ª chamada dentro do mesmo prazo diz quanto cada seção tem e quanto falta. */
 export const MIN_PALAVRAS_ALVO_2511 = 7
+/** v8c (CEO 26/11 10:10, decisão A): o escritor do CLIENTE mira 29 a 45 palavras ditas, o piso e o teto do portão do servidor para o cliente (um falado
+ *  abaixo de 29 cai em 422 'fala_curta_cliente'). A casa segue com a régua de sempre. O alvo por plano no pedido é 8 a 9 (32 a 36 no filme): o leitor
+ *  dá a cada plano 2 s mais a parte da fala dele e o teto é 3 palavras por segundo; com 4 planos de 15 s um deles fica com 3 s (9 palavras). A régua
+ *  confere a fala de cada plano pela MESMA conta do leitor (duracoesDaFala2511), não por cópia. */
+export type LimitesDoDialogo2511 = { secao: number; min: number; max: number; alvo: readonly [number, number]; peloLeitor: boolean }
+export const LIMITES_DA_CASA_2511: LimitesDoDialogo2511 = { secao: MAX_PALAVRAS_POR_SECAO, min: PALAVRAS_DO_FILME.min, max: PALAVRAS_DO_FILME.max, alvo: [MIN_PALAVRAS_ALVO_2511, MAX_PALAVRAS_POR_SECAO], peloLeitor: false }
+export const LIMITES_DO_CLIENTE_2511: LimitesDoDialogo2511 = { secao: Math.floor(PALAVRAS_POR_SEGUNDO_2511 * 15 / 4), min: PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611, max: PALAVRAS_MAX_NO_FILME_FALADO_2511, alvo: [8, 9], peloLeitor: true }
 const NOME_MAX = 40, CUE_MAX = 80, FALA_MAX = 120, IDEIA_MAX = 2000
 /** Nomes que são voz de fora, não personagem: o modo é sem narrador. */
 const NAO_E_PERSONAGEM = /^(?:narrator|narration|voice|voiceover|voice over|voice-over|vo|v\.o\.|off|offscreen|off-screen|announcer|host|presenter|speaker|everyone|all|both|crowd|chorus|unknown|someone|stranger)$/i
@@ -269,7 +278,7 @@ export function pedidoDoDialogoDoCliente2511(ideia: string, segundos: number): {
     `For every speaking character write "role": the noun of the idea that names that character, one to three words copied letter by letter from the idea (never a category and never empty); and "name": the name the idea gives to that character, or an empty string when the idea gives no name. Never invent a name. ` +
     `At most ${MAX_FALANTES} characters speak in the whole film. The film has exactly ${SECOES_DO_FILME_CURTO.length} shots, in this order: ${SECOES_DO_FILME_CURTO.join(', ')}. ` +
     `For every shot write "cue": 2 to 8 English words saying what the camera shows, naming each character who speaks in that shot by its name, or by its role when it has no name; and "lines": 1 or 2 spoken lines, each with "speaker" set to that same name or role, on screen in that shot. ` +
-    `The lines of one shot have ${MIN_PALAVRAS_ALVO_2511} to ${MAX_PALAVRAS_POR_SECAO} words together, are natural speech in English, and move the story forward. The whole film has ${SECOES_DO_FILME_CURTO.length * MIN_PALAVRAS_ALVO_2511} to ${SECOES_DO_FILME_CURTO.length * MAX_PALAVRAS_POR_SECAO} spoken words. ` +
+    `The lines of one shot have ${LIMITES_DO_CLIENTE_2511.alvo[0]} to ${LIMITES_DO_CLIENTE_2511.alvo[1]} words together, short enough to say in the shot, are natural speech in English, and move the story forward. The whole film has ${SECOES_DO_FILME_CURTO.length * LIMITES_DO_CLIENTE_2511.alvo[0]} to ${SECOES_DO_FILME_CURTO.length * LIMITES_DO_CLIENTE_2511.alvo[1]} spoken words. ` +
     `Count the words of the lines of every shot and write that number in "words". Words are counted by the spaces between them, so a contraction counts as one word. ` +
     `Every line ends with a period, an exclamation mark or a question mark. The last shot closes the story. Do not write stage directions, parentheses, sound effects, quotation marks, a colon, or the speaker's name inside the line. ` +
     `Answer only with JSON: {"speakers": [{"role": string, "name": string}], "shots": [{"cue": string, "lines": [{"speaker": string, "line": string}], "words": number}]}.`
@@ -282,12 +291,12 @@ export const FORMATO_DO_CLIENTE_2511 = { type: 'json_schema', json_schema: { nam
 
 export type FalaDoDialogo = { nome: string; fala: string }
 export type Dialogo2511 = { falantes: string[]; secoes: Array<{ secao: (typeof SECOES_DO_FILME_CURTO)[number]; cue: string; falas: FalaDoDialogo[] }> }
-export type MotivoDoDialogo = 'json' | 'formato' | 'secoes' | 'falantes' | 'nome' | 'cue' | 'falas_na_secao' | 'fala_vazia' | 'secao_longa' | 'falante_fora' | 'dois_pontos_na_fala' | 'rubrica' | 'falante_fora_da_marca' | 'curto' | 'longo'
+export type MotivoDoDialogo = 'json' | 'formato' | 'secoes' | 'falantes' | 'nome' | 'cue' | 'falas_na_secao' | 'fala_vazia' | 'secao_longa' | 'falante_fora' | 'dois_pontos_na_fala' | 'rubrica' | 'falante_fora_da_marca' | 'curto' | 'longo' | 'fala_longa'
 
 /** A régua, no código, no formato do leitor do servidor do filme: JSON no formato; exatamente as 4 seções; 1 ou 2 falantes de nome próprio (nunca narrador
  *  nem título); cada seção com 1 ou 2 falas de quem foi declarado, até 8 palavras somadas, e quem fala NA MARCA [Pexels: …] da seção; nenhuma rubrica nem
  *  outro "Palavra:" dentro da fala; cada fala termina em . ! ? … (o que falta ganha o ponto final); o filme com 25 a 35 palavras. Qualquer desvio = { motivo }. */
-export function conferirDialogo2511(raw: string, papeis: readonly string[] = []): { dialogo: Dialogo2511; marcas: number } | { motivo: MotivoDoDialogo } {
+export function conferirDialogo2511(raw: string, papeis: readonly string[] = [], limites: LimitesDoDialogo2511 = LIMITES_DA_CASA_2511, segundos = 15): { dialogo: Dialogo2511; marcas: number } | { motivo: MotivoDoDialogo } {
   let o: unknown
   try { o = JSON.parse(raw) } catch { return { motivo: 'json' } }
   const r = o && typeof o === 'object' && !Array.isArray(o) ? (o as Record<string, unknown>) : null
@@ -322,7 +331,7 @@ export function conferirDialogo2511(raw: string, papeis: readonly string[] = [])
       naSecao += palavras(fala)
       falas.push({ nome, fala })
     }
-    if (naSecao > MAX_PALAVRAS_POR_SECAO) return { motivo: 'secao_longa' }
+    if (naSecao > limites.secao) return { motivo: 'secao_longa' }
     // volta 5 (ensaio: 2 de 10 "falante_fora_da_marca"): o CÓDIGO põe na frente da marca quem fala e não está nela; a marca segue com até 80 caracteres
     const fora = [...new Set(falas.map((f) => f.nome))].filter((n) => !temNome(cue, n))
     if (fora.length) {
@@ -335,8 +344,12 @@ export function conferirDialogo2511(raw: string, papeis: readonly string[] = [])
     total += naSecao
     secoes.push({ secao: SECOES_DO_FILME_CURTO[i], cue, falas })
   }
-  if (total < PALAVRAS_DO_FILME.min) return { motivo: 'curto' }
-  if (total > PALAVRAS_DO_FILME.max) return { motivo: 'longo' }
+  if (total < limites.min) return { motivo: 'curto' }
+  if (total > limites.max) return { motivo: 'longo' }
+  if (limites.peloLeitor) { // v8c: cada plano com a duração que o leitor dá e o teto dele (senão o filme inteiro sai narrado, fala_longa)
+    const d = duracoesDaFala2511(secoes.map((s) => s.falas.map((f) => ({ ref: 0 as const, nome: f.nome, texto: f.fala }))), segundos)
+    if (!d || secoes.some((s, i) => s.falas.reduce((n, f) => n + palavras(f.fala), 0) > Math.floor(PALAVRAS_POR_SEGUNDO_2511 * (d[i] ?? 0)))) return { motivo: 'fala_longa' }
+  }
   return { dialogo: { falantes, secoes }, marcas }
 }
 
@@ -378,7 +391,7 @@ export function prazoDoDialogo2511(decorridoMs: number, narradoMs: number): numb
 }
 
 /** Volta 5: os motivos de TAMANHO ganham UMA 2ª chamada, dentro do mesmo prazo, com o que cada seção tem e o que falta. Abaixo de 3 s de sobra, não. */
-export const MOTIVOS_DE_TAMANHO_2511 = ['curto', 'longo', 'secao_longa'] as const
+export const MOTIVOS_DE_TAMANHO_2511 = ['curto', 'longo', 'secao_longa', 'fala_longa'] as const
 /** Volta 6 (2º ensaio: "Penguin 1", papel vazio, a categoria no papel, "brother" sem adulto): a 2ª chamada também acerta a FORMA dos falantes. Nunca os
  *  motivos de segurança (menor, figura, pessoa única, nome de gente, língua) nem o sem_adulto (volta 7, V2: na régua positiva ele é motivo de criança; a
  *  2ª ensinava o caminho, "student" virava "part-time cashier"): esses vão direto ao narrado. A resposta da 2ª passa pelas mesmas réguas. */
@@ -394,12 +407,13 @@ export function palavrasPorSecao2511(raw: string): number[] {
 }
 /** O pedido da 2ª chamada, pelo motivo, sem exemplo. Tamanho: os números de cada seção e quanto falta (o 2º ensaio voltou com 24 duas vezes: o modelo
  *  conta "Let's" como duas). Forma: o que está errado e em quem. */
-export function pedidoDeAcerto2511(raw: string, motivo: string = 'curto', falante?: string): string {
+export function pedidoDeAcerto2511(raw: string, motivo: string = 'curto', falante?: string, limites: LimitesDoDialogo2511 = LIMITES_DA_CASA_2511): string {
   if ((MOTIVOS_DE_TAMANHO_2511 as readonly string[]).includes(motivo)) {
     const ps = palavrasPorSecao2511(raw), total = ps.reduce((a, b) => a + b, 0)
-    const secao = (s: string, n: number): string => n < MIN_PALAVRAS_ALVO_2511 ? `${s} ${n} (needs ${MIN_PALAVRAS_ALVO_2511 - n} more)` : n > MAX_PALAVRAS_POR_SECAO ? `${s} ${n} (needs ${n - MAX_PALAVRAS_POR_SECAO} fewer)` : `${s} ${n}`
+    const [a0, a1] = limites.alvo
+    const secao = (s: string, n: number): string => n < a0 ? `${s} ${n} (needs ${a0 - n} more)` : n > a1 ? `${s} ${n} (needs ${n - a1} fewer)` : `${s} ${n}`
     return `Your film has ${total} spoken words: ${SECOES_DO_FILME_CURTO.map((s, i) => secao(s, ps[i] ?? 0)).join(', ')}. Words are counted by the spaces between them, so a contraction counts as one word. ` +
-      `Every shot needs ${MIN_PALAVRAS_ALVO_2511} to ${MAX_PALAVRAS_POR_SECAO} words in its lines together, and the whole film ${SECOES_DO_FILME_CURTO.length * MIN_PALAVRAS_ALVO_2511} to ${SECOES_DO_FILME_CURTO.length * MAX_PALAVRAS_POR_SECAO}. ` +
+      `Every shot needs ${a0} to ${a1} words in its lines together, and the whole film ${SECOES_DO_FILME_CURTO.length * a0} to ${SECOES_DO_FILME_CURTO.length * a1}. ` +
       `Rewrite the whole JSON with the same story, the same speakers and the same shots, changing only the lines so that every shot fits, and write the new count in "words".`
   }
   const quem = falante ? `"${limpa(falante, 60)}"` : 'One speaker'
@@ -432,6 +446,7 @@ export async function escreverDialogo2511(args: { ideia: string; segundos: numbe
   if (prazo === null) return { script: null, dialogo: null, relato: relato(false, 'sem_tempo', null), recusados }
   const pedido = (regua === 'cliente' ? pedidoDoDialogoDoCliente2511 : pedidoDoDialogo2511)(args.ideia, args.segundos).messages
   const formato = regua === 'cliente' ? FORMATO_DO_CLIENTE_2511 : FORMATO_DO_DIALOGO_2511
+  const limites = regua === 'cliente' ? LIMITES_DO_CLIENTE_2511 : LIMITES_DA_CASA_2511 // v8c
   /** Uma resposta do modelo pela régua inteira: o falante do cliente, o conferidor, e famoso e menor no roteiro que saiu. */
   const ler = (raw: string): { script: string; dialogo: Dialogo2511; marcas: number } | { motivo: RelatoDoDialogo2511['motivo']; falante?: string } => {
     let bruto = raw, papeis: string[] = []
@@ -440,7 +455,7 @@ export async function escreverDialogo2511(args: { ideia: string; segundos: numbe
       if ('motivo' in f) return { motivo: f.motivo, falante: f.falante }
       bruto = f.raw; papeis = f.papeis
     }
-    const c = conferirDialogo2511(bruto, papeis)
+    const c = conferirDialogo2511(bruto, papeis, limites, args.segundos)
     if ('motivo' in c) return { motivo: c.motivo }
     const script = roteiroDoDialogo2511(c.dialogo)
     // volta 6: o rótulo que veio do PAPEL volta à caixa baixa da ideia antes da régua de figura ("Pirate Captain" com maiúscula a régua lê como nome)
@@ -462,7 +477,7 @@ export async function escreverDialogo2511(args: { ideia: string; segundos: numbe
     ultimo = r.motivo
     if (vez === 1) motivo1 = r.motivo
     if (!(MOTIVOS_DA_SEGUNDA_2511 as readonly string[]).includes(String(r.motivo))) break // tamanho e forma ganham a 2ª chamada; segurança nunca
-    mensagens = [...pedido, { role: 'assistant', content: raw }, { role: 'user', content: pedidoDeAcerto2511(raw, String(r.motivo), r.falante) }]
+    mensagens = [...pedido, { role: 'assistant', content: raw }, { role: 'user', content: pedidoDeAcerto2511(raw, String(r.motivo), r.falante, limites) }]
   }
   return { script: null, dialogo: null, relato: relato(false, ultimo, null), recusados }
 }
