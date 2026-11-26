@@ -42,84 +42,87 @@ Nenhum anúncio tem URL de celular, sufixo de URL final, modelo de acompanhament
   - Se a Vercel mudar ANTES do deploy, o middleware de hoje manda o 308 de tudo (o mesmo de agora), só que de dentro do Next.
 - **Efeito colateral bom:** o `/api/stripe/webhook` no domínio antigo volta a executar no lugar, como o middleware sempre quis. Hoje a Vercel redireciona até ele.
 
-## O que mudou no código
-- **`lib/seo/dominioAntigo2611.ts` (novo):** a regra pura `decidirDominioAntigo2611`. Vale para os TRÊS hosts antigos (`shortsforgeai.com`, `www.shortsforgeai.com`, `shortsforgeai.vercel.app`) e nunca lê o user-agent.
-  - **Uma lista só, `URLS_DA_CONTA_2611`,** com as 7 URLs finais e a origem de cada uma na conta, a mesma nos três hosts:
-    - `/` e `/pricing` servem no próprio host;
-    - `/ai-shorts/2-clicks`, `/signup`, `/start`, `/generate` e `/my-videos` mostram a home no próprio host a quem CHEGA (do anúncio, do robô, digitando);
-    - nas páginas de conta (`/signup`, `/start`, `/generate`, `/my-videos`), o clique DE DENTRO da página (cabeçalho `Sec-Fetch-Site: same-origin`, que o NAVEGADOR manda) segue com o 308 para www.usekineo.com. Nenhuma sessão nem cookie nasce no host antigo.
-  - **O que a página carrega ao abrir fica no mesmo host:**
-    - mídia e fontes da pasta public (mp4, woff2, ico…). `_next`, imagens e a fonte manrope o matcher já deixa fora do middleware;
-    - as 12 chamadas de leitura medidas no navegador ao abrir a home e o /pricing;
-    - as 2 escritas que a página faz sozinha: `POST /api/events` e `POST /api/consent`.
-  - **A pré-carga de outra página:** o fetch da página (cabeçalho `Sec-Fetch-Dest: empty`) a uma página fora da lista recebe **204** no mesmo host. O Next então abre a página por navegação normal, que leva o 308.
-    - O Next 14 apaga o cabeçalho `RSC` e o `_rsc` antes do middleware (`next/dist/server/web/adapter.js`, FLIGHT_PARAMETERS), por isso o sinal é o `Sec-Fetch-Dest`.
-  - **Fora da regra:** `/api/stripe/webhook` e `/api/youtube/*` (o callback do OAuth registrado em `shortsforgeai.vercel.app/api/youtube/callback`). Nesses caminhos o middleware nem chama a regra e faz o de hoje: roda no lugar.
-  - **[V1 da revisora] Arquivo da página só nas pastas reais da public:** lista fechada `PASTAS_DA_PUBLIC_2611` (previews, videos, fonts, sfx, pwa, home-images, home-mosaic, posters, screening-room, nav-thumbs, ads-exemplos, ads-styles, models, og) e os dois arquivos da raiz que o navegador pede (`/favicon.ico`, `/manifest.webmanifest`).
-    - Antes, qualquer caminho com final `.js`, `.css` ou `.mp4` passava, e rota dinâmica EXECUTAVA no host antigo (`/admin/people/x.css`, `/api/render/x.mp4`, `/a/CODE.js`, `/s/tiktok.js`). Agora esses caminhos dão 308.
-    - Ficam fora de propósito: `auth`, `ads`, `kids-cartoon` e `trending` (também são rotas do app), `design` e `gpt` (a página não pede).
-    - O guardião confere no disco que cada pasta da lista existe na `public` e NÃO é rota do app.
-  - **[V2 da revisora] Nenhuma sessão no host antigo:** tudo o que a regra serve sai do middleware ANTES do `updateSession`. O pedido chega ao app SEM os cookies `sb-*` e a resposta os apaga (`Max-Age=0`). Vale nos três hosts.
-    - Assim nada renova, lê nem cria sessão lá: a página é a de visitante, `/api/stripe/change-plan` não lê plano, `/api/stripe/checkout/resume?go=1` não acha conta.
-    - O guardião prova no MIDDLEWARE REAL (com dublês só do que não é desta regra): cookie `sb-*` velho no pedido → o app recebe o pedido sem ele, a resposta traz `sb-*` com valor vazio e Max-Age 0, e o `updateSession` não roda. Em www.usekineo.com e no `/api/youtube/callback`, o caminho de sempre.
-  - **Todo o resto:** o 308 de hoje.
-- **`middleware.ts`:** aplica a regra antes do bloco do 308, exceto nos caminhos que já rodavam no host antigo. Passa `Sec-Fetch-Dest` e `Sec-Fetch-Site`. Os hosts, as exceções e o destino www.usekineo.com ficam como estão.
-- **`scripts/test-dominio-antigo-2611.mjs` (guardião):** os três hosts × as 7 URLs, quem chega × clique de dentro, webhook e YouTube fora, V1 contra o disco, V2 no middleware real; 29/29 mutantes mortos.
+## O que mudou no código (opção B da CEO, 26/11 11:15)
+- **A regra (`lib/seo/dominioAntigo2611.ts`):** nos TRÊS hosts antigos (`shortsforgeai.com`, `www.shortsforgeai.com`, `shortsforgeai.vercel.app`), GET ou HEAD numa das 7 URLs finais da conta mostram a página de entrada. Todo o resto leva o 308 de hoje para www.usekineo.com.
+  - As 7 URLs ficam numa lista única, `URLS_DA_CONTA_2611`, com a origem de cada uma na conta: `/`, `/pricing`, `/ai-shorts/2-clicks`, `/signup`, `/start`, `/generate`, `/my-videos`.
+  - **Decide só por host, caminho e método.** Nunca por cabeçalho do navegador nem por user-agent. O `Sec-Fetch-Site` das versões anteriores saiu de vez (V4 da revisora).
+  - **Não há mais lista de arquivos nem de chamadas de API no host antigo.** A página de entrada não pede nada além da fonte e das capas, que o matcher do middleware já deixa passar. Por isso o furo V1 (`/admin/people/x.css`, `/api/render/x.mp4`, `/a/X.js`…) deixa de existir: tudo isso leva 308.
+  - **Fora da regra:** `/api/stripe/webhook` e `/api/youtube/*`, o callback do OAuth registrado em `shortsforgeai.vercel.app` (V5). Neles o middleware faz o de hoje: roda no lugar.
+- **A página de entrada (`app/entrada-dominio-antigo-2611/route.ts`):** HTML próprio, fora do layout raiz, porque o layout raiz carrega scripts, provedores, banners e o modal de login.
+  - **O conteúdo:**
+    - o título "ShortsForgeAI is now Kineo." e a frase com a data da troca (30/06/2026, dos commits "rebrand Kineo 30/06");
+    - 5 linhas do que o produto faz, tiradas de `PRODUCT` em `lib/kineoFacts.ts`, sem preço;
+    - 3 capas de `public/posters`;
+    - "Your account and plan are at usekineo.com".
+  - **Os botões:** links ABSOLUTOS para `https://www.usekineo.com/signup`, `/login`, `/pricing` e `/`, com a query de chegada (gclid, utm…).
+  - **O que ela não tem:** formulário, modal, Supabase, compra, script ou redirecionamento automático.
+  - `rel=canonical` para `https://www.usekineo.com/` e `noindex, follow`.
+  - A rota interna, pedida direto, dá 404 em qualquer host.
+- **`middleware.ts`:**
+  - a página de entrada sai ANTES do `updateSession`;
+  - o pedido segue sem os cookies `sb-*`, e a resposta os apaga (V2). Nenhuma sessão é lida, renovada ou criada no host antigo;
+  - o furo do `HomeAuthModal` (cadastro dentro da página no host antigo) some pela raiz, porque a home não é mais servida lá.
+- **`next.config.js`:** o redirect `/start → /signup?utm_source=start` ganhou `missing` para os três hosts antigos (V6). Em www ele segue igual.
+- **`scripts/test-dominio-antigo-2611.mjs` (guardião):**
+  - a regra e o MIDDLEWARE REAL, com dublês só do que não é desta regra: 3 hosts × 7 URLs × 6 user-agents × 5 estados de `Sec-Fetch-Site` dão a mesma reescrita;
+  - os casos de furo da revisora, o cookie `sb-*` velho, a rota interna em 404, o `/start` do next.config e o HTML da página;
+  - 24/24 mutantes mortos.
 
-## Tabela final: host × URL × resposta (depois do deploy e da mudança na Vercel)
-"Antes" foi medido em produção por curl: todo endereço dos três hosts dava `308 → https://www.usekineo.com/<mesmo caminho>` (Vercel no .com e no www; middleware no vercel.app). "Depois" sai da regra, provado pelo guardião. As linhas marcadas com * também foram medidas no build de produção desta branch (rodada anterior, só .com e www); as demais ainda não foram medidas em build.
+## Tabela final: host × URL × resposta — MEDIDA no build de produção desta branch (26/11)
+**Como medi:**
+- `next build` e `next start` desta branch, com env falsa e sem chave;
+- `curl` com `Host`, `X-Forwarded-Host` e `X-Forwarded-Proto: https` de cada host;
+- o arquivo bruto está em `C:\kineo\docs\google-ads\pagina-de-entrada-2611\medida-*.tsv`.
 
-| URL | shortsforgeai.com | www.shortsforgeai.com | shortsforgeai.vercel.app |
+O `:3211` que aparece no `Location` do arquivo bruto é a porta local; em produção não aparece.
+
+| Pedido | shortsforgeai.com | www.shortsforgeai.com | shortsforgeai.vercel.app |
 |---|---|---|---|
-| `/` (e `/#how-it-works`, `/?gclid=…`, HEAD) | **200** * | **200** * | **200** |
-| `/pricing` | **200** * | **200** * | **200** |
-| `/ai-shorts/2-clicks` | **200** (a home) * | **200** (a home) * | **200** (a home) |
-| `/signup`, `/start`, `/generate`, `/my-videos`, quem chega | **200** (a home) | **200** (a home) | **200** (a home) |
-| as mesmas, clicadas de dentro da página | 308 → www (mesmo caminho) | 308 → www | 308 → www |
-| pré-carga de outra página (fetch da página) | **204** * | **204** * | **204** |
-| `/studio`, `/login`, `/admin`, `/generate/…`, `/signup/` | 308 → www * | 308 → www * | 308 → www |
-| `/admin/people/x.css`, `/api/render/x.mp4`, `/a/CODE.js`, `/s/tiktok.js` (final de arquivo fora das pastas da public) | 308 → www | 308 → www | 308 → www |
-| qualquer URL servida acima, com cookie `sb-*` velho | **200** sem sessão, `sb-*` apagado | o mesmo | o mesmo |
-| `/api/stripe/checkout?…` (botão de compra), POST `/api/stripe/checkout` | 308 → www * | 308 → www * | 308 → www |
-| `/robots.txt`, `/sitemap.xml`, `/llms.txt` | 308 → www * | 308 → www * | 308 → www |
-| as 12 leituras da página, POST `/api/events`, POST `/api/consent`, `/previews/*.mp4` | **200** * | **200** * | **200** |
-| `/api/stripe/webhook` | executa no lugar * | executa no lugar * | executa no lugar (igual a hoje) |
-| `/api/youtube/callback` e `/api/youtube/*` | executa no lugar | executa no lugar | executa no lugar (igual a hoje) |
+| As 7 URLs (`/`, `/pricing`, `/ai-shorts/2-clicks`, `/signup`, `/start`, `/generate`, `/my-videos`), `?gclid=x`, cada uma com 6 user-agents (Chrome, Safari iPhone, AdsBot-Google, AdsBot-Google-Mobile, Googlebot, curl) × 3 estados de `Sec-Fetch-Site` (sem cabeçalho, cross-site, same-origin) | **200** nos 126 pedidos | **200** nos 126 | **200** nos 126 |
+| O corpo dessas 378 respostas | **o mesmo HTML** (md5 `6bfb88ea7416…`, igual nas 378) | | |
+| `/start?utm_source=ad` | **200** (a entrada) | **200** | **200** |
+| POST `/signup` | 308 → www | 308 → www | 308 → www |
+| `/login`, `/studio`, `/admin`, `/robots.txt` | 308 → www | 308 → www | 308 → www |
+| `/admin/people/x.css`, `/api/render/x.mp4`, `/api/compose/status/x.mp4`, `/a/ABCD1234.js`, `/s/tiktok.js` (furo V1) | 308 → www | 308 → www | 308 → www |
+| `/api/stripe/change-plan`, `/api/stripe/checkout/resume?go=1` | 308 → www | 308 → www | 308 → www |
+| `/` e `/signup` com cookie `sb-fake-auth-token` velho | 200 + `Set-Cookie: sb-fake-auth-token=; Max-Age=0` | o mesmo | o mesmo |
+| `/entrada-dominio-antigo-2611` direto | 404 | 404 | 404 |
+| POST `/api/stripe/webhook` | 400 (executa no lugar, sem assinatura) | 400 | 400 |
+| `/api/youtube/callback` | 307 (executa no lugar, como hoje) | 307 | 307 |
 
-- **O mesmo HTML para todos** (medido na rodada anterior):
-  - `/`, `/pricing` e `/ai-shorts/2-clicks` foram baixados com 4 user-agents: navegador comum, `AdsBot-Google`, `AdsBot-Google-Mobile` e `Googlebot/2.1`;
-  - deu o mesmo tamanho e o mesmo hash nos quatro (583 748, 128 229 e 583 786 bytes).
-  - `/signup`, `/start`, `/generate` e `/my-videos` servem a mesma home (reescrita), sem ler user-agent.
-- **Canonical:** `/` e as URLs que mostram a home levam `<link rel="canonical" href="https://www.usekineo.com">`; `/pricing` leva `href="https://www.usekineo.com/pricing"`. É o metadata de sempre.
+**www.usekineo.com, no mesmo build:**
+- `/`, `/signup`, `/login`, `/studio` e `/robots.txt` dão 200;
+- `/start?utm_source=ad` dá 308 para `/signup?utm_source=start`, como hoje;
+- `/entrada-dominio-antigo-2611` dá 404;
+- nenhum `Set-Cookie sb-*`.
+
+**A página:** os únicos `href` são `https://www.usekineo.com/` (canonical), `https://www.usekineo.com/?gclid=x`, `/login?gclid=x`, `/pricing?gclid=x` e `/signup?gclid=x`. Ela tem 0 `<script>` e 0 `<form>`.
+
+**Fotos** (build local, navegador interno), em `C:\kineo\docs\google-ads\pagina-de-entrada-2611\`:
+- `1920-escuro.jpg` e `1920-claro.jpg`;
+- `390-escuro-topo.jpg`, `390-escuro-fim.jpg`, `390-claro-topo.jpg` e `390-claro-fim.jpg`.
+
+Sem rolagem lateral a 390 px (`scrollWidth` 390).
 
 ## Login, cadastro, compra e sessão
-- **O cookie de sessão é por domínio.** No host antigo, a pessoa é sempre visitante.
-- **Entrar e cadastrar:** "Log in" e "Get started" levam a `/login` e `/signup?utm_source=nav`.
-  - No clique, o Next tenta a pré-carga: 204 no mesmo host (o fetch é same-origin).
-  - Depois ele navega; a navegação é same-origin e leva 308 para `https://www.usekineo.com/login` ou `/signup`.
-  - O login e o cookie nascem em www, como hoje.
-- **Quem chega pelo anúncio em `/signup`** vê a home; o clique em "Get started" ali dentro leva a www.usekineo.com/signup.
-- **Limite conhecido:** navegador sem `Sec-Fetch-Site` (Safari antes de 16.4) não distingue o clique de dentro. Nele, clicar em "Get started" numa página que já é `/signup` mostra a home de novo; o "Log in" funciona.
-- **Por que o clique se distingue pelo `Sec-Fetch-Site` e não só pelo host (V3 da revisora):** quem chega do anúncio e quem clica em "Get started" dentro da página pedem a MESMA URL (`/signup`) no MESMO host. Só o host não separa os dois.
-  - Para decidir só pelo host, os botões de conta da página teriam de apontar direto para www.usekineo.com quando a página roda no host antigo. Isso é mudança na tela (o par login/signup e a home, área do GPT).
-  - Sem tocar em tela, o sinal que sobra é um cabeçalho que o NAVEGADOR manda (`Sec-Fetch-Site`), nunca o user-agent. Para o robô do Google e para quem chega do anúncio, a resposta é a mesma.
-  - Se a CEO preferir a versão só por host, o pedido ao GPT é: no host antigo, os botões de conta da home e do /pricing navegam para `https://www.usekineo.com/signup` com a mesma query. Depois disso o `Sec-Fetch-Site` sai da regra.
-- **Comprar:** os botões de plano do /pricing navegam para `/api/stripe/checkout?tier=…` (navegação de página, `app/pricing/PricingClient.tsx` ~815). No host antigo ela leva 308 para www com a mesma query, e o checkout segue em www.
+- **No host antigo ninguém entra, se cadastra nem compra.** A página de entrada só tem links para www.usekineo.com, e o login, o cadastro e o checkout acontecem lá, com o cookie de lá.
+- **Um cookie `sb-*` velho do host antigo** não chega ao app e é apagado na primeira visita.
+- **Quem tem conta** clica em "Log in" e entra em www como sempre.
 
 ## Risco para a busca e para as citações do ChatGPT
 - **Busca:**
-  - só as 7 URLs passam a ter cópia nos domínios antigos, e as cópias apontam o canonical para www.usekineo.com;
-  - robots.txt e sitemap.xml dos domínios antigos continuam no 308 para www;
-  - o resto continua redirecionando: o Google segue consolidando em www.
-- **Citações do ChatGPT:** nenhum texto, página ou endereço de www.usekineo.com mudou.
+  - a página de entrada tem `noindex` e canonical em www;
+  - robots.txt e sitemap.xml dos hosts antigos seguem no 308 para www;
+  - o Google segue consolidando tudo em www.
+- **Citações do ChatGPT:** nenhum texto, página ou endereço de www.usekineo.com mudou. A home de www não foi tocada.
 - **Risco restante nos anúncios:**
-  - os anúncios e os sitelinks antigos têm a marca ShortsForgeAI e preços velhos ("Plans From $11.90/Month", "$4.90/mo", "7-Day Money Back");
-  - a página agora abre no mesmo domínio, mas mostra Kineo e o preço de hoje;
-  - isso pode virar outro motivo de reprovação (conteúdo diferente do anúncio). Não dá para editar nem remover enquanto a conta estiver suspensa.
+  - os anúncios e sitelinks antigos seguem com a marca ShortsForgeAI e preços velhos;
+  - a página de entrada explica a troca de nome, mas não mostra preço;
+  - não dá para editar nem remover nada enquanto a conta estiver suspensa.
 
 ## Como desfazer em uma linha
-- **No código:** em `lib/seo/dominioAntigo2611.ts`, `HOSTS_DO_DOMINIO_ANTIGO_2611 = new Set()`. O middleware volta ao 308 de tudo.
-- **Ou na Vercel:** pôr de volta "Redirect to www.usekineo.com (308)" nos dois domínios.
+- **No código:** em `lib/seo/dominioAntigo2611.ts`, `HOSTS_DO_DOMINIO_ANTIGO_2611 = new Set()`. O middleware volta ao 308 de tudo, e a rota interna continua 404.
+- **Ou na Vercel:** pôr de volta "Redirect to www.usekineo.com (308)" nos dois domínios. O `vercel.app` só volta pelo código.
 
 ## Rascunho da 4ª contestação (inglês; NÃO enviada)
 **Antes de enviar, conferir e preencher cada colchete.** Nada que só vale depois do deploy vai no presente sem a conferência no ar:
@@ -150,10 +153,10 @@ Se algum item não estiver verdadeiro, tirar a frase dele. Os nomes e os número
 > Thank you.
 
 ## Provas (como rodar)
-- **Guardião:** `node scripts/test-dominio-antigo-2611.mjs` (29/29 mutantes, só AssertionError).
+- **Guardião:** `node scripts/test-dominio-antigo-2611.mjs` (24/24 mutantes, só AssertionError).
 - **tsc:** `--noEmit -p .`, 0.
-- **`novos-vermelhos`** sobre os guardiões que citam o `middleware.ts` ou a regra: 21 guardiões; 5 vermelhos, todos já vermelhos na main; **0 vermelho novo** (rodado sobre esta regra).
-  - O `test-afiliados-40-2026-10-06` monta o middleware real com um dublê da regra, inerte em www.usekineo.com como a real: 31 ok e 0 falha.
-- **Tabela (linhas com *):** `next build` e `next start` desta branch na rodada anterior (env falsa, sem chave) e `curl -H "Host: shortsforgeai.com" -H "X-Forwarded-Host: shortsforgeai.com"`. As linhas novas (vercel.app, `/signup`, `/start`, `/generate`, `/my-videos`) estão provadas pelo guardião, não por build.
-- **Chamadas da página:** medidas com `performance.getEntriesByType('resource')` no navegador, ao abrir `/` e `/pricing` locais.
-- **URLs finais da conta:** coluna "URL final" da tabela de anúncios e o cartão de cada sitelink, lidos em 26/11 (fotos 13 e 16 em `docs/google-ads/retirada-2611/`).
+- **`novos-vermelhos`** sobre os 32 guardiões que citam o `middleware.ts`, a regra ou o `next.config`: 12 vermelhos, todos já vermelhos na main; **0 vermelho novo**.
+  - O `test-afiliados-40-2026-10-06` ganhou o dublê das exportações novas da regra: 31 ok e 0 falha.
+- **Medida no build:** a tabela acima.
+- **Fotos:** acima.
+- **URLs finais da conta:** a coluna "URL final" da tabela de anúncios e o cartão de cada sitelink, lidos em 26/11 (fotos 13 e 16 em `docs/google-ads/retirada-2611/`).

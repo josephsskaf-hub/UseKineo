@@ -16,7 +16,7 @@ import {
 } from '@/lib/growth/checkoutRobotGate' // KINEO-CHECKOUT-ROBO-1510
 import { caminhoForaDasLinguas } from '@/lib/seo/linguasPublicas0311' // KINEO-5-LINGUAS-0311
 import { destinoDoVisitanteQueEscreve } from '@/lib/growth/visitanteEscreveAntes' // KINEO-ESCREVE-ANTES-DO-LOGIN-0411
-import { decidirDominioAntigo2611, semSessaoNoHostAntigo2611 } from '@/lib/seo/dominioAntigo2611' // KINEO-DOMINIO-ANTIGO-2611
+import { decidirDominioAntigo2611, ROTA_DA_ENTRADA_2611, semSessaoNoHostAntigo2611 } from '@/lib/seo/dominioAntigo2611' // KINEO-DOMINIO-ANTIGO-2611
 
 const LEGACY_PUBLIC_HOSTS = new Set([
   'shortsforgeai.com',
@@ -63,35 +63,27 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     .toLowerCase()
   const hostname = rawHost.split(':')[0]
 
-  // KINEO-DOMINIO-ANTIGO-2611 — as páginas dos anúncios antigos (e o que elas carregam ao abrir) respondem NO PRÓPRIO shortsforgeai.com, igual para todo
-  // user-agent; o fetch da página (a pré-carga RSC) a outra página recebe 204 no mesmo host; o resto do host antigo segue com o 308 abaixo. Regra: lib/seo/dominioAntigo2611.ts.
+  // KINEO-DOMINIO-ANTIGO-2611 — nos hosts antigos, as 7 URLs finais da conta do Google Ads respondem SEMPRE 200 no próprio host com a página de entrada
+  // (só host, caminho e método decidem; nunca cabeçalho do navegador nem user-agent). O resto do host antigo segue com o 308 abaixo. Regra: lib/seo/dominioAntigo2611.ts.
+  // A rota interna da página não existe para ninguém pedido direto: 404 em qualquer host.
+  if (request.nextUrl.pathname === ROTA_DA_ENTRADA_2611) return new NextResponse(null, { status: 404 })
   const dominioAntigo2611 = runsOnLegacyHost(request.nextUrl.pathname) ? null : decidirDominioAntigo2611({
     host: hostname,
     pathname: request.nextUrl.pathname,
     method: request.method,
-    buscaDaPagina: request.headers.get('sec-fetch-dest') === 'empty', // o fetch da página (a pré-carga RSC); o Next 14 apaga o cabeçalho RSC antes do middleware
-    doProprioSite: request.headers.get('sec-fetch-site') === 'same-origin', // o clique em "Sign up" dentro da página segue para www.usekineo.com
   })
-  // [revisora 2c5749dd, V2] o que a regra serve no host antigo sai AQUI, antes do updateSession: o pedido segue SEM os cookies sb-* e a resposta os
-  // apaga. Nenhuma sessão é renovada, lida ou criada no host antigo.
-  if (dominioAntigo2611?.acao === 'reescreve' || dominioAntigo2611?.acao === 'segue') {
+  // [revisora 2c5749dd, V2] a página de entrada sai AQUI, antes do updateSession: o pedido segue SEM os cookies sb-* e a resposta os apaga.
+  // Nenhuma sessão é renovada, lida ou criada no host antigo.
+  if (dominioAntigo2611?.acao === 'entrada') {
     const semSessao = semSessaoNoHostAntigo2611(request.headers.get('cookie'))
     const cabecalhosSemSessao = new Headers(request.headers)
     if (semSessao.cookie) cabecalhosSemSessao.set('cookie', semSessao.cookie)
     else cabecalhosSemSessao.delete('cookie')
-    let respostaDoHostAntigo: NextResponse
-    if (dominioAntigo2611.acao === 'reescreve') {
-      const paginaUrl = request.nextUrl.clone()
-      paginaUrl.pathname = dominioAntigo2611.para
-      respostaDoHostAntigo = NextResponse.rewrite(paginaUrl, { request: { headers: cabecalhosSemSessao } })
-    } else {
-      respostaDoHostAntigo = NextResponse.next({ request: { headers: cabecalhosSemSessao } })
-    }
+    const entradaUrl = request.nextUrl.clone()
+    entradaUrl.pathname = ROTA_DA_ENTRADA_2611
+    const respostaDoHostAntigo = NextResponse.rewrite(entradaUrl, { request: { headers: cabecalhosSemSessao } })
     for (const nome of semSessao.apagar) respostaDoHostAntigo.cookies.set(nome, '', { path: '/', maxAge: 0 })
     return respostaDoHostAntigo
-  }
-  if (dominioAntigo2611?.acao === 'pre_carga_204') {
-    return new NextResponse(null, { status: 204, headers: { 'Cache-Control': 'private, no-store', Vary: 'RSC' } })
   }
 
   if (

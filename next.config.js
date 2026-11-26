@@ -178,7 +178,9 @@ const nextConfig = {
       // KINEO-RECOVERY-2026-07-15 — retire the stale campaign page at the
       // edge. A config redirect produces a real HTTP Location header even
       // when /start was previously statically generated.
-      { source: '/start', destination: '/signup?utm_source=start', permanent: true },
+      // KINEO-DOMINIO-ANTIGO-2611 [revisora 2c5749dd, V6] — /start é URL final de um anúncio antigo: nos 3 hosts antigos ele não pula para /signup aqui
+      // (o redirect do next.config vem ANTES do middleware); a regra lib/seo/dominioAntigo2611.ts mostra lá a página de entrada.
+      { source: '/start', destination: '/signup?utm_source=start', permanent: true, missing: [{ type: 'host', value: 'shortsforgeai.com' }, { type: 'host', value: 'www.shortsforgeai.com' }, { type: 'host', value: 'shortsforgeai.vercel.app' }] },
       // Retire the stale public founding offer without touching legacy buyer
       // entitlements or private checkout handling.
       { source: '/founding', destination: '/pricing', permanent: true },

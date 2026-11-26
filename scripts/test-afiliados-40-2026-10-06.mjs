@@ -253,7 +253,7 @@ async function problems(over = {}) {
       '@/lib/growth/checkoutRobotGate': { decideCheckoutGate: () => ({ action: 'pass', reason: 'other_path' }), checkoutGateHtml: () => '', checkoutGateStatus: () => 200, CHECKOUT_GATE_HEADERS: {} },
       '@/lib/seo/linguasPublicas0311': { caminhoForaDasLinguas: () => false }, // KINEO-5-LINGUAS-0311 — inerte aqui (a regra real: test-5-linguas-0311)
       '@/lib/seo/aiFetchLog': { registrarLeituraDeRoboIa: () => undefined }, // KINEO-ROBO-IA-1011 — só registra robô de IA, nunca muda a resposta (a regra real: test-robo-ia-1011)
-      '@/lib/seo/dominioAntigo2611': { decidirDominioAntigo2611: () => null, semSessaoNoHostAntigo2611: () => ({ cookie: null, apagar: [] }) }, // KINEO-DOMINIO-ANTIGO-2611 — só age em shortsforgeai.com; aqui o host é www.usekineo.com, onde a regra real também dá null (a regra real: test-dominio-antigo-2611)
+      '@/lib/seo/dominioAntigo2611': { decidirDominioAntigo2611: () => null, ROTA_DA_ENTRADA_2611: '/entrada-dominio-antigo-2611', semSessaoNoHostAntigo2611: () => ({ cookie: null, apagar: [] }) }, // KINEO-DOMINIO-ANTIGO-2611 — só age em shortsforgeai.com; aqui o host é www.usekineo.com, onde a regra real também dá null (a regra real: test-dominio-antigo-2611)
     })
     const ledger = pure(S('ledger'), F.ledger)
     payment = compile(
