@@ -1,3 +1,4 @@
+import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 // KINEO-SONDA-MOTORES-2311 — guardião OFFLINE do modo "sonda" de app/api/admin/engine-test/route.ts.
 // EXECUTA a rota (transpilada e rodada num vm) com a fal, o login e o banco trocados por dublês: nenhuma rede, chave, envio ou escrita real.
 // Prova: pedido válido dos 5 endpoints (KINEO-SONDA-DOIS-MOTORES-2511: + Vidu Q4 e H3 Max Turbo com referência) chega à fal idêntico; quem não é administrador não envia nada; entrada fora da regra é recusada sem
@@ -79,8 +80,12 @@ function fakeFal({ submitThrows = false, status = 'COMPLETED', resultThrows = fa
   }
 }
 
+const offModules = createOfflineLoader()
 function harness(source, { user = ADMIN, db = fakeDb(), fal = fakeFal(), dbNull = false } = {}) {
   const deps = {
+    'node:crypto': offModules('node:crypto'),
+    '@/lib/cinematic/geminiBlocos2611': offModules('@/lib/cinematic/geminiBlocos2611.ts'),
+    '@/lib/cinematic/geminiNaEsteira2511': offModules('@/lib/cinematic/geminiNaEsteira2511.ts'),
     'next/server': { NextResponse: { json: (body, init) => ({ status: init?.status ?? 200, body: plain(body) }) }, NextRequest: class {} },
     '@fal-ai/client': { fal: fal.fal },
     '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user } }) } }) },

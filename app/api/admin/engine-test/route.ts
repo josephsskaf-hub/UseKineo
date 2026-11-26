@@ -7,6 +7,9 @@
 //   POST { engine, prompt, image_url, seconds } → { model, request_id }
 //   GET  ?engine=…&request_id=…                 → { status, video_url }
 // Schemas lidos em 05/11 no OpenAPI da fal, um por modelo.
+import { randomUUID } from 'node:crypto'
+import { blocosInternosLigados, BLOCK_UNITS, executarBlocos2611, GEMINI_BLOCOS_2611, prepararBlocos2611, probeUuid } from '@/lib/cinematic/geminiBlocos2611'
+import { GEMINI_OMNI_REF_MODEL, submitGeminiTrialVideo } from '@/lib/cinematic/geminiNaEsteira2511'
 import { NextRequest, NextResponse } from 'next/server'
 import { fal } from '@fal-ai/client'
 import { createClient } from '@/lib/supabase/server'
@@ -226,6 +229,13 @@ async function probeSpentUnits(db: NonNullable<ReturnType<typeof serviceClient>>
 }
 
 async function probePost(req: NextRequest) {
+  if (!blocosInternosLigados(GEMINI_BLOCOS_2611)) return legacyProbePost(req)
+  const db = serviceClient()
+  if (!db) return NextResponse.json({error:'spend_unreadable'},{status:503})
+  return withProbeLock(db,() => legacyProbePost(req),true)
+}
+
+async function legacyProbePost(req: NextRequest) {
   // Segunda guarda de propósito: a sonda gasta dinheiro e o evento precisa do id de quem pediu (a guarda do POST não o devolve).
   const admin = await adminUser()
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -279,9 +289,71 @@ async function probeGet(req: NextRequest) {
   }
 }
 
+// The existing probes share one rolling cap. When blocks are enabled, serialize their budget reads and reservations
+// with legacy probes. A lost owner leaves a closed lock for manual reconciliation; a timeout must never unlock it.
+type ProbeDb = NonNullable<ReturnType<typeof serviceClient>>
+async function withProbeLock(db: ProbeDb, run: () => Promise<NextResponse>, legacy = false) {
+  const id = probeUuid('shared-probe-lock'), token = randomUUID(), name = 'admin_engine_probe_mutex'
+  const insert = await db.from('events').insert({id,name,session_id:token,metadata:{}})
+  if (insert.error) {
+    if (insert.error.code !== '23505') return NextResponse.json({error:'budget_unavailable'},{status:503})
+    const take = await db.from('events').update({session_id:token}).eq('id',id).eq('name',name).is('session_id',null).select('id').maybeSingle()
+    if (take.error || !take.data) return NextResponse.json({error:'budget_busy'},{status:409})
+  }
+  const result = await run()
+  // Legacy probes log after acceptance. Keep the lock when that POST or its accounting is uncertain.
+  if (legacy && (result.status === 502 || (result.ok && (await result.clone().json()).warning))) return result
+  const release = await db.from('events').update({session_id:null}).eq('id',id).eq('name',name).eq('session_id',token).select('id').maybeSingle()
+  return release.error || !release.data ? NextResponse.json({error:'budget_reconcile'},{status:503}) : result
+}
+
+async function geminiBlocosPost(req: NextRequest, userId: string) {
+  const body = await req.json().catch(() => null)
+  if (body?.dry_run !== true && !(blocosInternosLigados(GEMINI_BLOCOS_2611) && body?.dry_run === false))
+    return NextResponse.json({error:'blocks_disabled'},{status:403})
+  const storageBase = `${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''}/storage/v1/object/public/`
+  const plan = prepararBlocos2611(body, url => imageAllowed(url,storageBase))
+  const endpoint = probeEndpointFrom(GEMINI_OMNI_REF_MODEL)
+  if (!plan || !endpoint || plan.blocks.some(input => probeInputError(endpoint,input))) return NextResponse.json({error:'invalid_block_plan'},{status:400})
+  const estimate = fromUnits(plan.blocks.length * BLOCK_UNITS)
+  if (body.dry_run === true) return NextResponse.json({dry_run:true, plan_id:plan.id, model:GEMINI_OMNI_REF_MODEL, est_usd:estimate, blocks:plan.blocks})
+  const key = process.env.FAL_KEY, db = serviceClient()
+  if (!key || !db) return NextResponse.json({error:'probe_unavailable'},{status:503})
+  const stopStartingAt = Date.now() + 10_000
+  return withProbeLock(db, async () => {
+    const out = await executarBlocos2611(plan,toUnits(PROBE_DAILY_CAP_USD),{
+      async read(id) {
+        const row = await db.from('events').select('metadata').eq('id',id).eq('name',PROBE_EVENT).maybeSingle()
+        if (row.error) throw new Error('block_ledger_unavailable')
+        return row.data ? row.data.metadata as {state:string;request_id?:string} : null
+      },
+      spent: () => probeSpentUnits(db,new Date(Date.now()-PROBE_WINDOW_MS).toISOString()),
+      async reserve(id,index,units) {
+        const row = await db.from('events').insert({id,name:PROBE_EVENT,user_id:userId,path:'/api/admin/engine-test',metadata:{
+          endpoint:GEMINI_OMNI_REF_MODEL,plan_id:plan.id,block:index+1,seconds:15,est_usd:fromUnits(units),state:'reserved'}})
+        return !row.error
+      },
+      submit: async input => (await submitGeminiTrialVideo(input,{apiKey:key})).requestId,
+      async store(id,request_id) {
+        const prev = await db.from('events').select('metadata').eq('id',id).eq('name',PROBE_EVENT).single()
+        if (prev.error || prev.data.metadata?.state !== 'reserved') return false
+        const update = await db.from('events').update({metadata:{...prev.data.metadata,request_id,state:'accepted'}})
+          .eq('id',id).eq('name',PROBE_EVENT).eq('metadata->>state','reserved').select('id').maybeSingle()
+        return !update.error && !!update.data
+      },
+    }, () => Date.now() < stopStartingAt)
+    return NextResponse.json({plan_id:plan.id,model:GEMINI_OMNI_REF_MODEL,...out},{status:out.status})
+  })
+}
+
 export async function POST(req: NextRequest) {
   if (!(await adminUser())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   if (req.nextUrl.searchParams.get('probe') === '1') return probePost(req) // KINEO-SONDA-MOTORES-2311
+  if (req.nextUrl.searchParams.get('probe') === 'blocks') {
+    const owner = await adminUser()
+    if (!owner) return NextResponse.json({ error:'Forbidden' },{status:403})
+    return geminiBlocosPost(req,owner.id)
+  }
   if (req.nextUrl.searchParams.get('motion') === '1') {
     const planos = planosFrom(((await req.json().catch(() => null)) as { shots?: unknown } | null)?.shots)
     if (!planos) return NextResponse.json({ error: 'bad_shots' }, { status: 400 })
