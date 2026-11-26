@@ -249,7 +249,7 @@ export function montagemFalada2511(marker: unknown, falModel: unknown): boolean 
 // duracoesDaFala2511, a lista de pessoas reais), sobre o elenco que o dry_run já calculou. A folha, a referência e o pedido ao Gemini só existem no envio:
 // PASS aqui = o que depende do texto e das fichas está certo; não prova a folha nem o Gemini. Nada gasta, nada muda no envio.
 export const FALA_NO_ENSAIO_2611_VERSAO = 'fala_no_ensaio_2611_v1'
-export type MotivoDoEnsaioDaFala2611 = MotivoNarrado2511 | 'nao_pedido' | 'chave_desligada' | 'sem_elenco' | 'palavras_fora' | 'duracao'
+export type MotivoDoEnsaioDaFala2611 = MotivoNarrado2511 | 'nao_pedido' | 'chave_desligada' | 'sem_elenco' | 'palavras_fora' | 'duracao' | 'ficha_sem_descricao'
 export type EnsaioDaFala2611 = {
   versao: string; veredito: 'PASS' | 'FAIL'; modo: 'falado' | 'narrado'; motivo: MotivoDoEnsaioDaFala2611 | null
   falantes: string[]; falas: LinhaDeFala2511[][] | null; segundos_dos_planos: number[] | null; palavras: number; faixa: [number, number]; aviso: string
@@ -258,6 +258,7 @@ type FichaDoEnsaio2611 = { nome?: unknown; nucleo?: unknown; canonica?: unknown;
 export function ensaioDaFala2611(a: {
   pedida: boolean; ligada: boolean; ingles: boolean; gemini: boolean; estilizado: boolean
   falasDosPlanos: ReadonlyArray<string>; elenco: ReadonlyArray<FichaDoEnsaio2611>; mencionaPessoaReal: (texto: string) => boolean
+  descritos?: ReadonlyArray<string> /* (2) os falantes cuja ficha saiu da descrição do autor na marca (descricoesDasMarcas2611) */
 }): EnsaioDaFala2611 {
   const faixa: [number, number] = [PALAVRAS_MIN_NO_FILME_FALADO_2511, PALAVRAS_NO_FILME_2511]
   const aviso = 'previsão pelo texto e pelas fichas: a folha, a referência e o pedido ao Gemini só existem no envio'
@@ -277,10 +278,35 @@ export function ensaioDaFala2611(a: {
   const falas = lidas.falas
   const n = falas.flat().reduce((s, l) => s + palavras(l.texto).length, 0)
   if (a.mencionaPessoaReal(falas.flat().map((l) => l.texto).join(' '))) return nao('fala_com_pessoa_real', { falas, palavras: n })
+  // (2) o PASS exige a ficha de cada falante com a descrição do autor (a da marca): sem ela o rosto sai sorteado e a idade some
+  if ([...new Set(falas.flat().map((l) => l.nome))].some((nm) => !(a.descritos ?? []).includes(nm))) return nao('ficha_sem_descricao', { falas, palavras: n })
   const quem = admitirFalantes2511(falas, humanos, nomes, a.estilizado)
   if (quem) return nao(quem, { falas, palavras: n })
   if (n < faixa[0] || n > faixa[1]) return nao('palavras_fora', { falas, palavras: n })
   const segundos = duracoesDaFala2511(falas, 15)
   if (!segundos) return nao('duracao', { falas, palavras: n, segundos_dos_planos: segundos })
   return { ...base, falas, palavras: n, segundos_dos_planos: segundos, veredito: 'PASS', modo: 'falado', motivo: null }
+}
+
+// KINEO-FALA-NO-ENSAIO-2611 (2) [CEO 26/11] — no roteiro FALADO a seção só tem `Nome: fala` fora das marcas; a leitura do elenco tomava a FALA como descrição
+// ("Thomas, Then we give them light, exactly as the author wrote") e deixava o "]" e a fala vazarem ("…during a storm] Maria: There is a boat…"). No modo
+// falado, a ficha de cada falante sai da descrição DENTRO da marca [Pexels: …] da 1ª seção que o descreve: o trecho "Nome, a/an/the/N…" da própria marca
+// (nunca passa do "]": só a marca é lida), cortado na vírgula de lugar ou de ação (", at the lighthouse…", ", watching…"). A linha `Nome: fala` nunca é
+// lida aqui, e o vocativo da fala não troca o dono (só conta o nome que ABRE o aposto dentro da marca). Sem descrição na marca = a ficha fica como está.
+const CORTE_DE_LUGAR_2611 = /,\s*(?:at|in|on|inside|outside|near|by|under|beside|behind|during|while|from|with|on\s+top\s+of|\p{L}+ing)(?![\p{L}])/iu
+export function descricoesDasMarcas2611(marcas: ReadonlyArray<string | null | undefined>, nomes: ReadonlyArray<string>): Map<string, string> {
+  const fora = new Map<string, string>()
+  for (const nome of nomes) {
+    const n = String(nome ?? '').trim()
+    if (!n || fora.has(n)) continue
+    const re = new RegExp('(?<![\\p{L}\\p{N}])' + escapa(n) + ',\\s+((?:(?:a|an|the)\\s|\\d)[^\\]\\[]*)', 'iu') // o artigo inteiro ("Then we…" não é "the")
+    for (const marca of marcas) {
+      const m = re.exec(String(marca ?? ''))
+      if (!m) continue
+      const corte = CORTE_DE_LUGAR_2611.exec(m[1])
+      const desc = (corte ? m[1].slice(0, corte.index) : m[1]).replace(/[\s,;.:]+$/u, '').trim()
+      if (desc.split(/\s+/u).length >= 2) { fora.set(n, n + ', ' + desc); break }
+    }
+  }
+  return fora
 }

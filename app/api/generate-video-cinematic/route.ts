@@ -29,7 +29,7 @@ import { submitKling4TrialVideo, orchestrateKling4Trial, buildKling4TrialInput, 
 import { reserveKling4Trial, recordKling4TrialFilm } from '@/lib/kling4TrialBudget'
 import { roteiroFaladoNoPortao2511 } from '@/lib/cinematic/roteiroFalado2511' // KINEO-FALA-DOS-PERSONAGENS-2511 — o piso próprio do falado nos portões de tamanho
 import { FALA_DOS_PERSONAGENS_2511, FALA_DOS_PERSONAGENS_2511_VERSAO, falaDosPersonagensLigada, vozPedida2511, lerFalas2511, vozDaFicha2511, geminiFaladoDoKling4, admitirFalantes2511, nomesDaFala2511, type MarcadorDaFala2511 } from '@/lib/cinematic/falaDosPersonagens2511' // KINEO-FALA-DOS-PERSONAGENS-2511 — o modo "personagens falam" (só a casa)
-import { ensaioDaFala2611 } from '@/lib/cinematic/falaDosPersonagens2511' // KINEO-FALA-NO-ENSAIO-2611 — o dry_run da casa prevê o falado
+import { ensaioDaFala2611, descricoesDasMarcas2611 } from '@/lib/cinematic/falaDosPersonagens2511' // KINEO-FALA-NO-ENSAIO-2611 — o dry_run da casa prevê o falado
 import { motorDoFilmeGratis2511 } from '@/lib/cinematic/chaveDoMotor2511' // KINEO-TOMADA-DO-MOTOR-2511 — o motor do filme grátis sem deploy
 import { gravarSeloDoFilmeGratis2511 } from '@/lib/kling4TrialBudget' // KINEO-GEMINI-NA-ESTEIRA-2511 [revisora 25/11, conserto 1]
 import { medirFalaDoKling4Trial as medirFalaK4Crua } from '@/lib/kling4TrialScript' // KINEO-K4-SEMPRE-0511 [TRAVA 8.2 — fundador 05/11 "vai"]
@@ -4192,6 +4192,19 @@ async function manipularPost(req: NextRequest) {
     if (travaEstiloDoPedido && travaEstiloDoPedido.trocas.length > 0) { personagemElenco.elenco = travaEstiloDoPedido.elenco; if (personagem.ativo && !estrelaFicha && classicVisualMode === 'character_story') { classicVisualPolicy.character = fichaDoProtagonista(personagemElenco.elenco); const secundariosTravados = elencoSecundario(personagemElenco.elenco); if (secundariosTravados.length > 0) classicVisualPolicy.elenco = secundariosTravados }; console.log(`[personagem] gen=${generationId} KINEO-ELENCO-TRAVA: estilo ${styleAnchor.look} travado em ${travaEstiloDoPedido.trocas.length} ficha(s)`) } // KINEO-ELENCO-TRAVA-0311
     // KINEO-ELENCO-E-FIGURINO-2411 (3) — Cooper 2b17bd7f: "dark suit" vivia só no pedido original; a ficha (e a folha, e a referência única) saía sem o paletó.
     if (elencoEFigurino2411 && elencoEFigurinoLigado(FIGURINO_DO_PEDIDO_2411, user.email) && !qualidadeHerdada && personagem.ativo && !estrelaFicha && !desenhoInfantil.ativo && personagemElenco.elenco.length > 0) { const doPedido2411 = fichaComDescricaoDoPedido(body.original_idea, personagemElenco.elenco); if (doPedido2411.trocas.length > 0) { personagemElenco.elenco = doPedido2411.elenco; personagemElenco.casting = `${personagemElenco.casting}+pedido2411`; if (classicVisualMode === 'character_story') { classicVisualPolicy.character = fichaDoProtagonista(personagemElenco.elenco); const secundarios2411 = elencoSecundario(personagemElenco.elenco); if (secundarios2411.length > 0) classicVisualPolicy.elenco = secundarios2411 }; console.log(`[personagem] gen=${generationId} ${ELENCO_E_FIGURINO_2411_VERSAO}: a ficha do protagonista leva a descrição do pedido`) } } // KINEO-ELENCO-E-FIGURINO-2411
+    // KINEO-FALA-NO-ENSAIO-2611 (2) [CEO 26/11] — no pedido FALADO (voice_mode 'characters' + chave + inglês), a ficha de cada personagem humano sai da descrição do
+    // autor DENTRO da marca [Pexels: …] da 1ª seção que o descreve ("Thomas, a 65-year-old gray-bearded man in a navy coat"): a linha `Nome: fala` nunca vira
+    // descrição e o "]" nunca vaza. Fora do falado, nada muda (byte a byte). Antes do retrato assinado, para o envio, a folha e o ensaio lerem a mesma ficha.
+    const descritos2611: string[] = []
+    if (typeof descricoesDasMarcas2611 === 'function' && typeof faladoPedido2511 !== 'undefined' && faladoPedido2511 === true && !qualidadeHerdada && personagem.ativo && personagemElenco.elenco.length > 0) {
+      const humanos2611 = personagemElenco.elenco.filter((fc) => fc.tipo === 'humano')
+      const doAutor2611 = descricoesDasMarcas2611(parsedScript.segments.map((sg) => sg.pexelsQuery), humanos2611.map((fc) => fc.nome))
+      if (doAutor2611.size > 0) {
+        personagemElenco.elenco = personagemElenco.elenco.map((fc) => { const d = fc.tipo === 'humano' ? doAutor2611.get(fc.nome) : undefined; if (!d) return fc; descritos2611.push(fc.nome); return { ...fc, canonica: d, origem: 'autor' } })
+        personagemElenco.casting = `${personagemElenco.casting}+marca_falada`
+        if (!estrelaFicha && classicVisualMode === 'character_story') { classicVisualPolicy.character = fichaDoProtagonista(personagemElenco.elenco); const sec2611 = elencoSecundario(personagemElenco.elenco); if (sec2611.length > 0) classicVisualPolicy.elenco = sec2611 }
+      }
+    }
     // The founder may already have a subscription and previous films. Only opt this
     // short narrated film into the existing trial dispatcher after identifying a human lead.
     if (ensaioPersonagemFixo && KLING4_TRIAL_LIVE && seedanceShortFilm && !kidsPedidoAdmitido &&
@@ -7947,7 +7960,7 @@ async function manipularPost(req: NextRequest) {
           const motor = typeof motorDoFilmeGratis2511 === 'function' ? await motorDoFilmeGratis2511(cinematicAdmin) : null
           const gemini = motor !== 'kling4' && motor !== 'reserva' && (motor === 'gemini' || geminiNaEsteiraLigado(GEMINI_NA_ESTEIRA_2511, user.email))
           return { ...ensaioDaFala2611({ pedida: true, ligada: falaDosPersonagensLigada(FALA_DOS_PERSONAGENS_2511, user.email), ingles: narrationLanguage.language === 'en', gemini,
-            estilizado: isStylizedLook(styleAnchor) || desenhoInfantil.ativo, falasDosPlanos: scenes.map((sc) => sc.voiceover ?? ''), elenco: personagemElenco.elenco, mencionaPessoaReal: mentionsRealPerson }),
+            estilizado: isStylizedLook(styleAnchor) || desenhoInfantil.ativo, falasDosPlanos: scenes.map((sc) => sc.voiceover ?? ''), elenco: personagemElenco.elenco, mencionaPessoaReal: mentionsRealPerson, descritos: typeof descritos2611 !== 'undefined' ? descritos2611 : [] }),
             motor_da_chave: motor, casting: personagemElenco.casting }
         } catch (e) { return { versao: 'fala_no_ensaio_2611_v1', veredito: 'FAIL' as const, modo: 'narrado' as const, motivo: 'erro', erro: String(e instanceof Error ? e.message : e).slice(0, 160) } }
       })() : null

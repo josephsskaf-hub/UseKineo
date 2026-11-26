@@ -31,14 +31,29 @@ const tresPlanos = (parser, r) => { const v = parser.parseUserScript(r).segments
 
 function prova(w, rota) {
   const { f, parser, aj, ep, rp } = w
-  const E = (o) => f.ensaioDaFala2611({ pedida: true, ligada: true, ingles: true, gemini: true, estilizado: false, mencionaPessoaReal: rp.mentionsRealPerson, ...o })
+  const E = (o) => f.ensaioDaFala2611({ pedida: true, ligada: true, ingles: true, gemini: true, estilizado: false, mencionaPessoaReal: rp.mentionsRealPerson, descritos: ['Maria', 'Thomas'], ...o })
+  // ── A0 · (2) a ficha do falante sai da descrição DENTRO da marca da 1ª seção que o descreve; a fala nunca vira descrição; o "]" nunca vaza ──
+  const marcas = (r) => parser.parseUserScript(r).segments.map((s) => s.pexelsQuery)
+  const dP = f.descricoesDasMarcas2611(marcas(PROPOSTO), ['Maria', 'Thomas'])
+  assert.equal(dP.get('Maria'), 'Maria, a 28-year-old red-haired woman in a green sweater', 'A0 Maria: 28, ruiva, suéter verde (corta na vírgula de lugar)')
+  assert.equal(dP.get('Thomas'), 'Thomas, a 65-year-old gray-bearded man in a navy coat', 'A0 Thomas: só descrito na marca da 2ª seção; 65, grisalho, casaco azul-marinho')
+  const dC = f.descricoesDasMarcas2611(marcas(CEO), ['Mara', 'Elias'])
+  assert.equal(dC.get('Mara'), 'Mara, a 28-year-old red-haired radio operator in a green sweater', 'A0 o roteiro da CEO: a 1ª marca que descreve vence')
+  assert.equal(dC.get('Elias'), 'Elias, a 65-year-old gray-bearded lighthouse keeper in a navy coat', 'A0 o vocativo "…out there, Elias." não é lido (só a marca)')
+  for (const d of [...dP.values(), ...dC.values()]) assert.ok(!/[\]\[]|:\s|There is|Then we/.test(d), 'A0 nada de "]", rótulo ou fala na descrição: ' + d)
+  const dV = f.descricoesDasMarcas2611(['Thomas watches Maria, a 28-year-old red-haired woman, at the radio', 'the lamp lever'], ['Maria', 'Thomas'])
+  assert.equal(dV.get('Maria'), 'Maria, a 28-year-old red-haired woman', 'A0 o aposto é de quem o ABRE'); assert.equal(dV.has('Thomas'), false, 'A0 o Thomas não ganha a descrição da Maria')
+  assert.equal(f.descricoesDasMarcas2611(['Maria at the window, watching the sea'], ['Maria']).size, 0, 'A0 sem aposto na marca = a ficha fica como está')
+  assert.equal(f.descricoesDasMarcas2611(['Thomas: Then we give them light.', 'Thomas, Then we give them light'], ['Thomas']).size, 0, 'A0 "Nome: fala" e "Nome, oração" nunca viram descrição')
   // ── A ──
   const elencoCEO = aj.elencoDoRoteiro(CEO, { generoDoNome: ep.generoDoNome })
   igual(elencoCEO, [], 'A o roteiro da CEO perde o elenco na prova de gente (a causa)')
   const rCEO = E({ falasDosPlanos: tresPlanos(parser, CEO), elenco: elencoCEO })
   assert.equal(rCEO.veredito, 'FAIL'); assert.equal(rCEO.modo, 'narrado'); assert.equal(rCEO.motivo, 'sem_elenco', 'A o roteiro da CEO = sem_elenco')
-  const elenco = aj.elencoDoRoteiro(PROPOSTO, { generoDoNome: ep.generoDoNome })
-  igual(elenco.map((x) => x.nome).sort(), ['Maria', 'Thomas'], 'A o corpo proposto dá as 2 fichas')
+  const elencoBruto = aj.elencoDoRoteiro(PROPOSTO, { generoDoNome: ep.generoDoNome })
+  igual(elencoBruto.map((x) => x.nome).sort(), ['Maria', 'Thomas'], 'A o corpo proposto dá as 2 fichas')
+  const elenco = elencoBruto.map((x) => (dP.has(x.nome) ? { ...x, canonica: dP.get(x.nome) } : x)) // como a rota faz no falado
+  assert.equal(E({ falasDosPlanos: tresPlanos(parser, PROPOSTO), elenco, descritos: ['Maria'] }).motivo, 'ficha_sem_descricao', 'A (2) o PASS exige as duas fichas com a descrição do autor')
   const ok = E({ falasDosPlanos: tresPlanos(parser, PROPOSTO), elenco })
   assert.equal(ok.veredito, 'PASS', 'A o corpo proposto = PASS: ' + ok.motivo); assert.equal(ok.modo, 'falado'); assert.equal(ok.motivo, null)
   assert.equal(ok.palavras, 25, 'A 25 palavras ditas (sem os rótulos)')
@@ -65,9 +80,26 @@ function prova(w, rota) {
   assert.ok(dry > 0 && dev > fim && dev - fim < 200, 'B a fatia mora no dry_run da casa, logo antes de devolver o crédito, e a resposta espalha fala_2511')
   const js = ts.transpileModule(rota.slice(ini, fim + "      })() : null\n".length) + '\nreturn fala2611', { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText
   const corre = (body, motor, chaveGemini) => new Function('ensaioDaFala2611', 'vozPedida2511', 'body', 'motorDoFilmeGratis2511', 'cinematicAdmin', 'geminiNaEsteiraLigado', 'GEMINI_NA_ESTEIRA_2511', 'user',
-    'falaDosPersonagensLigada', 'FALA_DOS_PERSONAGENS_2511', 'narrationLanguage', 'isStylizedLook', 'styleAnchor', 'desenhoInfantil', 'scenes', 'personagemElenco', 'mentionsRealPerson',
+    'falaDosPersonagensLigada', 'FALA_DOS_PERSONAGENS_2511', 'narrationLanguage', 'isStylizedLook', 'styleAnchor', 'desenhoInfantil', 'scenes', 'personagemElenco', 'mentionsRealPerson', 'descritos2611',
     '"use strict"; return (async () => {' + js + '})()')(f.ensaioDaFala2611, f.vozPedida2511, body, async () => motor, {}, () => chaveGemini, 'internal', { email: 'casa@example.org' },
-    () => true, 'internal', { language: 'en' }, () => false, '', { ativo: false }, planos.map((v) => ({ voiceover: v })), { elenco, casting: 'ajuste' }, rp.mentionsRealPerson)
+    () => true, 'internal', { language: 'en' }, () => false, '', { ativo: false }, planos.map((v) => ({ voiceover: v })), { elenco, casting: 'ajuste' }, rp.mentionsRealPerson, ['Maria', 'Thomas'])
+  // ── B2 · (2) a troca da ficha na rota, executada: só no falado; fora dele, o mesmo elenco (byte a byte) ──
+  const i2 = rota.indexOf('    const descritos2611: string[] = []\n'), f2 = rota.indexOf('    // The founder may already have a subscription and previous films. Only opt this\n', i2)
+  assert.ok(i2 > 0 && f2 > i2 && f2 - i2 < 2500, 'B2 a troca está na rota, logo antes do retrato assinado (âncora)')
+  assert.ok(rota.indexOf('    qualitySnapshot = { version: FILM_QUALITY_VERSION, sourceGenerationId: generationId, characters: personagemElenco.elenco,', f2) > f2, 'B2 o retrato assinado lê o elenco já trocado')
+  const js2 = ts.transpileModule(rota.slice(i2, f2) + '\nreturn { descritos2611, personagemElenco, classicVisualPolicy }', { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText
+  const LIXO = [{ nome: 'Thomas', nucleo: 'Thomas', tipo: 'humano', protagonista: true, origem: 'autor', canonica: 'Thomas, Then we give them light, exactly as the author wrote; a real person filmed' },
+    { nome: 'Maria', nucleo: 'Maria', tipo: 'humano', protagonista: false, origem: 'autor', canonica: 'Maria, a 28-year-old red-haired woman in a green sweater, at the lighthouse radio during a storm] Maria: There is a boat out there in the storm' },
+    { nome: 'Pipo', nucleo: 'dog', tipo: 'animal', protagonista: false, origem: 'deterministica', canonica: 'Pipo, a dog' }]
+  const troca = (falado) => new Function('descricoesDasMarcas2611', 'faladoPedido2511', 'qualidadeHerdada', 'personagem', 'personagemElenco', 'parsedScript', 'estrelaFicha', 'classicVisualMode', 'classicVisualPolicy', 'fichaDoProtagonista', 'elencoSecundario',
+    '"use strict";' + js2)(f.descricoesDasMarcas2611, falado, null, { ativo: true }, { elenco: LIXO.map((x) => ({ ...x })), casting: 'fixo' }, parser.parseUserScript(PROPOSTO), null, 'character_story', {},
+    (el) => el.find((x) => x.protagonista)?.canonica ?? null, (el) => el.filter((x) => !x.protagonista).map((x) => x.canonica))
+  const tf = troca(true)
+  igual(tf.personagemElenco.elenco.map((x) => x.canonica), [dP.get('Thomas'), dP.get('Maria'), 'Pipo, a dog'], 'B2 falado: as duas fichas com a descrição do autor; o bicho fica')
+  igual(tf.descritos2611, ['Thomas', 'Maria'], 'B2 falado: os descritos vão ao ensaio'); assert.equal(tf.personagemElenco.casting, 'fixo+marca_falada')
+  assert.equal(tf.classicVisualPolicy.character, dP.get('Thomas'), 'B2 a política visual lê a ficha nova do protagonista')
+  const tn = troca(false)
+  igual(tn.personagemElenco.elenco, LIXO, 'B2 fora do falado: o elenco de sempre, byte a byte'); igual(tn.descritos2611, []); assert.equal(tn.personagemElenco.casting, 'fixo'); igual(tn.classicVisualPolicy, {})
   return (async () => {
     assert.equal(await corre({ voice_mode: 'narrator' }, null, true), null, 'B narrador = nenhuma chave nova')
     assert.equal(await corre({}, null, true), null, 'B sem voice_mode = nenhuma chave nova')
@@ -90,6 +122,14 @@ const MUTANTES = [
   [ROTA, "motor !== 'kling4' && motor !== 'reserva' && (motor === 'gemini' || ", '('],
   [ROTA, "vozPedida2511(body) === 'personagens' ? await (async", 'true ? await (async'],
   [ROTA, "        ...(fala2611 ? { fala_2511: fala2611 } : {}),", '       '],
+  // (2)
+  [MOD, "  if ([...new Set(falas.flat().map((l) => l.nome))].some((nm) => !(a.descritos ?? []).includes(nm))) return nao('ficha_sem_descricao', { falas, palavras: n })\n", ''], // o PASS sem as fichas do autor
+  [MOD, '      const corte = CORTE_DE_LUGAR_2611.exec(m[1])\n', '      const corte = null\n'], // sem o corte de lugar
+  [MOD, "      if (desc.split(/\\s+/u).length >= 2) { fora.set(n, n + ', ' + desc); break }\n", "      if (desc.split(/\\s+/u).length >= 2) { fora.set(n, n + ', ' + desc) }\n"], // a última marca vence
+  [MOD, "',\\\\s+((?:(?:a|an|the)\\\\s|\\\\d)[^\\\\]\\\\[]*)', 'iu')", "'[,:]\\\\s+((?:(?:a|an|the)\\\\s|\\\\d|\\\\p{L})[^\\\\[]*)', 'iu')"], // a fala ("Nome:") e a oração entram
+  [MOD, "',\\\\s+((?:(?:a|an|the)\\\\s|\\\\d)[^\\\\]\\\\[]*)', 'iu')", "',\\\\s+((?:a|an|the|\\\\d)[^\\\\]\\\\[]*)', 'iu')"], // "Then we…" vira o artigo "the"
+  [ROTA, "faladoPedido2511 === true && !qualidadeHerdada", "!qualidadeHerdada"], // a troca fora do falado
+  [ROTA, "mentionsRealPerson, descritos: typeof descritos2611 !== 'undefined' ? descritos2611 : [] }),", "mentionsRealPerson, descritos: [] }),"], // o ensaio sem os descritos
 ]
 let mortos = 0
 for (const [arq, de, para] of MUTANTES) {
