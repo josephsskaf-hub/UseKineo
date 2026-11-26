@@ -18,8 +18,9 @@ const { aba, React, read, ROOT } = R
 const BASE = 'ec6348f4b7beafa640bc3fb5d9dc5da3b7ce7b0b'
 // SHA-256 das duas fontes do pedido após acrescentar a escolha de voz. O guardião de voz também compara OFF com eb07dbd73.
 const ESTILO = {
-  'components/studio/StudioSimples.tsx': '1c8b795ff2e0cf980b06d8f01f78c1aa9346db70c37cc64f6e4769f1e54c8c66',
-  'lib/growth/studioSimples.ts': 'bafa414b1ca6e9218db3e27c9c10a610e863f566ebdc4b68774e74eb80ced03e',
+  'components/studio/StudioSimples.tsx': '046238b3fd34991e2b2f3096132872fa31de2bd52b3df77a09c9843a76e12369',
+  'lib/growth/studioSimples.ts': '3b0844b5b3ca3e393fe5edbaf1a068a90e33978307697119c66343acd77d196b',
+  'lib/create/filmNaMoldura.ts': '3a772f79f8442a77a7e7125dcf8f1397620c0e3db1a766131aec399fd4ac5547',
 }
 const baseSrc = (ref, p) => execFileSync('git', ['show', `${ref}:${p}`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 })
 const lf = s => s.replace(/\r\n/g, '\n')
@@ -46,7 +47,7 @@ function casosA(o) {
     ["A4 'off': ninguém; 'public': toda conta logada, nunca visitante", [HOUSE, CUSTOMER, null].every(e => v(e, 'off') === false) && v(CUSTOMER, 'public') === true && v(null, 'public') === false],
     ['A5 a página troca a casca só com filmNaMoldura E caixaNovaVisivel', iNova > 0],
     ['A6 a linha de sempre (3 passos) segue intacta, logo depois', iSempre > iNova && iSempre - iNova < LINHA_NOVA.length + 400],
-    ['A7 o caixaNova só aparece na linha guardada pela régua', (page.match(/StudioNaMoldura caixaNova/g) ?? []).length === 1],
+    ['A7 o caixaNova só aparece na linha guardada pela régua', (page.match(/StudioNaMoldura caixaNova/g) ?? []).length === 2 && /if \(publicFilmEditor\(\) && params.tab === 'film'\)[\s\S]*?<StudioNaMoldura caixaNova entry=/.test(page)],
   ]
 }
 
@@ -54,7 +55,7 @@ function casosA(o) {
 function casosB(o) {
   return [
     ...Object.entries(ESTILO).map(([file, hash], i) => [`B${i + 1} ${file} igual à referência do pedido com voz`, createHash('sha256').update(src(o, file)).digest('hex') === hash]),
-    ...['lib/create/filmNaMoldura.ts', 'lib/credits/engineCost.ts'].map((file, i) => [`B${i + 3} ${file} igual à main ${BASE.slice(0, 9)}`, src(o, file) === lf(baseSrc(BASE, file))]),
+    ...['lib/credits/engineCost.ts'].map((file, i) => [`B${i + 3} ${file} igual à main ${BASE.slice(0, 9)}`, src(o, file) === lf(baseSrc(BASE, file))]),
   ]
 }
 

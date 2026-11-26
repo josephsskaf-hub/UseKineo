@@ -38,7 +38,7 @@ export interface CaixaDeCriarProps {
   limiteMax: number
   foto: FotoDaCaixa | null
   chips: readonly ChipDaCaixa[]
-  gerar: { aoClicar: () => void; custo: number | null; testId: string }
+  gerar: { aoClicar: () => void; custo: number | null; label?: string; checking?: boolean; testId: string }
   confianca: readonly string[]
   /** Linha logo abaixo da caixa (ex.: o filme grátis) — só quando o servidor provou. */
   nota?: ReactNode
@@ -116,8 +116,8 @@ export default function CaixaDeCriar(p: CaixaDeCriarProps) {
           </button>)}
         </div>
         {perto ? <span className="cx-conta" aria-live="polite">{p.texto.trim().length} / {p.limiteMax}</span> : null}
-        <button type="button" className="cx-gerar" data-testid={p.gerar.testId} disabled={!temTexto} onClick={p.gerar.aoClicar} aria-describedby="cx-confianca">
-          <span>Generate</span>{p.gerar.custo !== null ? <span className="cx-custo" aria-label={`${p.gerar.custo} credits`}>✦ {p.gerar.custo}</span> : null}
+        <button type="button" className="cx-gerar" data-testid={p.gerar.testId} disabled={!temTexto || p.gerar.checking} onClick={p.gerar.aoClicar} aria-describedby="cx-confianca">
+          <span>{p.gerar.label ?? 'Generate'}</span>{p.gerar.custo !== null ? <span className="cx-custo" aria-label={`${p.gerar.custo} credits`}>✦ {p.gerar.custo}</span> : null}
         </button>
       </div>
       {chipAberto ? <div className="cx-menu" role="dialog" aria-label={chipAberto.nome} style={{ left: posicao }} data-cx-menu={chipAberto.id}>

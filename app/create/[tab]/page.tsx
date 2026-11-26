@@ -1,6 +1,11 @@
 // KINEO-TELA-NOVA-1011 [fundador 10/11: "Eu quero no ar os fluxos novos que a gente desenhou para o Recreate, para todos os outros fluxos"]
 // /create/film · /create/cartoon · /create/ads — a moldura do Recreate como porta dos geradores que já existem.
 // Porta: lib/create/access.ts createShellDecision (interruptor CREATE_SHELL_RELEASE em lib/create/release.ts). Nunca indexada.
+import { headers } from 'next/headers'
+import { publicFilmEditor } from '@/lib/create/publicFilmEditorServer'
+import { filmEntry, validFilmDraftId } from '@/lib/create/publicEditor'
+import { motoresCandidatos } from '@/lib/create/motorOpcional'
+import { paisDaListaConfirmado, paisDoRequest } from '@/lib/freeFilmPolicy'
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -49,7 +54,22 @@ export default async function Page({ params, searchParams = {} }: { params: { ta
     }
     return <ClipNaMoldura measurementActor={u?.id ?? null} showRecreate={recreateVisible(u?.email)} />
   }
-  if (params.tab === 'film' && !filmParamsSupported(searchParams, { arrival: true })) redirect(`/studio?${query}`)
+  const arrival = { ...searchParams }
+  if (params.tab === 'film' && publicFilmEditor()) {
+    if (arrival.volta === '1' && validFilmDraftId(arrival.draft)) {
+      delete arrival.volta
+      delete arrival.draft
+    }
+    const entry = filmEntry(searchParams, false, false)
+    if (typeof arrival.engine === 'string' && motoresCandidatos().includes(arrival.engine)) delete arrival.engine
+    if (typeof arrival.prompt === 'string' && arrival.ideia === undefined && entry.text === arrival.prompt) delete arrival.prompt
+    if (entry.duration) delete arrival.duration
+    if (arrival.language === entry.language) delete arrival.language
+    if (arrival.aspect === entry.aspect) delete arrival.aspect
+    if (arrival.script_mode === 'ai' || entry.verbatim) delete arrival.script_mode
+    if (entry.look) delete arrival.look
+  }
+  if (params.tab === 'film' && !filmParamsSupported(arrival, { arrival: true })) redirect(`/studio?${query}`)
   // KINEO-ENTRADAS-CARTOES-1011 [fundador 10/11: "Make my ad", "Make my UGC ad" e "Make my cartoon" abriram a tela ANTIGA] — Ads e Cartoon
   // guardam a chegada que sabem repassar (a MESMA régua da entrada: entry + atribuição); qualquer outro dado volta ao destino de hoje intacto.
   // KINEO-ADS-PESSOA-FALANDO-TELA-1211 [dono 12/11: "não adianta ter os vídeos e o cara não conseguir fazer"] — o anúncio com a pessoa FALANDO, na aba Ads
@@ -64,6 +84,13 @@ export default async function Page({ params, searchParams = {} }: { params: { ta
   const supabase = createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   const decision = createShellDecision(params.tab, user, undefined, query) // KINEO-ENTRADAS-TELA-NOVA-1011 — o visitante volta para a aba COM a query
+  if (publicFilmEditor() && params.tab === 'film') {
+    const loggedIn = Boolean(user && !authError)
+    const trusted = !authError || authError.name === 'AuthSessionMissingError'
+    const entry = filmEntry(searchParams, !loggedIn, trusted && paisDaListaConfirmado(paisDoRequest(headers())) !== null)
+    const campaign = searchParams.intent_campaign === undefined ? CREATE_FILM_CAMPAIGN : campanhaDaCaixa(searchParams.intent_campaign)
+    return <><StudioIdeaArrival /><StudioNaMoldura caixaNova entry={entry} showFilmStyle={loggedIn && filmLookAccount(user?.email)} showRecreate={abaRecreateVisivel(user?.email)} showClip={clipNaMolduraVisivel(user?.email)} motor={motorDaCaixa(searchParams.engine)} campanha={campaign} ideiaInicial={entry.text} /></>
+  }
   if (decision.kind === 'signup') redirect(decision.href)
   if (decision.kind !== 'show') notFound()
   if (params.tab === 'ads') return <><StudioIdeaArrival /><AdsV2Workspace searchParams={searchParams} moldura /></>

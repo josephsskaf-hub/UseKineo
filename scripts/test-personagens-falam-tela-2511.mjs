@@ -43,7 +43,7 @@ function calls(file, path, source = read(file)) {
 function evaluate(code, context) {
   return vm.runInNewContext(ts.transpileModule(code, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText, context, { timeout: 4000 })
 }
-const voiceButton = (props, tag) => tag === 'button' && ['Narrator', 'Characters talk', 'Character dialogue'].includes(props.children)
+const voiceButton = (props, tag) => tag === 'button' && ['Narrator', 'Characters talk'].includes(props.children)
 const picked = tab => tab.all(voiceButton).filter(node => node.props['aria-pressed']).map(node => node.props.children)
 const action = (props, tag) => tag === 'button' && /^studio-(simple|moldura)-generate$/.test(props['data-testid'] ?? '')
 
@@ -66,7 +66,7 @@ function launch(file, props, overrides, selection) {
     assert.equal(Boolean(tab.one(charactersButton, 'long film').props.disabled), !oneTap)
     if (oneTap) {
       tab.click(charactersButton, 'adjust settings with one click')
-      assert.deepEqual(picked(tab), ['Character dialogue'])
+      assert.deepEqual(picked(tab), ['Characters talk'])
       assert.match(tab.html(), /Dialogue set to 15 s, Realistic and English/)
       tab.click((p,t) => t === 'button' && p.children === 'Undo', 'restore prior settings')
       assert.deepEqual(picked(tab), ['Narrator'])
@@ -85,7 +85,7 @@ function launch(file, props, overrides, selection) {
         tab.click(charactersButton, 'explicitly choose again')
       }
     }
-    assert.deepEqual(picked(tab), [selection === 'characters' ? oneTap ? 'Character dialogue' : 'Characters talk' : 'Narrator'])
+    assert.deepEqual(picked(tab), [selection === 'characters' ? 'Characters talk' : 'Narrator'])
   } else assert.deepEqual(picked(tab), [])
   const html = tab.html()
   tab.click(action, 'Generate')
@@ -176,7 +176,7 @@ assert.deepEqual(filmRequests(onFields, 'characters', read(film), 'fast').slice(
     if (showFilmStyle) tab.click((p,t) => t === 'button' && p.children === 'Anime','choose Anime')
     tab.select(selectable,'pt','Portuguese')
     tab.click(charactersButton,'dialogue from 60s in Portuguese')
-    assert.deepEqual(picked(tab),['Character dialogue'])
+    assert.deepEqual(picked(tab),['Characters talk'])
     assert.equal(tab.one(selectable,'language').props.value,'en')
     const style = tab.all((p,t) => t === 'button' && p.children === 'Realistic')
     assert.equal(style.length, Number(showFilmStyle), 'external visitor never gets private style selector')

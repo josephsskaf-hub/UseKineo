@@ -18,9 +18,11 @@ import { nomeDoMotorEscolhido, pedidoDoStudioSimples, type FilmeDaCaixa } from '
 import { EVENTO_DA_LINHA, LINHA_DO_FILME_GRATIS, filmeGratisNaCaixa } from '@/lib/growth/filmeGratisNaCaixa' // KINEO-CAIXA-GRATIS-VISIVEL-0411
 import { temCookieDeSessao } from '@/lib/growth/visitanteEscreveAntes' // KINEO-CAIXA-GRATIS-VISIVEL-0411
 import { contaPagaDoSaldo } from '@/lib/create/filmNaMoldura' // KINEO-STUDIO-NA-MOLDURA-ABRE-1011
-import { duracoesDoMotor, flagsDoCorpo, kling4AoVivo, motoresOpcionais, type FlagsDoSeletor, type OpcaoDeMotor } from '@/lib/create/motorOpcional' // KINEO-MOTOR-OPCIONAL-1011
+import { motorGeravel, motoresCandidatos, duracoesDoMotor, flagsDoCorpo, kling4AoVivo, motoresOpcionais, type FlagsDoSeletor, type OpcaoDeMotor } from '@/lib/create/motorOpcional' // KINEO-MOTOR-OPCIONAL-1011
 import { rebaseKling4Lease } from '@/lib/kling4PaidPresentation' // KINEO-MOTOR-OPCIONAL-1011 — a mesma leitura do Kling 4.0 que o Studio antigo faz
 import { KineoBrandIcon } from '@/components/KineoBolt' // KINEO-CELULAR-A-0611
+import { filmSignup, restoreFilm, type FilmEntry } from '@/lib/create/publicEditor'
+import { readPastedDirectives } from '@/lib/pastedDirectives'
 import { requestFilmProjection } from './requestFilmProjection'
 import { suggestedFilmLook, type FilmLook } from '@/lib/cinematic/filmLook2511'
 import FilmStylePicker from './FilmStylePicker'
@@ -112,11 +114,12 @@ export interface CaixaNaMoldura {
   motores: OpcaoDeMotor[] | null; motoresEstado: 'fechado' | 'lendo' | 'pronto' | 'falhou'; abrirMotores: () => void; escolherMotor: (k: string) => void
   /** KINEO-MOTOR-OPCIONAL-1011 — a leitura do Kling 4.0 pago (GET /api/kling4-paid/availability), feita junto com as flags; null = não lida. */
   kling4: unknown
+  visitor?: boolean; firstFilmFree?: boolean; checkingAccount?: boolean
   filmStylePicker?: ReactNode
   filmVoicePicker?: ReactNode
 }
 
-export default function StudioSimples({ filmes, motor: motorDoLink, campanha, ideiaInicial = '', moldura, showFilmStyle = false, initialFilmLook, initialVoiceMode }:  { filmes: ReadonlyArray<FilmeDaCaixa>; motor: string; campanha: string; ideiaInicial?: string; moldura?: (c: CaixaNaMoldura) => ReactNode; showFilmStyle?: boolean; initialFilmLook?: FilmLook; initialVoiceMode?: FilmVoiceMode }) {
+export default function StudioSimples({ entry, filmes, motor: motorDoLink, campanha, ideiaInicial = '', moldura, showFilmStyle = false, initialFilmLook, initialVoiceMode }:  { entry?: FilmEntry; filmes: ReadonlyArray<FilmeDaCaixa>; motor: string; campanha: string; ideiaInicial?: string; moldura?: (c: CaixaNaMoldura) => ReactNode; showFilmStyle?: boolean; initialFilmLook?: FilmLook; initialVoiceMode?: FilmVoiceMode }) {
   const router = useRouter()
   const registrar = useMrrStudioFunnel()
   const caixa = useRef<HTMLTextAreaElement>(null)
@@ -147,14 +150,16 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
       changed: choice?.changed === true || next !== (choice?.chosen ?? look),
     }))
   }} />
-  const [duracao, setDuracao] = useState<number>(60)
-  const [formato, setFormato] = useState<string>('9:16')
-  const [lingua, setLingua] = useState<string>('auto') /* KINEO-ROTEIRO-NA-LINGUA-0411 — sem escolha, o filme fala a língua do texto */
+  const touched = useRef(Boolean(entry?.resumed))
+  const [checkingAccount, setCheckingAccount] = useState(Boolean(entry && !entry.visitor))
+  const [duracao, setDuracao] = useState<number>(entry?.duration ?? (entry?.visitor && motorDoLink === 'seedance' && entry.confirmedCountry && !entry.resumed ? 15 : 60))
+  const [formato, setFormato] = useState<string>(entry?.aspect ?? '9:16')
+  const [lingua, setLingua] = useState<string>(entry?.language ?? 'auto') /* KINEO-ROTEIRO-NA-LINGUA-0411 — sem escolha, o filme fala a língua do texto */
   const voiceAvailable = filmVoiceEnabled() && characterVoiceAvailable(duracao, lingua, texto, selectedLook)
   const effectiveVoice = voiceAvailable ? voiceMode : 'narrator'
-  const [palavraPorPalavra, setPalavraPorPalavra] = useState(false)
+  const [palavraPorPalavra, setPalavraPorPalavra] = useState(entry?.verbatim ?? false)
   const [folha, setFolha] = useState(false)
-  const [aviso, setAviso] = useState<string | null>(null)
+  const [aviso, setAviso] = useState<string | null>(entry?.adjustment || null)
   const [temFilmeGratis, setTemFilmeGratis] = useState(false) // KINEO-CAIXA-GRATIS-VISIVEL-0411 — só com prova do servidor; desconhecido = não mostra
   const [contaPaga, setContaPaga] = useState(false) // KINEO-STUDIO-NA-MOLDURA-ABRE-1011 — só com prova do servidor (contaPagaNaTela); desconhecido = false
   // KINEO-MOTOR-OPCIONAL-1011 [fundador 10/11: "se a pessoa quiser escolher, ela tem que ter essa opção"] — SÓ na moldura: o motor escolhido no
@@ -169,6 +174,7 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
   const nomeMotor = nomeDoMotorEscolhido(motor)
   const opcoesDuracao = moldura ? duracoesDoMotor(motor, kling4AoVivo(kling4)) : motor === 'seedance' ? DURACOES : DURACOES.filter((d) => d >= MIN_DURATION_ALL_ENGINES) // KINEO-MOTOR-OPCIONAL-1011: na moldura, a tabela do servidor
   function selectVoice(next: FilmVoiceMode) {
+    touched.current = true
     if (!moldura) { setVoiceMode(next); return }
     if (next === 'narrator') {
       setVoiceMode(next)
@@ -206,7 +212,7 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
 
   // KINEO-CAIXA-GRATIS-VISIVEL-0411 — sem cookie de sessão nem pergunta: visitante não vê a linha e não gera 401.
   useEffect(() => {
-    if (!temCookieDeSessao(document.cookie)) return
+    if (entry ? entry.visitor : !temCookieDeSessao(document.cookie)) return
     let vivo = true
     void fetch('/api/credits', { cache: 'no-store', credentials: 'same-origin' })
       .then((r) => (r.ok ? r.json() : null))
@@ -214,12 +220,15 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
         if (vivo && contaPagaDoSaldo(d)) setContaPaga(true) // KINEO-STUDIO-NA-MOLDURA-ABRE-1011 — mesma resposta, nenhuma chamada a mais
         if (vivo && typeof d?.filmsDelivered === 'number') setFilmsDelivered(d.filmsDelivered) // KINEO-MOTOR-OPCIONAL-1011 — o muro do 1º filme, da mesma resposta
         if (!vivo || !filmeGratisNaCaixa(d)) return
+        if (entry && !entry.confirmedCountry) return
         setTemFilmeGratis(true)
+        if (entry && motorDoLink === 'seedance' && !touched.current) setDuracao(15)
         void trackEvent(EVENTO_DA_LINHA, { engine: motorDoLink, surface: 'studio_simple' })
       })
       .catch(() => { /* leitura que falhou = não mostra */ })
+      .finally(() => { if (vivo) setCheckingAccount(false) })
     return () => { vivo = false }
-  }, [motorDoLink])
+  }, [motorDoLink, entry?.visitor, entry?.confirmedCountry])
 
   useEffect(() => {
     if (!folha) return
@@ -227,6 +236,23 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
     window.addEventListener('keydown', fechar)
     return () => window.removeEventListener('keydown', fechar)
   }, [folha])
+
+  useEffect(() => {
+    if (!entry?.draftId) return
+    const saved = restoreFilm(entry.draftId, !entry.visitor)
+    if (!saved) { setAviso('This draft has expired or is unavailable in this tab.'); return }
+    touched.current = true
+    const allowedEngine = (key: string) => motoresCandidatos().includes(key) ? key : 'seedance'
+    setEscolhido(allowedEngine(saved.engine))
+    setTexto(saved.text); setFormato(saved.aspect); setDuracao(saved.duration); setLingua(saved.language)
+    setPalavraPorPalavra(saved.verbatim)
+    if (showFilmStyle && ['photoreal', 'animated3d', 'anime'].includes(saved.look ?? '') && saved.look) setStyleChoice({ initial: saved.look, chosen: saved.look, changed: false })
+    if (saved.dialogue && filmVoiceEnabled()) {
+      setVoiceMode('characters')
+      setBeforeDialogue({ ...saved.dialogue, style: null, engine: allowedEngine(saved.dialogue.engine), voice: 'narrator' })
+      setVoiceNotice('Dialogue set to 15 s, Realistic and English.')
+    }
+  }, [entry?.draftId])
 
   const maisOpcoes = useMemo(() => {
     const q = new URLSearchParams({ avancado: '1', engine: motor, intent_campaign: campanha })
@@ -241,16 +267,64 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
     return `/studio?${q.toString()}`
   }, [motor, campanha, texto, selectedLook, effectiveVoice, duracao, dialoguePreset])
 
-  function gerar() {
-    const t = texto.trim()
+  const requestedDuration = entry && readPastedDirectives(texto, opcoesDuracao).suggestedDuration
+  const firstFilmFree = Boolean(entry?.confirmedCountry && (entry.visitor || temFilmeGratis) && duracao === 15 &&
+    motor === 'seedance' && !palavraPorPalavra && (!requestedDuration || requestedDuration === 15))
+  const verifyingOffer = useRef(false)
+  const currentOrder = useRef('')
+  const order = JSON.stringify([texto, motor, duracao, formato, lingua, palavraPorPalavra, selectedLook, effectiveVoice])
+  currentOrder.current = order
+  useEffect(() => () => { currentOrder.current = '' }, [])
+  async function gerar() {
+    const t = entry && palavraPorPalavra ? texto : texto.trim()
     const recusar = (m: string) => { setAviso(m); caixa.current?.focus() }
-    if (!t) { caixa.current?.focus(); return }
+    if (!t.trim()) { caixa.current?.focus(); return }
     if (isStandaloneHttpUrl(t)) return recusar(CHATGPT_LINK_MESSAGE)
     if (limite.over) return recusar('This text is too long. Shorten it a little and try again.')
     const sexual = decideSexualContentRefusal(t)
     if (sexual.refuse) {
       void trackEvent('sexual_content_refused_client', { version: sexual.version, named_person: sexual.namedPerson, surface: 'studio_simple' })
       return recusar(sexualContentRefusalMessage(sexual.namedPerson))
+    }
+    if (checkingAccount) return
+    if (entry?.visitor) {
+      try {
+        const next = filmSignup({ text: texto, look: styleChoice?.chosen ?? entry.look, engine: motor, duration: duracao, aspect: formato, language: lingua, verbatim: palavraPorPalavra,
+          dialogue: dialoguePreset && beforeDialogue ? { engine: beforeDialogue.engine, duration: beforeDialogue.duration, aspect: beforeDialogue.aspect, language: beforeDialogue.language } : null })
+        router.push(next)
+      } catch { recusar('Your browser could not save this draft. Allow session storage and try again.') }
+      return
+    }
+    if (entry && !motorGeravel(motor, flags)) {
+      if (motoresEstado === 'fechado') {
+        setMotoresEstado('lendo')
+        void fetch('/api/me/credits', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => {
+          const available = flagsDoCorpo(d, filmsDelivered)
+          setFlags(available); setMotoresEstado(available ? 'pronto' : 'falhou')
+          setAviso(motorGeravel(motor, available) ? 'Engine available. Press Generate to continue.' : 'This engine is unavailable on your current plan. Choose Standard or check your plan.')
+        }).catch(() => { setMotoresEstado('falhou'); setAviso('Could not verify engine access. Choose Standard or reload to try again.') })
+        return recusar('Checking engine access…')
+      }
+      return recusar('This engine needs an eligible plan. Choose Standard or check your plan.')
+    }
+    if (firstFilmFree) {
+      if (verifyingOffer.current) return
+      verifyingOffer.current = true
+      setCheckingAccount(true)
+      try {
+        const response = await fetch('/api/credits', { cache: 'no-store', credentials: 'same-origin' })
+        if (!response.ok) throw new Error('Credits unavailable')
+        if (!filmeGratisNaCaixa(await response.json())) {
+          setTemFilmeGratis(false)
+          return recusar('The free film is no longer available. Review the credit cost before continuing.')
+        }
+        if (currentOrder.current !== order) return
+      } catch {
+        return recusar('Could not confirm your free film. Try again.')
+      } finally {
+        verifyingOffer.current = false
+        setCheckingAccount(false)
+      }
     }
     setAviso(null)
     registrar('mrr_generate_clicked')
@@ -264,9 +338,10 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
 
   // KINEO-STUDIO-NA-MOLDURA-1011 — com a moldura (só /create/film, interruptor CREATE_FILM_INPLACE), troca SÓ o desenho; sem ela, nada muda.
   if (moldura) {
-    const escrever = (v: string) => { setTexto(v); setAviso(null); if (v.trim()) registrar('mrr_idea_entered') } // o mesmo onChange da caixa abaixo
+    const escrever = (v: string) => { touched.current = true; setTexto(v); setAviso(entry?.adjustment || null); if (v.trim()) registrar('mrr_idea_entered') } // o mesmo onChange da caixa abaixo
     // KINEO-MOTOR-OPCIONAL-1011 — abrir a linha lê as flags uma vez; falhou = só o padrão (falha fechada, como o picker do Studio).
     const abrirMotores = () => {
+      if (entry?.visitor) { setMotoresEstado('falhou'); return }
       if (motoresEstado !== 'fechado') return
       setMotoresEstado('lendo')
       void fetch('/api/me/credits', { cache: 'no-store', credentials: 'same-origin' })
@@ -281,7 +356,7 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
     const motores = motoresEstado === 'pronto' && flags ? motoresOpcionais(flags) : motoresEstado === 'falhou' ? [] : null
     // Só escolhe o que a régua deixa livre (o padrão sempre); trancado e pausado nunca viram o motor do pedido.
     const escolherMotor = (k: string) => {
-      const livre = k === motorDoLink || (motores ?? []).some((o) => o.key === k && o.estado === 'livre')
+      const livre = k === 'seedance' || (!entry && k === motorDoLink) || (motores ?? []).some((o) => o.key === k && o.estado === 'livre')
       if (!livre) return
       if (k !== 'seedance') useNarration('Narrator selected because dialogue uses the Standard engine.')
       setEscolhido(k)
@@ -289,11 +364,12 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
       if (!opcoes.includes(duracao)) setDuracao(opcoes.find((d) => d >= duracao) ?? opcoes[opcoes.length - 1])
       void trackEvent('create_engine_chosen', { engine: k, from: motor })
     }
-    return <>{moldura({ motor, texto, escrever, caixa, aviso, limiteMax: limite.max, duracao, opcoesDuracao,
-      setDuracao: d => { if (d !== 15) useNarration('Narrator selected because dialogue needs 15 s.'); setDuracao(d) },
-      formato, formatos: FORMATOS, setFormato: f => { if (f !== '9:16') useNarration('Narrator selected because dialogue needs vertical video.'); setFormato(f) },
-      lingua, setLingua: l => { if (l !== 'en') useNarration('Narrator selected because dialogue needs English.'); setLingua(l) },
-      palavraPorPalavra, setPalavraPorPalavra, maisOpcoes, temFilmeGratis, gerar, contaPaga, motores, motoresEstado, abrirMotores, escolherMotor, kling4, filmStylePicker, ...(filmVoicePicker ? { filmVoicePicker } : {}) })}</>
+
+    return <>{moldura({ ...(entry ? { visitor: entry.visitor, firstFilmFree, checkingAccount } : {}), motor, texto, escrever, caixa, aviso, limiteMax: limite.max, duracao, opcoesDuracao,
+      setDuracao: d => { touched.current = true; if (d !== 15) useNarration('Narrator selected because dialogue needs 15 s.'); setDuracao(d) },
+      formato, formatos: FORMATOS, setFormato: f => { touched.current = true; if (f !== '9:16') useNarration('Narrator selected because dialogue needs vertical video.'); setFormato(f) },
+      lingua, setLingua: l => { touched.current = true; if (l !== 'en') useNarration('Narrator selected because dialogue needs English.'); setLingua(l) },
+      palavraPorPalavra, setPalavraPorPalavra: v => { touched.current = true; setPalavraPorPalavra(v) }, maisOpcoes, temFilmeGratis: entry ? false : temFilmeGratis, gerar, contaPaga, motores, motoresEstado, abrirMotores, escolherMotor, kling4, filmStylePicker, ...(filmVoicePicker ? { filmVoicePicker } : {}) })}</>
   }
 
   return (

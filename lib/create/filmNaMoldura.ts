@@ -24,8 +24,8 @@ export function contaPagaDoSaldo(payload: unknown): boolean {
   return contaPagaNaTela({ hasPaid: d.hasPaid === true, isStarter: d.isStarter === true, isCreator: d.isCreator === true, isStudio: d.isStudio === true, planoLido: false, provadoQueNaoPaga: false }) === true
 }
 
-export function precoDoGenerate(f: { motor: string; duracao: number; contaPaga: boolean; palavraPorPalavra: boolean; texto: string; opcoesDuracao: readonly number[]; kling4?: unknown }): number | null {
-  if (!f.contaPaga || f.palavraPorPalavra || (f.motor !== MOTOR_PADRAO && !motoresCandidatos().includes(f.motor))) return null
+export function precoDoGenerate(f: { motor: string; duracao: number; contaPaga: boolean; showTariff?: boolean; palavraPorPalavra: boolean; texto: string; opcoesDuracao: readonly number[]; kling4?: unknown }): number | null {
+  if ((!f.contaPaga && !f.showTariff) || f.palavraPorPalavra || (f.motor !== MOTOR_PADRAO && !motoresCandidatos().includes(f.motor))) return null
   const pedida = readPastedDirectives(f.texto, f.opcoesDuracao).suggestedDuration
   if (pedida !== null && pedida !== f.duracao) return null
   return f.motor === MOTOR_PADRAO ? creditCostForDuration('cinematic_ai', true, f.duracao) : custoNoBotao(f.motor, f.duracao, f.kling4)

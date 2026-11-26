@@ -88,7 +88,7 @@ export default function CaixaNovaDoFilme({ c, preco, showRecreate, showClip }: {
   }
 
   return <main className="recreate create-shell cx-tela" data-create-shell="film" data-caixa-nova-tela="">
-    <header className="rc-nav ct-nav"><Link href="/" className="rc-brand"><KineoBrandIcon size={28} /><span>Kineo</span></Link><CreateTabs active="film" showRecreate={showRecreate} showClip={showClip} /><CreateNavConta /></header>
+    <header className="rc-nav ct-nav"><Link href="/" className="rc-brand"><KineoBrandIcon size={28} /><span>Kineo</span></Link><CreateTabs active="film" showRecreate={showRecreate} showClip={showClip} />{!c.visitor && <CreateNavConta />}</header>
     <div className="cx-area">
       <div className="cx-coluna">
         <CaixaDeCriar
@@ -98,7 +98,7 @@ export default function CaixaNovaDoFilme({ c, preco, showRecreate, showClip }: {
           texto={c.texto} aoEscrever={c.escrever} caixaRef={c.caixa} placeholder={CAIXA_NOVA_PLACEHOLDER} aviso={c.aviso} limiteMax={c.limiteMax}
           foto={{ tipo: 'link', href: c.maisOpcoes, rotulo: CAIXA_NOVA_FOTO_FILME.rotulo, dica: CAIXA_NOVA_FOTO_FILME.dica }}
           chips={chipsDoFilme(c)}
-          gerar={{ aoClicar: c.gerar, custo: preco, testId: 'studio-simple-generate' }}
+          gerar={{ aoClicar: c.gerar, custo: c.firstFilmFree || c.checkingAccount ? null : preco, label: c.firstFilmFree ? 'First film free' : c.checkingAccount ? 'Checking credits…' : undefined, checking: c.checkingAccount, testId: 'studio-simple-generate' }}
           confianca={CAIXA_NOVA_CONFIANCA}
           nota={c.temFilmeGratis ? <p className="cx-gratis" data-testid="studio-free-film-line">{LINHA_DO_FILME_GRATIS}</p> : null}
           exemplos={exemplos} exemplosTitulo={CAIXA_NOVA_EXEMPLOS_TITULO} exemplosDica={CAIXA_NOVA_EXEMPLOS_DICA}

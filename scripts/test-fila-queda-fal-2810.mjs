@@ -143,7 +143,7 @@ function checa(over = {}) {
   if (!rota.includes("req.headers.get('x-kineo-service-user')") || !rota.includes('`Bearer ${process.env.CRON_SECRET}`') || !rota.includes('supabase.auth.admin.getUserById(serviceUserHeader)')) e.push('modo serviço sem o contrato Bearer CRON_SECRET + x-kineo-service-user + e-mail do auth')
   if (/user = \{ id: serviceUserHeader, email: svcProfile/.test(rota)) e.push('modo serviço leu o e-mail de profiles (editável) em vez do auth')
   const iJson = rota.indexOf('body = await req.json()')
-  const linhaLook = 'const explicitFilmLook = selectedFilmLook(body.look, user.email)'
+  const linhaLook = 'const explicitFilmLook = selectedFilmLook(body.look, user.email, body)'
   const iLook = rota.indexOf(linhaLook, iJson)
   const iCopia = rota.indexOf(COPIA_PEDIDO)
   const iMut = rota.indexOf("body.script_mode = 'ai'")
