@@ -94,6 +94,7 @@ export type PedidoEstacionado = {
   characterId?: string
   kids_cartoon?: string
   look?: string
+  look_source?: 'create_film'
   voice_mode?: FilmVoiceMode
   allow_shorter_duration?: boolean
   formatFlags?: unknown
@@ -120,6 +121,7 @@ export function pedidoEstacionavel(body: unknown): PedidoEstacionado | null {
   if (!Number.isFinite(duration) || duration <= 0) return null
   const out: PedidoEstacionado = { prompt, duration }
   for (const k of PEDIDO_TEXTO) if (typeof b[k] === 'string' && (b[k] as string).length <= 200) out[k] = b[k] as string
+  if (out.look && b.look_source === 'create_film') out.look_source = 'create_film'
   const voiceMode = filmVoiceMode(b.voice_mode)
   if (voiceMode) out.voice_mode = voiceMode
   if (b.allow_shorter_duration === true) out.allow_shorter_duration = true

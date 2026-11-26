@@ -1,5 +1,6 @@
 import { INTERNAL_EXACT_EMAILS } from '@/lib/internalAccounts'
 import { filmLookEnabled, type FilmLook } from './filmLook2511'
+import { publicFilmEditor } from '@/lib/create/publicFilmEditorServer'
 import { filmVoiceEnabled } from './filmVoice2511'
 import { FALA_DOS_PERSONAGENS_2511, falaDosPersonagensLigada } from './falaDosPersonagens2511'
 
@@ -8,7 +9,7 @@ export function filmLookAccount(email: string | null | undefined): boolean {
 }
 
 type DialogueRequest = {
-  voice_mode?: unknown; engine?: unknown; duration?: unknown; language?: unknown; aspect?: unknown; kids_cartoon?: unknown
+  look_source?: unknown; voice_mode?: unknown; engine?: unknown; duration?: unknown; language?: unknown; aspect?: unknown; kids_cartoon?: unknown
 }
 
 export function selectedFilmLook(value: unknown, email: string | null | undefined, request?: DialogueRequest): FilmLook | undefined {
@@ -18,6 +19,7 @@ export function selectedFilmLook(value: unknown, email: string | null | undefine
     && (request.duration === 15 || request.duration === '15') && !request.kids_cartoon
     && (request.engine === 'seedance' || request.engine === 'cinematic_ai')
     && (request.aspect === undefined || request.aspect === '9:16')) return 'photoreal'
-  if (!filmLookAccount(email)) return undefined
+  const fromPublicFilm = Boolean(email) && request?.look_source === 'create_film' && !request.kids_cartoon && publicFilmEditor()
+  if (!fromPublicFilm && !filmLookAccount(email)) return undefined
   return value === 'photoreal' || value === 'animated3d' || value === 'anime' ? value : undefined
 }

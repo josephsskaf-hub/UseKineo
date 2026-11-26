@@ -58,11 +58,12 @@ export function ideiaDoLink(valor: string | string[] | undefined): string {
 }
 
 /** KINEO-PEDIDO-GUARDA-TEXTO-0611 — quem pede o filme grátis com texto na caixa volta para a mesma caixa, com o texto. Vazio ou longo demais = null (segue o destino de antes). */
-export function voltaParaCaixa(texto: string | null | undefined, look?: FilmLook, voiceMode?: FilmVoiceMode): string | null {
+export function voltaParaCaixa(texto: string | null | undefined, look?: FilmLook, voiceMode?: FilmVoiceMode, publicLookEntry = false): string | null {
   const limpo = String(texto ?? '').trim()
   if (!limpo || limpo.length > 2000) return null
   const params = new URLSearchParams({ ideia: limpo })
   if (look) params.set('look', look)
+  if (look && publicLookEntry) params.set('look_source', 'create_film')
   if (voiceMode) params.set('voice_mode', voiceMode)
   return `/studio?${params.toString()}`
 }

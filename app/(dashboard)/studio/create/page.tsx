@@ -221,7 +221,7 @@ export default async function StudioCreatePage({ searchParams }: StudioCreatePag
     }
     if (shouldRouteGenerateToPreview({ profile: prev as PreviaProfile | null, params, filmCost, freeShortFilmCost: engineParam === 'seedance' && seedance15sVisible(user.email) ? creditCostForDuration('cinematic_ai', true, SEEDANCE_SHORT_SECONDS) : null })) { // KINEO-PRIMEIRO-FILME-2026-10-13: + freeShortFilmCost
       await writeServerEvent({ name: 'scene_preview_routed', userId: user.id, path: '/studio/create', metadata: { engine: engineParam, seconds: Number.isFinite(seconds) ? seconds : null, film_cost: filmCost } })
-      redirect(previaPath({ prompt: params.prompt ?? '', engine: engineParam, duration: firstParam(searchParams, 'duration'), language: firstParam(searchParams, 'language'), look: filmLook, ...(initialVoiceMode ? { voiceMode: initialVoiceMode, scriptMode: firstParam(searchParams, 'script_mode') } : {}) }))
+      redirect(previaPath({ prompt: params.prompt ?? '', engine: engineParam, duration: firstParam(searchParams, 'duration'), language: firstParam(searchParams, 'language'), look: filmLook, publicLookEntry: searchParams?.look_source === 'create_film', ...(initialVoiceMode ? { voiceMode: initialVoiceMode, scriptMode: firstParam(searchParams, 'script_mode') } : {}) }))
     }
   } catch (e) {
     // redirect() do Next lança de propósito: deixa passar. Qualquer outra falha = o caminho de sempre.
@@ -323,7 +323,7 @@ export default async function StudioCreatePage({ searchParams }: StudioCreatePag
         refusalNotice={refusalNotice}
         kineo1Visible={kineo1}
         seedance15={seedance15sVisible(user.email)}
-        {...(filmLook ? { filmLook } : {})}
+        {...(filmLook ? { filmLook, publicLookEntry: searchParams?.look_source === 'create_film' } : {})}
         {...(initialVoiceMode ? { initialVoiceMode } : {})}
       />
     </Suspense>

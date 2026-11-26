@@ -1014,6 +1014,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [], initia
     if (voice_mode) q.set('voice_mode', voice_mode)
     if (filmLook) {
       q.set('look', filmLook)
+        if (searchParams.get('look_source') === 'create_film') q.set('look_source', 'create_film')
       void trackEvent('studio_film_style_submitted', { initial_look: initialFilmLook, chosen_look: filmLook, changed: filmLookChanged })
     }
     // [TRAVA 8.2 — vai do fundador 13/10 'tudo sim nos 3 consertos'] (CONSERTO 1) — o Gerar com uma duração que o // KINEO-PRIMEIRO-FILME-2026-10-13

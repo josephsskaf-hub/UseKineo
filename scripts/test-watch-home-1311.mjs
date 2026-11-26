@@ -184,10 +184,28 @@ const recreateEntry = canonical.load('lib/recreate/entry.ts')
 const expectedIds = Array.from(clips.CLIPES_NOVOS, c => c.id)
 const topIds = Array.from(clips.CLIPES_NO_TOPO)
 assert.equal(topIds.length, 6, 'a ordem aprovada tem seis clipes no topo')
-const baseGuest = await world({ baseline: true }).render(LANDING)
+// The approved Film rollout changes exactly the two guest menu links in the historical HTML.
+function guestHomeWithFilmMenu(html) {
+  const expected = new Map([
+    ['/studio?intent_campaign=nav_door', '/create/film?intent_campaign=nav_door'],
+    ['/studio', '/create/film?intent_campaign=studio_simple'],
+  ])
+  const seen = []
+  const result = html.replace(/<a\b[^>]*>/g, tag => {
+    if (!tag.includes('data-nav-item="video"')) return tag
+    return tag.replace(/href="([^"]+)"/, (attr, href) => {
+      if (!expected.has(href)) return attr
+      seen.push(href)
+      return `href="${expected.get(href)}"`
+    })
+  })
+  assert.deepEqual(seen.sort(), [...expected.keys()].sort(), 'historical home contains both original Films links exactly once')
+  return result
+}
+const baseGuest = guestHomeWithFilmMenu(await world({ baseline: true }).render(LANDING))
 const baseAuth = await world({ baseline: true, user: fixtureUser }).render(LANDING, { initialUser: fixtureUser, initialEmail: fixtureUser.email })
 
-const baseGuestPage = await world({ baseline: true, flag: false }).render(HOME, {})
+const baseGuestPage = guestHomeWithFilmMenu(await world({ baseline: true, flag: false }).render(HOME, {}))
 const baseAuthPage = await world({ baseline: true, flag: false, user: fixtureUser }).render(HOME, {})
 
 // Review-only exports use exactly the SSR harness above, without hydration/network.

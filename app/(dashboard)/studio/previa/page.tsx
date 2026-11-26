@@ -21,9 +21,9 @@ export default async function ScenePreviewPage({ searchParams }: Props) {
   if (!user) redirect(`/login?redirect=${encodeURIComponent('/studio/previa')}`)
   const { data } = await supabase.from('profiles').select('trial_status, has_paid, plan, video_credits').eq('id', user.id).maybeSingle()
   if (!PREVIA_CENAS_PUBLIC || !previaEligible(data as PreviaProfile | null)) redirect('/studio')
-  const filmLook = selectedFilmLook(searchParams?.look, authError ? null : user.email)
+  const filmLook = selectedFilmLook(searchParams?.look, authError ? null : user.email, searchParams)
   const { voice_mode: voiceMode } = voiceModeFields(searchParams?.voice_mode)
   const originalScript = voiceMode === 'characters' && searchParams?.script_mode === 'verbatim'
     ? first(searchParams.prompt).slice(0, 5000) : undefined
-  return <ScenePreviewClient filmLook={filmLook} {...(voiceMode ? { voiceMode } : {})} {...(originalScript ? { originalScript } : {})} initialIdea={first(searchParams?.prompt).slice(0, 2000)} from={first(searchParams?.from).slice(0, 24)} aPedido={trialPedidoVisivel(data as { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null } | null)} />
+  return <ScenePreviewClient publicLookEntry={Boolean(filmLook && searchParams?.look_source === 'create_film')} filmLook={filmLook} {...(voiceMode ? { voiceMode } : {})} {...(originalScript ? { originalScript } : {})} initialIdea={first(searchParams?.prompt).slice(0, 2000)} from={first(searchParams?.from).slice(0, 24)} aPedido={trialPedidoVisivel(data as { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null } | null)} />
 }

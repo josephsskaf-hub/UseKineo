@@ -29,7 +29,7 @@ import { voltaParaCaixa } from '@/lib/growth/ideiaDaPagina' // KINEO-PREVIA-LIMI
 import PreviewPricingStrip from '@/components/PreviewPricingStrip' // KINEO-REGIAO-PAGA-1011 (3)
 import { REGIAO_PAGA_1011_RELEASE } from '@/lib/growth/regiaoPaga1011' // KINEO-REGIAO-PAGA-1011 (3)
 
-export default function ScenePreviewClient({ initialIdea, from, aPedido = false, filmLook, voiceMode, originalScript }: { initialIdea: string; from: string; aPedido?: boolean; filmLook?: FilmLook; voiceMode?: FilmVoiceMode; originalScript?: string }) {
+export default function ScenePreviewClient({ initialIdea, from, aPedido = false, filmLook, publicLookEntry = false, voiceMode, originalScript }: { initialIdea: string; from: string; aPedido?: boolean; filmLook?: FilmLook; publicLookEntry?: boolean; voiceMode?: FilmVoiceMode; originalScript?: string }) {
   const language = useInterfaceLanguage()
   const copy = pickInterfaceCopy(PREVIA_COPY, language)
   const scriptLanguage = language === 'pt' || language === 'es' ? language : 'en'
@@ -74,7 +74,7 @@ export default function ScenePreviewClient({ initialIdea, from, aPedido = false,
     const draft: PreviaResume = {
       t: Date.now(), idea: originalScript || preview.idea || idea, script: preview.script, language: preview.language,
       ...(originalScript ? { script_mode: 'verbatim', preview_idea: preview.idea } : {}),
-      ...(filmLook ? { look: filmLook } : {}), ...voiceModeFields(voiceMode), ...previaIdentityFields(preview.previewId),
+      ...(filmLook ? { look: filmLook } : {}), ...(filmLook && publicLookEntry ? { look_source: 'create_film' as const } : {}), ...voiceModeFields(voiceMode), ...previaIdentityFields(preview.previewId),
     }
     return { ...draft, ...previaVoiceFields(draft) }
   }
@@ -100,7 +100,7 @@ export default function ScenePreviewClient({ initialIdea, from, aPedido = false,
       window.dispatchEvent(new Event('creditsChanged'))
       // KINEO-PREVIA-LIMITE-FILME-0611 — sem prévia na tela, a pessoa volta à caixa com a ideia escrita; o filme só começa no Generate dela.
       if (!preview) {
-        const fallback = originalScript ? previaResumeStudioHref(filmDraft({ idea, script: originalScript, language: scriptLanguage, scenes: [] })) : voltaParaCaixa(idea, filmLook, voiceModeFields(voiceMode).voice_mode)
+        const fallback = originalScript ? previaResumeStudioHref(filmDraft({ idea, script: originalScript, language: scriptLanguage, scenes: [] })) : voltaParaCaixa(idea, filmLook, voiceModeFields(voiceMode).voice_mode, publicLookEntry)
         window.location.assign(fallback ?? '/studio')
         return
       }

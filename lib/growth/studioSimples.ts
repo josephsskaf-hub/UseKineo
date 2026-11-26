@@ -30,12 +30,13 @@ export function campanhaDaCaixa(intent: string | string[] | undefined): string {
 }
 
 /** O MESMO pedido do Generate do Studio completo (motor, texto, duração, modo, autoanalyze e studio; formato e língua só fora do padrão). */
-export function pedidoDoStudioSimples(p: { motor: string; texto: string; duracao: number; formato: string; lingua: string; palavraPorPalavra: boolean; campanha: string; look?: FilmLook; voiceMode?: FilmVoiceMode }): string {
+export function pedidoDoStudioSimples(p: { motor: string; texto: string; duracao: number; formato: string; lingua: string; palavraPorPalavra: boolean; campanha: string; look?: FilmLook; publicFilm?: boolean; voiceMode?: FilmVoiceMode }): string {
   const q = new URLSearchParams({ engine: p.motor, prompt: p.texto, duration: String(p.duracao), script_mode: p.palavraPorPalavra ? 'verbatim' : 'ai', autoanalyze: '1', studio: '1', intent_campaign: p.campanha })
   if (p.formato !== '9:16') q.set('aspect', p.formato)
   const lingua = p.lingua === 'auto' ? linguaDoRoteiro({ hint: 'en', texto: p.texto, motor: p.motor }).language : p.lingua // KINEO-ROTEIRO-NA-LINGUA-0411 — sem escolha, a língua do texto
   if (lingua !== 'en' || (p.voiceMode === 'characters' && p.look === 'photoreal' && p.lingua === 'en')) q.set('language', lingua)
   if (p.look) q.set('look', p.look)
+  if (p.look && p.publicFilm) q.set('look_source', 'create_film')
   const { voice_mode } = voiceModeFields(p.voiceMode)
   if (voice_mode) q.set('voice_mode', voice_mode)
   return `/studio/create?${q.toString()}`

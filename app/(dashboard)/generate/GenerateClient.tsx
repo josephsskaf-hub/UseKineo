@@ -1201,6 +1201,7 @@ export default function GenerateClient({
   kineo1Visible,
   seedance15: seedance15Prop,
   filmLook,
+  publicLookEntry = false,
   initialVoiceMode,
 }: {
   initialViralPrompt?: string
@@ -1223,6 +1224,7 @@ export default function GenerateClient({
    */
   seedance15?: boolean
   filmLook?: FilmLook
+  publicLookEntry?: boolean
   initialVoiceMode?: FilmVoiceMode
 }) {
   // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier via contexto (client).
@@ -2993,7 +2995,7 @@ export default function GenerateClient({
 
   function writerVoiceFields(seconds: number, text: string) {
     const fields = voiceModeFields(voiceForFilm(seconds, text))
-    return fields.voice_mode === 'characters' && filmLook ? { ...fields, look: filmLook } : fields
+    return fields.voice_mode === 'characters' && filmLook ? { ...fields, look: filmLook, ...(publicLookEntry ? { look_source: 'create_film' } : {}) } : fields
   }
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -10268,6 +10270,7 @@ export default function GenerateClient({
         const cineBrollScenes = cineUsable ? cinePlan!.scenes.map((s, sceneIdx) => ({ sceneNumber: s.sceneNumber, brollPrompt: s.brollPrompt, shotType: s.shotType, negativePrompt: s.negativePrompt, ...(cineFootage[sceneIdx] ? { userFootageUrl: cineFootage[sceneIdx].url } : {}) })) : undefined
         const cinematicPayload = {
           ...(filmLook ? { look: filmLook } : {}),
+          ...(filmLook && publicLookEntry ? { look_source: 'create_film' } : {}),
           ...voiceModeFields(voiceForFilm(duration, trimmed)),
           generationId: cinematicGenerationId,
           prompt: trimmed,

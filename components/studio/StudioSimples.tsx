@@ -119,7 +119,7 @@ export interface CaixaNaMoldura {
   filmVoicePicker?: ReactNode
 }
 
-export default function StudioSimples({ entry, filmes, motor: motorDoLink, campanha, ideiaInicial = '', moldura, showFilmStyle = false, initialFilmLook, initialVoiceMode }:  { entry?: FilmEntry; filmes: ReadonlyArray<FilmeDaCaixa>; motor: string; campanha: string; ideiaInicial?: string; moldura?: (c: CaixaNaMoldura) => ReactNode; showFilmStyle?: boolean; initialFilmLook?: FilmLook; initialVoiceMode?: FilmVoiceMode }) {
+export default function StudioSimples({ entry, filmes, motor: motorDoLink, campanha, ideiaInicial = '', moldura, showFilmStyle = false, initialFilmLook, initialVoiceMode, publicLookEntry = false }:  { entry?: FilmEntry; publicLookEntry?: boolean; filmes: ReadonlyArray<FilmeDaCaixa>; motor: string; campanha: string; ideiaInicial?: string; moldura?: (c: CaixaNaMoldura) => ReactNode; showFilmStyle?: boolean; initialFilmLook?: FilmLook; initialVoiceMode?: FilmVoiceMode }) {
   const router = useRouter()
   const registrar = useMrrStudioFunnel()
   const caixa = useRef<HTMLTextAreaElement>(null)
@@ -336,7 +336,7 @@ export default function StudioSimples({ entry, filmes, motor: motorDoLink, campa
       void trackEvent('studio_film_style_submitted', { initial_look: styleChoice?.initial ?? look, chosen_look: selectedLook ?? null, changed: styleChoice?.changed ?? false })
     }
     try { sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine: motor, prompt: t, language: lingua === 'auto' ? 'en' : lingua })) } catch {}
-    router.push(pedidoDoStudioSimples({ motor, texto: t, duracao, formato, lingua, palavraPorPalavra, campanha, ...(selectedLook ? { look: selectedLook } : {}), ...(filmVoiceEnabled() ? { voiceMode: effectiveVoice } : {}) }))
+    router.push(pedidoDoStudioSimples({ motor, texto: t, duracao, formato, lingua, palavraPorPalavra, campanha, publicFilm: Boolean(entry) || publicLookEntry, ...(selectedLook ? { look: selectedLook } : {}), ...(filmVoiceEnabled() ? { voiceMode: effectiveVoice } : {}) }))
   }
 
   // KINEO-STUDIO-NA-MOLDURA-1011 — com a moldura (só /create/film, interruptor CREATE_FILM_INPLACE), troca SÓ o desenho; sem ela, nada muda.

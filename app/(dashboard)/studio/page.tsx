@@ -93,7 +93,7 @@ export default function StudioPage({ searchParams = {} }: { searchParams?: Recor
     const content = (
       <>
         <StudioIdeaArrival />
-        <StudioSimples key={initialFilmLook} {...(initialVoiceMode ? { initialVoiceMode } : {})} showFilmStyle={showFilmStyle} initialFilmLook={initialFilmLook} filmes={filmesDaPorta0511()} motor={motorDaCaixa(searchParams.engine)} campanha={campanhaDaCaixa(searchParams.intent_campaign)} ideiaInicial={watchExampleText(ideiaDoLink(searchParams.ideia), searchParams.example, 'film')} />
+        <StudioSimples key={initialFilmLook} {...(initialVoiceMode ? { initialVoiceMode } : {})} showFilmStyle={showFilmStyle} initialFilmLook={initialFilmLook} publicLookEntry={searchParams.look_source === 'create_film'} filmes={filmesDaPorta0511()} motor={motorDaCaixa(searchParams.engine)} campanha={campanhaDaCaixa(searchParams.intent_campaign)} ideiaInicial={watchExampleText(ideiaDoLink(searchParams.ideia), searchParams.example, 'film')} />
       </>
     )
     return process.env.NEXT_PUBLIC_KINEO_STUDIO_FILM_3D === 'true' ? founderFilmEntry(content) : content
@@ -108,10 +108,10 @@ export default function StudioPage({ searchParams = {} }: { searchParams?: Recor
       <StudioClient key={initialFilmLook} {...(initialVoiceMode ? { initialVoiceMode } : {})} engineHeroes={engineHeroes} bestFilms={bestFilms} initialFilmLook={initialFilmLook} />
     </>
   )
-  const { look, ...entryWithoutLook } = entryParams
-  if (!filmLookEnabled(true) || typeof look !== 'string') return advancedEntry()
+  const { look, look_source, ...entryWithoutLook } = entryParams
+  if ((!filmLookEnabled(true) && look_source !== 'create_film') || typeof look !== 'string') return advancedEntry()
   return filmStyleEmail().then(email => {
-    const initialFilmLook = selectedFilmLook(look, email)
+    const initialFilmLook = selectedFilmLook(look, email, searchParams)
     return initialFilmLook && usarCaixaUnica(entryWithoutLook) ? simpleEntry(true, initialFilmLook) : advancedEntry(initialFilmLook)
   })
 }

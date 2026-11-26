@@ -66,11 +66,11 @@ function postExpression(source) {
   assert.equal(matches.length, 1, 'o POST real da geração cinematográfica')
   return matches[0].getText(parsed)
 }
-function interceptPost(filmLook, source = read(DISPATCH)) {
+function interceptPost(filmLook, source = read(DISPATCH), publicLookEntry = false) {
   let call
   const payload = namedExpression(source, 'cinematicPayload', DISPATCH)
   runJS('const cinematicPayload = ' + payload + '\n' + postExpression(source), {
-    filmLook, resumedStyle: () => undefined, voiceMode: 'narrator', voiceForFilm: () => 'narrator', voiceModeFields: load('@/lib/cinematic/filmVoice2511').voiceModeFields,
+    filmLook, publicLookEntry, resumedStyle: () => undefined, voiceMode: 'narrator', voiceForFilm: () => 'narrator', voiceModeFields: load('@/lib/cinematic/filmVoice2511').voiceModeFields,
     cinematicGenerationId: 'synthetic-attempt', trimmed: ordinary, duration: 60, language: 'en', aspectRequested: '9:16',
     scriptMode: 'ai', analysis: null, aiEngine: mode, cineBrollScenes: undefined, cineUsable: false,
     ideiaDoRoteiroRef: { current: null }, estrelaRef: { current: null }, kidsCartoonId: null,
@@ -239,10 +239,12 @@ async function entryProps(file, email, searchParams, error = null, overrides = {
 }
 for (const page of [STUDIO, CREATE_FILM]) {
   assert.equal((await entryProps(page, internal, {})).showFilmStyle, true, 'a página habilita só a conta autenticada e exata')
-  assert.equal((await entryProps(page, external, {})).showFilmStyle, false)
+  assert.equal((await entryProps(page, external, {})).showFilmStyle, page === CREATE_FILM)
   assert.equal((await entryProps(page, internal, {}, new Error('auth'))).showFilmStyle, false)
 }
 assert.equal((await entryProps(STUDIO, null, {})).showFilmStyle, false)
+assert.equal((await entryProps(CREATE_FILM, null, {})).showFilmStyle, true)
+assert.equal((await entryProps(CREATE_FILM, null, {}, Object.assign(new Error('no session'), {name:'AuthSessionMissingError'}))).showFilmStyle, true)
 const offFlag = { 'lib/cinematic/filmLook2511.ts': read('lib/cinematic/filmLook2511.ts').replace("FILM_LOOK_2511: FilmLookMode = 'internal'", "FILM_LOOK_2511: FilmLookMode = 'off'") }
 assert.equal((await entryProps(STUDIO, internal, {}, null, offFlag)).showFilmStyle, false)
 assert.equal((await entryProps(STUDIO, external, { prompt: cartoon, look: 'anime' })).initialFilmLook, undefined)
@@ -269,17 +271,43 @@ const homeSend = submit(fromHome).searchParams
 assert.equal(homeSend.get('intent_campaign'), homeHref.searchParams.get('intent_campaign'))
 assert.equal(JSON.parse(interceptPost(runEntry(homeSend, internal))).look, 'animated3d', 'a caixa aberta pela home manda ao POST o estilo escolhido')
 for (const [email, override] of [[external, {}], [internal, offFlag]]) {
-  const standard = await entryProps(CREATE_FILM, email, homeQuery, null, override)
+  const standard = await entryProps(STUDIO, email, {}, null, override)
   const unchanged = mount('box', false, override, ordinary, { ...standard, ideiaInicial: ordinary })
   await unchanged.settle()
   assert.equal(unchanged.all(styleButton).length, 0)
   assert.equal(submit(unchanged).searchParams.has('look'), false)
 }
 
+const fromPublic = await entryProps(CREATE_FILM, external, {})
+const publicBox = mount('box', true, {}, ordinary, { ...fromPublic, ideiaInicial: ordinary })
+await publicBox.settle()
+assert.equal(marked(publicBox), 'Realistic')
+const noPublicSelection = submit(publicBox).searchParams
+assert.equal(noPublicSelection.has('look'), false)
+assert.equal(noPublicSelection.has('look_source'), false)
+publicBox.click((p, tag) => styleButton(p, tag) && p.children === 'Anime', 'Anime')
+const publicQuery = submit(publicBox).searchParams
+assert.equal(publicQuery.get('look_source'), 'create_film')
+assert.equal(runEntry(publicQuery, external), 'anime')
+const publicPayload = JSON.parse(interceptPost(runEntry(publicQuery, external), read(DISPATCH), true))
+assert.equal(gate.selectedFilmLook(publicPayload.look, external, publicPayload), 'anime')
+assert.equal(gate.selectedFilmLook(publicPayload.look, external, { ...publicPayload, kids_cartoon: 'wizard' }), undefined)
+assert.equal(gate.selectedFilmLook(publicPayload.look, null, publicPayload), undefined)
+const filmQueue = load('@/lib/filaQuedaFal')
+const parked = filmQueue.pedidoEstacionavel(publicPayload)
+assert.equal(gate.selectedFilmLook(parked.look, external, filmQueue.corpoDaRetomada(parked, 'synthetic-retry')), 'anime')
+const disabled = loader({}, { 'lib/create/publicEditorRelease.ts': 'export const PUBLIC_CREATE_EDITORS = false' })('lib/cinematic/filmLook2511Server')
+assert.equal(disabled.selectedFilmLook(publicPayload.look, external, publicPayload), undefined)
 const original = new URLSearchParams({ prompt: cartoon, look: 'animated3d' })
 const { previaPath, previaResumeStudioHref } = load('@/lib/scenePreview')
 const { voltaParaCaixa } = load('@/lib/growth/ideiaDaPagina')
 const parse = href => Object.fromEntries(new URL(href, 'https://example.invalid').searchParams)
+const publicPreview = parse(previaPath({ prompt: ordinary, look: runEntry(publicQuery, external), publicLookEntry: true }))
+assert.equal(gate.selectedFilmLook(publicPreview.look, external, publicPreview), 'anime')
+const publicResume = parse(previaResumeStudioHref({ t: Date.now(), idea: ordinary, script: ordinary, language: 'en', look: 'anime', look_source: publicPreview.look_source }))
+assert.equal((await entryProps(STUDIO, external, publicResume)).initialFilmLook, 'anime')
+const publicFallback = parse(voltaParaCaixa(ordinary, 'anime', undefined, true))
+assert.equal((await entryProps(STUDIO, external, publicFallback)).initialFilmLook, 'anime')
 const previewQuery = parse(previaPath({ prompt: cartoon, look: runEntry(original, internal) }))
 assert.equal(previewQuery.look, 'animated3d', 'a prévia recebe o enum já autorizado')
 const resume = parse(previaResumeStudioHref({ t: Date.now(), idea: cartoon, script: ordinary, language: 'en', look: previewQuery.look }))
@@ -292,7 +320,7 @@ const carryLook = advancedSource.match(/    if \(filmLook\) \{[\s\S]*?\n    }/)?
 assert.ok(carryLook, 'a montagem do Studio avançado inclui o estilo')
 const advancedParams = runJS('const q = ' + advancedQ + '\n' + carryLook + '\nq', {
   URLSearchParams, engine: mode, finalPrompt: ordinary, duration: 15, scriptMode: 'verbatim', campaignRef: { current: 'scene_preview' },
-  filmLook: fromPreview.initialFilmLook, initialFilmLook: fromPreview.initialFilmLook, filmLookChanged: false, trackEvent() {},
+  searchParams: new URLSearchParams(resume), filmLook: fromPreview.initialFilmLook, initialFilmLook: fromPreview.initialFilmLook, filmLookChanged: false, trackEvent() {},
 })
 assert.equal(JSON.parse(interceptPost(runEntry(advancedParams, internal))).look, 'animated3d', 'a retomada chega ao POST com a seleção')
 const fromEmptyPreview = await entryProps(STUDIO, internal, parse(voltaParaCaixa(cartoon, previewQuery.look)))

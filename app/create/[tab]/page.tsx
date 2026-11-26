@@ -90,7 +90,7 @@ export default async function Page({ params, searchParams = {} }: { params: { ta
     const trusted = !authError || authError.name === 'AuthSessionMissingError'
     const entry = filmEntry(searchParams, !loggedIn, trusted && paisDaListaConfirmado(paisDoRequest(headers())) !== null)
     const campaign = searchParams.intent_campaign === undefined ? CREATE_FILM_CAMPAIGN : campanhaDaCaixa(searchParams.intent_campaign)
-    return <><StudioIdeaArrival /><StudioNaMoldura caixaNova entry={entry} showFilmStyle={loggedIn && filmLookAccount(user?.email)} showRecreate={abaRecreateVisivel(user?.email)} showClip={clipNaMolduraVisivel(user?.email)} motor={motorDaCaixa(searchParams.engine)} campanha={campaign} ideiaInicial={entry.text} /></>
+    return <><StudioIdeaArrival /><StudioNaMoldura caixaNova entry={entry} showFilmStyle={trusted} showRecreate={abaRecreateVisivel(user?.email)} showClip={clipNaMolduraVisivel(user?.email)} motor={motorDaCaixa(searchParams.engine)} campanha={campaign} ideiaInicial={entry.text} /></>
   }
   if (decision.kind === 'signup') redirect(decision.href)
   if (decision.kind !== 'show') notFound()

@@ -98,7 +98,7 @@ export function shouldRouteGenerateToPreview(args: {
 }
 
 /** Destino do desvio: a tela da prévia com a ideia (e o que a pessoa escolheu) — nunca gera nada sozinha. */
-export function previaPath(params: { prompt: string; engine?: string | null; duration?: string | null; language?: string | null; look?: FilmLook; voiceMode?: FilmVoiceMode; scriptMode?: string | null }): string {
+export function previaPath(params: { prompt: string; engine?: string | null; duration?: string | null; language?: string | null; look?: FilmLook; publicLookEntry?: boolean; voiceMode?: FilmVoiceMode; scriptMode?: string | null }): string {
   const { voice_mode } = voiceModeFields(params.voiceMode)
   const keepVerbatim = voice_mode === 'characters' && params.scriptMode === 'verbatim'
   const q = new URLSearchParams({ prompt: params.prompt.slice(0, keepVerbatim ? 5000 : PREVIA_IDEA_MAX), from: 'generate' })
@@ -106,6 +106,7 @@ export function previaPath(params: { prompt: string; engine?: string | null; dur
   if (params.duration && /^\d{1,3}$/.test(params.duration)) q.set('duration', params.duration)
   if (params.language && /^[a-z]{2}$/.test(params.language)) q.set('language', params.language)
   if (params.look) q.set('look', params.look)
+  if (params.look && params.publicLookEntry) q.set('look_source', 'create_film')
   if (voice_mode) q.set('voice_mode', voice_mode)
   if (keepVerbatim) q.set('script_mode', 'verbatim')
   return `/studio/previa?${q.toString()}`
@@ -312,7 +313,7 @@ export function previaIdentityFields(value: unknown): { previewId?: string } {
   return filmVoiceEnabled() && typeof value === 'string' && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(value) ? { previewId: value } : {}
 }
 
-export interface PreviaResume { t: number; idea: string; script: string; language: string; look?: FilmLook; voice_mode?: FilmVoiceMode; script_mode?: 'verbatim'; preview_idea?: string; previewId?: string }
+export interface PreviaResume { t: number; idea: string; script: string; language: string; look?: FilmLook; look_source?: 'create_film'; voice_mode?: FilmVoiceMode; script_mode?: 'verbatim'; preview_idea?: string; previewId?: string }
 export function mesmaPreviaParaRetomar(saved: PreviaResume, current: { previewId?: string; idea: string; script: string; language: string }): boolean {
   const savedId = previaIdentityFields(saved.previewId).previewId
   const currentId = previaIdentityFields(current.previewId).previewId
@@ -347,6 +348,7 @@ export function previaResumeStudioHref(r: PreviaResume): string {
   })
   if (/^[a-z]{2}$/.test(r.language) && r.language !== 'en') q.set('language', r.language)
   if (r.look === 'photoreal' || r.look === 'animated3d' || r.look === 'anime') q.set('look', r.look)
+  if (q.has('look') && r.look_source === 'create_film') q.set('look_source', 'create_film')
   if (preview_style) q.set('preview_style', preview_style)
   if (voice_mode) q.set('voice_mode', voice_mode)
   return `/studio?${q.toString()}`
