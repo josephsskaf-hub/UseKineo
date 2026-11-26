@@ -20,6 +20,8 @@ export type AnnualOfferDecision = { kind: AnnualOfferKind; endsAtMs: number }
 
 // KINEO-CREDITOS-B-0511 [fundador 05/11, "2 sim"] — os 50% (3 h da conta nova + Black Friday) só no Starter e no Creator; no Studio o teto é o anual normal de 30%.
 const TIERS_COM_ANUAL: readonly string[] = ['starter', 'basic']
+/** KINEO-BF-TODOS-ANUAIS-2611 — os planos anuais que a Black Friday pode cobrir (contém BF2026_TIERS, sem import: o guardião confere; quem decide o plano é o portão `bfOpen`). */
+const TIERS_DA_BF: readonly string[] = ['starter', 'basic', 'pro']
 /** Este plano entra na oferta de 50%? O Studio não: o cartão dele segue no anual normal. */
 export function annualOfferCoversTier(tier: string): boolean { return TIERS_COM_ANUAL.includes(tier) }
 /** Relógio do Supabase um pouco à frente do nosso não fecha a janela; created_at bem no futuro é dado errado e fecha. */
@@ -52,8 +54,11 @@ export function resolveAnnualOffer(input: {
   nowMs: number
   privatePromo?: boolean
 }): AnnualOfferDecision | null {
-  if (input.isAnnual !== true || !TIERS_COM_ANUAL.includes(input.tier) || input.privatePromo === true) return null
-  if (input.bfOpen === true) return { kind: 'black_friday_2026', endsAtMs: input.bfEndsAtMs }
+  if (input.isAnnual !== true || input.privatePromo === true) return null
+  // KINEO-BF-TODOS-ANUAIS-2611 [dono 26/11] — na Black Friday os 3 anuais (o Studio inclusive). `bfOpen` é o portão POR PLANO do chamador
+  // (bf2026CheckoutEligible); aqui só se confere que o plano é um dos 3 anuais. As 3 h da conta nova seguem só em TIERS_COM_ANUAL (sem o Studio).
+  if (input.bfOpen === true && TIERS_DA_BF.includes(input.tier)) return { kind: 'black_friday_2026', endsAtMs: input.bfEndsAtMs }
+  if (!TIERS_COM_ANUAL.includes(input.tier)) return null
   if (input.signedIn !== true) return null
   if (!annualWelcomeOpen({ accountCreatedAt: input.accountCreatedAt, hasPaid: input.hasPaid, nowMs: input.nowMs })) return null
   return { kind: 'welcome_3h', endsAtMs: annualWelcomeEndsAtMs(input.accountCreatedAt) as number }

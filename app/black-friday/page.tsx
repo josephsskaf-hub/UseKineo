@@ -1,6 +1,8 @@
 // KINEO-BLACK-FRIDAY-2026 — /black-friday: o anual pelo preço de boas-vindas, de 24/11 a 01/12 (America/New_York).
 // KINEO-BF-SO-STARTER-2311 [fundador 16/11] — só o Starter: o cartão do Creator saiu (bf2026PriceRows só traz os planos da oferta), e a
 // página diz com todas as letras que Creator e Studio ficam no anual normal. Nenhum botão leva a um preço diferente do escrito.
+// KINEO-BF-TODOS-ANUAIS-2611 [dono 26/11: "todos os planos estão com 50% de desconto. No plano anual"] — os 3 cartões voltam (Starter, Creator e
+// Studio, de bf2026PriceRows) e a copy diz "every annual plan"; o mensal segue fora.
 // KINEO-OFERTA-3H-0411 — sem o cupom de 40%: o checkout cobra ANNUAL_WELCOME_PRICES e a renovação fica nesse preço.
 // Renderizada a cada pedido (force-dynamic): o estado (antes / no ar / acabou) é o relógio do SERVIDOR, o mesmo que o
 // checkout usa para cobrar o preço. Todo preço sai de lib/checkoutPricing (getAnnualPrice / ANNUAL_WELCOME_PRICES / TIER_PRICES / TIER_CREDITS)
@@ -14,6 +16,7 @@ import { CHECKOUT_CURRENCY_DISCLOSURE } from '@/lib/marketingPrice'
 import {
   BF2026_ENDS_AT,
   BF2026_PAGE_PATH,
+  BF2026_OFFER_SCOPE,
   BF2026_PERCENT_OFF,
   BF2026_PLAN_LABEL,
   BF2026_STARTS_AT,
@@ -25,8 +28,8 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-const TITLE = `Black Friday: ${BF2026_PERCENT_OFF}% Off the ${BF2026_PLAN_LABEL} Annual Plan | Kineo`
-const DESCRIPTION = `Black Friday at Kineo: ${BF2026_PERCENT_OFF}% off the ${BF2026_PLAN_LABEL} annual plan, Nov 24 to Dec 1, 2026 (New York time). One payment for the year, credits every month. Creator and Studio keep their regular annual price.`
+const TITLE = `Black Friday: ${BF2026_PERCENT_OFF}% Off Every Annual Plan | Kineo`
+const DESCRIPTION = `Black Friday at Kineo: ${BF2026_PERCENT_OFF}% off ${BF2026_OFFER_SCOPE} (${BF2026_PLAN_LABEL}), Nov 24 to Dec 1, 2026 (New York time). One payment for the year, credits every month. Monthly plans keep their regular price.`
 
 export const metadata: Metadata = {
   title: { absolute: TITLE },
@@ -44,10 +47,10 @@ export default function BlackFridayPage() {
   const rows = bf2026PriceRows()
   const faqs: Array<{ q: string; a: string }> = [
     { q: 'How am I billed?', a: `One payment covers 12 months, at ${BF2026_PERCENT_OFF}% off 12 monthly payments. The plan renews at the same price each year, unless you cancel before then from Account → Manage billing.` },
-    { q: 'Do I get all the credits at once?', a: `No. As on the regular ${BF2026_PLAN_LABEL} annual plan, your credits refill every month for the 12 months. Unused credits do not roll over to the next month.` },
+    { q: 'Do I get all the credits at once?', a: `No. As on the regular annual plans, your credits refill every month for the 12 months. Unused credits do not roll over to the next month.` },
     { q: 'Can I get a refund?', a: ANNUAL_REFUND_POLICY },
-    { q: 'Are Creator and Studio included?', a: `No. The Black Friday price is for the ${BF2026_PLAN_LABEL} annual plan only. Creator and Studio annual plans keep their regular annual price, shown on the pricing page.` },
-    { q: 'Is there a discount on monthly plans?', a: `No. The Black Friday offer is for the ${BF2026_PLAN_LABEL} annual plan only; monthly plans keep their regular price.` },
+    { q: 'Are Creator and Studio included?', a: `Yes. The Black Friday price covers the ${BF2026_PLAN_LABEL} annual plans, at ${BF2026_PERCENT_OFF}% off 12 monthly payments each.` },
+    { q: 'Is there a discount on monthly plans?', a: `No. The Black Friday offer is for the ${BF2026_PLAN_LABEL} annual plans only; monthly plans keep their regular price.` },
     { q: 'I already have a Kineo plan. Can I use it?', a: 'This offer is for starting a new annual plan. If you already subscribe, checkout will point you to the plan switch on the pricing page, and the Black Friday price does not apply to plan switches.' },
     { q: 'Which currency will I pay in?', a: CHECKOUT_CURRENCY_DISCLOSURE },
   ]
@@ -60,7 +63,7 @@ export default function BlackFridayPage() {
         {state === 'after' ? (
           <>
             <h1 style={{ fontSize: 'clamp(36px, 7vw, 64px)', lineHeight: 1.05, letterSpacing: '-.04em', margin: '18px 0' }}>Black Friday has ended</h1>
-            <p style={{ maxWidth: 640, fontSize: 19, lineHeight: 1.5, color: 'var(--muted2)' }}>The {BF2026_PERCENT_OFF}% {BF2026_PLAN_LABEL} annual offer ran from Nov 24 to Dec 1, 2026. Our regular monthly and annual plans are on the pricing page.</p>
+            <p style={{ maxWidth: 640, fontSize: 19, lineHeight: 1.5, color: 'var(--muted2)' }}>The {BF2026_PERCENT_OFF}% annual offer on {BF2026_PLAN_LABEL} ran from Nov 24 to Dec 1, 2026. Our regular monthly and annual plans are on the pricing page.</p>
             <Link href="/pricing" style={{ ...cta, display: 'inline-block', marginTop: 24 }}>See plans</Link>
           </>
         ) : (
@@ -70,7 +73,7 @@ export default function BlackFridayPage() {
             ) : (
               <p style={{ display: 'inline-block', marginTop: 18, padding: '6px 12px', borderRadius: 999, background: 'var(--indigo, #2997ff)', color: 'var(--on-accent, #04122E)', fontSize: 13, fontWeight: 800 }}>Live now · ends Dec 1, 11:59 PM ET</p>
             )}
-            <h1 style={{ fontSize: 'clamp(38px, 7vw, 68px)', lineHeight: 1.04, letterSpacing: '-.04em', margin: '16px 0' }}>{BF2026_PERCENT_OFF}% off the {BF2026_PLAN_LABEL} annual plan</h1>
+            <h1 style={{ fontSize: 'clamp(38px, 7vw, 68px)', lineHeight: 1.04, letterSpacing: '-.04em', margin: '16px 0' }}>{BF2026_PERCENT_OFF}% off {BF2026_OFFER_SCOPE}</h1>
             <p style={{ maxWidth: 680, fontSize: 19, lineHeight: 1.5, color: 'var(--muted2)' }}>
               One payment for 12 months of Kineo, with credits every month for AI films, clips, images and voice. Black Friday is Nov 27 and Cyber Monday Nov 30; the offer runs Nov 24 to Dec 1 (New York time).
             </p>
@@ -101,7 +104,7 @@ export default function BlackFridayPage() {
           ))}
         </section>
         <p style={{ marginTop: 14, fontSize: 13, color: 'var(--muted)' }}>
-          Prices in USD. Only the {BF2026_PLAN_LABEL} annual plan is included: Creator and Studio keep their regular annual price, and monthly plans are not included. Your plan renews at the same price each year unless you cancel.
+          Prices in USD. The {BF2026_PLAN_LABEL} annual plans are included; monthly plans are not included. Your plan renews at the same price each year unless you cancel.
         </p>
 
         <section aria-label="FAQ" style={{ marginTop: 44, maxWidth: 760 }}>

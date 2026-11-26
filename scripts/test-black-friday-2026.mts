@@ -50,9 +50,9 @@ ok(Date.parse(ANNUAL_EARLY_OFFER_ENDS_AT) <= Date.parse(BF2026_STARTS_AT), 'a of
 console.log('— 2. o preço da oferta só no anual, sem cupom')
 const IN = T('2026-11-27T15:00:00Z'), BEFORE = T('2026-11-20T15:00:00Z'), AFTER = T('2026-12-03T15:00:00Z')
 // KINEO-BF-SO-STARTER-2311 [fundador 16/11: "os 50% valem só no Starter"] — Creator e Studio anuais na janela: anual normal (KINEO-CREDITOS-B-0511 já tirava o Studio).
+// KINEO-BF-TODOS-ANUAIS-2611 [dono 26/11: "todos os planos estão com 50% de desconto. No plano anual"] — os 3 anuais na janela: preço da oferta.
 for (const tier of ['starter', 'basic', 'pro'] as const) {
-  if (tier === 'starter') ok(bf2026CheckoutEligible({ tier, isAnnual: true, nowMs: IN }), `${tier} anual na janela → preço da oferta`)
-  else ok(!bf2026CheckoutEligible({ tier, isAnnual: true, nowMs: IN }), `${tier} anual na janela → anual NORMAL (só o Starter tem a BF)`)
+  ok(bf2026CheckoutEligible({ tier, isAnnual: true, nowMs: IN }), `${tier} anual na janela → preço da oferta (KINEO-BF-TODOS-ANUAIS-2611)`)
   ok(!bf2026CheckoutEligible({ tier, isAnnual: false, nowMs: IN }), `${tier} MENSAL na janela → sem desconto de BF`)
   ok(!bf2026CheckoutEligible({ tier, isAnnual: true, nowMs: BEFORE }) && !bf2026CheckoutEligible({ tier, isAnnual: true, nowMs: AFTER }), `${tier} anual fora da janela → ignorado`)
   ok(!bf2026CheckoutEligible({ tier, isAnnual: true, nowMs: IN, wantsTrial: true }), `${tier} anual com teste de cartão → sem a oferta`)
@@ -108,7 +108,7 @@ ok(/if \(!discountApplied && subscriptionAcceptsManualPromotions\(tier, isAnnual
 console.log('— 4. preços lidos da fonte')
 ok(bf2026PricesMatchTable(), 'getAnnualPrice = ANNUAL_PRICES nos três planos')
 const rows = bf2026PriceRows()
-ok(rows.length === 1 && rows.map((r) => r.tier).join() === 'starter', 'uma linha: só o Starter (KINEO-BF-SO-STARTER-2311)')
+ok(rows.length === 3 && rows.map((r) => r.tier).join() === 'starter,basic,pro', 'três linhas: Starter, Creator e Studio (KINEO-BF-TODOS-ANUAIS-2611)')
 for (const r of rows) {
   ok(r.annualMinor === getAnnualPrice(r.tier, 'usd') && r.twelveMonthlyMinor === TIER_PRICES[r.tier].usd * 12 && r.credits === TIER_CREDITS[r.tier], `${r.name}: anual, 12 mensais e créditos da fonte única`)
   ok(r.bfMinor === ANNUAL_WELCOME_PRICES[r.tier].usd && r.savedMinor + r.bfMinor === r.twelveMonthlyMinor && r.bfMinor === Math.round(r.twelveMonthlyMinor / 2), `${r.name}: preço da BF = anual de boas-vindas = 50% de 12 mensalidades`)
@@ -153,7 +153,7 @@ ok(bf2026ClaimSeed('u1', 'bf') === bf2026ClaimSeed('u1', 'bf') && bf2026ClaimSee
 ok(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(bf2026UuidFromHex('0123456789abcdef0123456789abcdef0123')), 'id da reserva vira uuid')
 ok(bf2026EmailUrl('bf') === 'https://www.usekineo.com/black-friday?utm_source=email&utm_medium=email&utm_campaign=bf2026&utm_content=bf', 'link com utm_source=email e utm_campaign=bf2026')
 const body = bf2026EmailBody('bf', rows, { text: '\n--footer', html: '<p>footer</p>' })
-ok(rows.every((r) => body.text.includes(r.name)) && !body.text.includes('Creator:') && body.text.includes(bf2026EmailUrl('bf')) && body.html.includes(bf2026EmailUrl('bf')), 'corpo: o Starter (sem o Creator) e o link')
+ok(rows.every((r) => body.text.includes(`- ${r.name}: `)) && ['Starter', 'Creator', 'Studio'].every((n) => body.text.includes(`- ${n}: `) && body.html.includes(`${n}: `)) && body.text.includes(bf2026EmailUrl('bf')) && body.html.includes(bf2026EmailUrl('bf')), 'corpo: Starter, Creator e Studio, cada um com a sua linha, e o link (KINEO-BF-TODOS-ANUAIS-2611)')
 ok(body.text.includes(`within ${ANNUAL_REFUND_DAYS} days`) && body.text.endsWith('--footer') && body.html.endsWith('<p>footer</p>'), 'corpo: garantia da constante e rodapé de descadastro')
 ok(bf2026Subject('bf').includes('Black Friday') && bf2026Subject('cyber').includes('Cyber Monday') && bf2026Subject('bf').length <= 60, 'assuntos curtos, um por onda')
 const lib = rd('lib/billing/blackFriday2026.ts')
@@ -254,7 +254,7 @@ ok(!rd('app/layout.tsx').includes('BlackFriday'), 'app/layout.tsx intocado (cama
 ok(shell.includes('<BlackFridayBanner placement="app" />'), 'DashboardShell: faixa do app dentro da coluna (o shell é h-screen)')
 ok(pricing.includes("{billing === 'annual' ? <Bf2026PricingBadge /> : null}"), '/pricing: selo só na aba anual')
 ok(!rd('components/Sidebar.tsx').includes('black-friday') && !rd('components/MobileNav.tsx').includes('black-friday'), 'pares de navegação (Sidebar/MobileNav) sem item novo: a faixa não é menu')
-ok(banner.includes(`{BF2026_PERCENT_OFF}% off the {BF2026_PLAN_LABEL} annual plan · ends Dec 1`) && !banner.includes('any annual plan') &&!/\$\s?\d/.test(banner), 'faixa: copy honesta (só o Starter), sem preço digitado')
+ok(banner.includes(`{BF2026_PERCENT_OFF}% off {BF2026_OFFER_SCOPE} · ends Dec 1`) && !banner.includes('any annual plan') && !banner.includes('Creator and Studio keep') &&!/\$\s?\d/.test(banner), 'faixa: copy honesta (todo anual, pela frase BF2026_OFFER_SCOPE), sem preço digitado (KINEO-BF-TODOS-ANUAIS-2611)')
 
 console.log(`\n${pass} ok, ${fail} falha(s)`)
 process.exit(fail ? 1 : 0)

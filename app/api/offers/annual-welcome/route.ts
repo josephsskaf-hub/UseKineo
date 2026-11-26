@@ -32,6 +32,8 @@ export async function GET() {
   //     topo, a caixa de presente e o /pricing recebem o que sempre receberam; o /pricing só pinta a Black Friday nos planos de bf2026CoversTier.
   //   · `welcomeOffer`/`welcomeEndsAtMs`: SÓ com a Black Friday aberta — as 3 h da conta nova nos planos que a Black Friday não cobre (o Creator), com o
   //     fim em created_at + 3 h, pelo MESMO portão por plano do checkout. Fora da Black Friday é sempre null (as 3 h já estão em `offer`).
+  // KINEO-BF-TODOS-ANUAIS-2611 [dono 26/11] — com os 3 anuais na Black Friday o Creator também sai 'black_friday_2026', então `welcomeOffer` fica null na
+  // janela (o campo segue aqui para o dia em que a lista da BF encolher de novo). Fora da Black Friday nada muda.
   const base = { isAnnual: true, signedIn, accountCreatedAt, hasPaid, bfEndsAtMs: Date.parse(BF2026_ENDS_AT), nowMs }
   const offer = resolveAnnualOffer({ ...base, tier: 'starter', bfOpen: bf2026CheckoutEligible({ tier: 'starter', isAnnual: true, nowMs }) })
   const creator = offer?.kind === 'black_friday_2026'

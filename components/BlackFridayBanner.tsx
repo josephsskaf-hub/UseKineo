@@ -19,6 +19,7 @@ import {
   BF2026_EVENTS,
   BF2026_PAGE_PATH,
   BF2026_PERCENT_OFF,
+  BF2026_OFFER_SCOPE,
   BF2026_PLAN_LABEL,
   bf2026BannerHidden,
   bf2026OfferVisible,
@@ -121,7 +122,7 @@ export default function BlackFridayBanner({ placement = 'site' }: { placement?: 
         className="underline-offset-2 hover:underline"
         onClick={() => { void trackEvent(BF2026_EVENTS.bannerClicked, { placement, surface: pathname }) }}
       >
-        Black Friday: {BF2026_PERCENT_OFF}% off the {BF2026_PLAN_LABEL} annual plan · ends Dec 1 →
+        Black Friday: {BF2026_PERCENT_OFF}% off {BF2026_OFFER_SCOPE} · ends Dec 1 →
       </Link>
       <button
         type="button"
@@ -138,7 +139,8 @@ export default function BlackFridayBanner({ placement = 'site' }: { placement?: 
   )
 }
 
-/** O selo da aba anual do /pricing. O preço entra sozinho no checkout anual do Starter na janela (KINEO-BF-SO-STARTER-2311); o selo só conta isso. */
+/** O selo da aba anual do /pricing. O preço entra sozinho no checkout anual do Starter na janela (KINEO-BF-SO-STARTER-2311); o selo só conta isso.
+ *  KINEO-BF-TODOS-ANUAIS-2611 [dono 26/11] — desde 26/11 no checkout anual dos 3 planos (Starter, Creator e Studio). */
 export function Bf2026PricingBadge() {
   const open = useBf2026Open(true)
   const shownRef = useRef(false)
@@ -155,7 +157,7 @@ export function Bf2026PricingBadge() {
       style={{ borderColor: 'var(--indigo, #2997ff)', background: 'var(--accent-soft, rgba(41,151,255,.12))', color: 'var(--text)' }}
     >
       <span className="rounded-full px-2 py-0.5 text-[10px] font-black" style={{ background: 'var(--indigo, #2997ff)', color: 'var(--on-accent, #04122E)' }}>BLACK FRIDAY</span>
-      <span>{BF2026_PERCENT_OFF}% off the {BF2026_PLAN_LABEL} annual plan, no code needed. Creator and Studio keep their regular annual price. Ends Dec 1, 11:59 PM ET.</span>
+      <span>{BF2026_PERCENT_OFF}% off {BF2026_OFFER_SCOPE} ({BF2026_PLAN_LABEL}), no code needed. Monthly plans keep their regular price. Ends Dec 1, 11:59 PM ET.</span>
       <Link
         href={`${BF2026_PAGE_PATH}?from=pricing`}
         className="underline underline-offset-2"

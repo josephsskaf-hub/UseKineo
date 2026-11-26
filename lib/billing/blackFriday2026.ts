@@ -1,5 +1,6 @@
 // KINEO-BLACK-FRIDAY-2026 — Black Friday 2026: o plano ANUAL pelo preço de boas-vindas (fundador 01/11, "vai black friday"); desde
-// KINEO-BF-SO-STARTER-2311 (fundador 16/11) só o Starter — ver ONDE O DESCONTO VALE.
+// KINEO-BF-SO-STARTER-2311 (fundador 16/11) só o Starter — ver ONDE O DESCONTO VALE. Desde KINEO-BF-TODOS-ANUAIS-2611 (dono 26/11) os 3 anuais
+// de novo: Starter, Creator e Studio (ver BF2026_TIERS).
 // KINEO-OFERTA-3H-0411 [fundador 04/11: "os mesmos 50% para todos, sem o cupom de 40%"] — o cupom de 40% morreu. Na janela, o checkout cobra
 // ANNUAL_WELCOME_PRICES (price_data inline): quem compra mantém esse preço na renovação, e não há cupom para empilhar. Vale para convidado também.
 //
@@ -17,6 +18,8 @@
 //     Starter" — no pior caso de uso o Creator anual a 50% dá margem negativa; o Studio já estava fora desde 05/11); SÓ planos que
 //     aceitam promoção (planAcceptsPromotions); nunca no teste com cartão. Creator e Studio pagam o anual normal na janela, venham
 //     de onde vierem (a oferta de 3 h da conta nova segue como sempre: ela é decidida em lib/billing/annualWelcomeOffer.ts).
+//   · KINEO-BF-TODOS-ANUAIS-2611 (dono 26/11) — o item acima sobre Creator e Studio MORREU: os 3 anuais (Starter, Creator e Studio) pagam o preço
+//     da oferta na janela. Continuam: só anual, só planAcceptsPromotions, nunca no teste com cartão, renova no preço da oferta.
 //   · TODO checkout anual elegível dentro da janela paga o preço da oferta, venha de onde vier: /black-friday, /pricing na aba
 //     anual ou um e-mail antigo. O ?promo=BF2026 de um link velho é descartado na entrada da rota (nunca vira cupom nem manda o
 //     convidado ao cadastro).
@@ -70,12 +73,27 @@ export function bf2026Open(nowMs: number = Date.now()): boolean {
 }
 
 /** Os planos com o preço da Black Friday. KINEO-CREDITOS-B-0511 [05/11]: Studio fora. KINEO-BF-SO-STARTER-2311 [16/11]: Creator fora — só o Starter. */
-export const BF2026_TIERS: readonly CheckoutTier[] = ['starter']
+// KINEO-BF-TODOS-ANUAIS-2611 [dono 26/11: "Eu quero que você coloque todos os planos no Black Friday com 50% de margem de desconto. Independentemente
+// da margem. Então, todos os planos estão com 50% de desconto. No plano anual"] — a lista volta a ter os 3 planos anuais (Starter, Creator e Studio).
+// O resto da regra NÃO muda: só anual, só na janela, só planAcceptsPromotions, nunca no teste com cartão, preço = ANNUAL_WELCOME_PRICES (renova nele).
+// A conta de margem que o dono aceitou ("independentemente da margem"), pela worstCaseCogsUsd deste código, pior caso de uso total dos créditos:
+//   Starter US$ 4,50/mês contra custo máximo US$ 2,64 · Creator US$ 9,50/mês contra US$ 16,65 · Studio US$ 29,50/mês contra US$ 53,52.
+//   Creator e Studio dão margem NEGATIVA no pior caso (é por isso que 16/11 os tirou); a ordem de 26/11 aceita isso. Detalhe: docs/billing/BF-TODOS-ANUAIS-2611.md.
+export const BF2026_TIERS: readonly CheckoutTier[] = ['starter', 'basic', 'pro']
 /** Espelho de VALOR_TIER_NAMES (lib/valorNoCheckout.ts); o guardião confere a igualdade. */
 export const BF2026_TIER_NAMES: Record<CheckoutTier, string> = { starter: 'Starter', basic: 'Creator', pro: 'Studio' }
 
-/** KINEO-BF-SO-STARTER-2311 — o nome dos planos da oferta, para a copy ("Starter"): a frase segue a lista, nunca promete além dela. */
-export const BF2026_PLAN_LABEL: string = BF2026_TIERS.map((t) => BF2026_TIER_NAMES[t]).join(' and ')
+/** KINEO-BF-SO-STARTER-2311 — o nome dos planos da oferta, para a copy: a frase segue a lista, nunca promete além dela.
+ *  KINEO-BF-TODOS-ANUAIS-2611 — com 3 planos: "Starter, Creator and Studio" (vírgula e "and" no último). */
+export const BF2026_PLAN_LABEL: string = BF2026_TIERS.length <= 1
+  ? BF2026_TIERS.map((t) => BF2026_TIER_NAMES[t]).join('')
+  : `${BF2026_TIERS.slice(0, -1).map((t) => BF2026_TIER_NAMES[t]).join(', ')} and ${BF2026_TIER_NAMES[BF2026_TIERS[BF2026_TIERS.length - 1]]}`
+/** KINEO-BF-TODOS-ANUAIS-2611 — true só quando a lista cobre TODOS os planos anuais (CheckoutTier): só então a copy pode dizer "every annual plan". */
+export const BF2026_COVERS_EVERY_ANNUAL_PLAN: boolean = (['starter', 'basic', 'pro'] as const).every((t) => BF2026_TIERS.includes(t))
+/** A frase da oferta para a copy: "every annual plan" quando cobre os 3; senão, "the {planos} annual plan". */
+export const BF2026_OFFER_SCOPE: string = BF2026_COVERS_EVERY_ANNUAL_PLAN ? 'every annual plan' : `the ${BF2026_PLAN_LABEL} annual plan`
+/** A mesma frase para a carta, com a marca e os planos por extenso: "every Kineo annual plan (Starter, Creator and Studio)". */
+export const BF2026_OFFER_SCOPE_KINEO: string = BF2026_COVERS_EVERY_ANNUAL_PLAN ? `every Kineo annual plan (${BF2026_PLAN_LABEL})` : `the Kineo ${BF2026_PLAN_LABEL} annual plan`
 
 /** Este plano leva o preço da Black Friday? (só o plano; a janela, o anual e o teste com cartão são do portão abaixo). */
 export function bf2026CoversTier(tier: string): boolean {
@@ -406,18 +424,19 @@ export function bf2026EmailUrl(wave: Bf2026Wave, app = 'https://www.usekineo.com
 
 export function bf2026Subject(wave: Bf2026Wave): string {
   return wave === 'bf'
-    ? `Black Friday: ${BF2026_PERCENT_OFF}% off the Kineo ${BF2026_PLAN_LABEL} annual plan`
-    : `Cyber Monday: ${BF2026_PERCENT_OFF}% off ${BF2026_PLAN_LABEL} annual ends Dec 1`
+    ? `Black Friday: ${BF2026_PERCENT_OFF}% off ${BF2026_OFFER_SCOPE}` // KINEO-BF-TODOS-ANUAIS-2611 — era "the Kineo {Starter} annual plan"
+    : `Cyber Monday: ${BF2026_PERCENT_OFF}% off ${BF2026_OFFER_SCOPE} ends Dec 1`
 }
 
 /** Corpo curto, em inglês. Preço nenhum digitado: as linhas vêm de bf2026PriceRows(). */
 export function bf2026EmailBody(wave: Bf2026Wave, rows: Bf2026PriceRow[], footer: { text: string; html: string }, app = 'https://www.usekineo.com'): { text: string; html: string } {
   const url = bf2026EmailUrl(wave, app)
   const opener = wave === 'bf'
-    ? `For Black Friday, the Kineo ${BF2026_PLAN_LABEL} annual plan is ${BF2026_PERCENT_OFF}% off 12 monthly payments.`
+    // KINEO-BF-TODOS-ANUAIS-2611 — as duas cartas dizem os 3 planos (a frase segue BF2026_TIERS); era "the Kineo {Starter} annual plan".
+    ? `For Black Friday, ${BF2026_OFFER_SCOPE_KINEO} is ${BF2026_PERCENT_OFF}% off 12 monthly payments.`
     // KINEO-BF-CYBER-BASE-50-2411 (dono 24/11: "Sim, acrescenta") — a carta de 30/11 diz a base do desconto com as mesmas palavras da carta de 27/11:
     // os 50% são contra 12 mensalidades, não contra o anual normal.
-    : `Last call: the Black Friday deal on the Kineo ${BF2026_PLAN_LABEL} annual plan ends Tuesday, Dec 1 at 11:59 PM (New York time). It is ${BF2026_PERCENT_OFF}% off 12 monthly payments.`
+    : `Last call: the Black Friday deal on ${BF2026_OFFER_SCOPE_KINEO} ends Tuesday, Dec 1 at 11:59 PM (New York time). It is ${BF2026_PERCENT_OFF}% off 12 monthly payments.`
   const lines = rows.map((r) => `- ${r.name}: ${usd(r.bfMinor)} a year (${usd(r.twelveMonthlyMinor)} if paid monthly), ${r.credits} credits every month`)
   const htmlLines = rows.map((r) => `<li><strong>${esc(r.name)}: ${usd(r.bfMinor)}</strong> a year <span style="color:#6b7280">(<s>${usd(r.twelveMonthlyMinor)}</s> if paid monthly)</span> · ${r.credits} credits every month</li>`).join('')
   const fine = `One payment for the year, credits refill every month, and the annual plan is fully refundable within ${ANNUAL_REFUND_DAYS} days. It renews at the same price each year unless you cancel.`

@@ -79,7 +79,10 @@ function problemas(repl = {}) {
   checa('BF aberta: convidado entra', O.resolveAnnualOffer({ ...base, signedIn: false, bfOpen: true })?.kind === 'black_friday_2026')
   checa('BF aberta: conta velha e já paga entram', O.resolveAnnualOffer({ ...base, accountCreatedAt: '2020-01-01T00:00:00Z', hasPaid: true, bfOpen: true })?.kind === 'black_friday_2026')
   // KINEO-BF-SO-STARTER-2311 [fundador 16/11] — a BF vale só no Starter; Creator e Studio ficam no anual normal (as 3 h acima seguem iguais).
-  checa('portão da BF: anual dentro, mensal e fora da janela não', B.bf2026CheckoutEligible({ tier: 'starter', isAnnual: true, nowMs: NA_BF }) && !B.bf2026CheckoutEligible({ tier: 'basic', isAnnual: true, nowMs: NA_BF }) && !B.bf2026CheckoutEligible({ tier: 'pro', isAnnual: true, nowMs: NA_BF }) && !B.bf2026CheckoutEligible({ tier: 'starter', isAnnual: false, nowMs: NA_BF }) && !B.bf2026CheckoutEligible({ tier: 'starter', isAnnual: true, nowMs: T0 }))
+  // KINEO-BF-TODOS-ANUAIS-2611 [dono 26/11: "todos os planos estão com 50% de desconto. No plano anual"] — os 3 anuais de novo (o Studio inclusive).
+  checa('portão da BF: os 3 anuais dentro, mensal e fora da janela não', TIERS.every((tier) => B.bf2026CheckoutEligible({ tier, isAnnual: true, nowMs: NA_BF }) && !B.bf2026CheckoutEligible({ tier, isAnnual: false, nowMs: NA_BF }) && !B.bf2026CheckoutEligible({ tier, isAnnual: true, nowMs: T0 })))
+  checa('BF aberta: o Studio anual leva a BF (KINEO-BF-TODOS-ANUAIS-2611), logado e convidado', O.resolveAnnualOffer({ ...base, tier: 'pro', bfOpen: true })?.kind === 'black_friday_2026' && O.resolveAnnualOffer({ ...base, tier: 'pro', signedIn: false, bfOpen: true })?.kind === 'black_friday_2026')
+  checa('Studio fora das 3 h mesmo com a BF fechada (só a BF o cobre)', O.resolveAnnualOffer({ ...base, tier: 'pro', bfOpen: false }) === null)
   checa('BF no preço de boas-vindas', B.bf2026PriceRows().every((r) => r.bfMinor === Pr.ANNUAL_WELCOME_PRICES[r.tier].usd && r.annualMinor === Pr.ANNUAL_PRICES[r.tier].usd && r.savedMinor + r.bfMinor === Pr.TIER_PRICES[r.tier].usd * 12))
   checa('BF lê o percentual da tabela', B.BF2026_PERCENT_OFF === Pr.ANNUAL_WELCOME_DISCOUNT_PERCENT)
   checa('link da BF sem ?promo=', !B.bf2026CheckoutHref('basic').includes('promo='))
@@ -245,7 +248,11 @@ const MUTANTES = [
   ['3:00:00 ainda aberta', muta(F.regra, 'input.nowMs >= fim', 'input.nowMs > fim')],
   ['conta paga entra', muta(F.regra, 'if (input.hasPaid === true || !Number.isFinite(input.nowMs)) return false', 'if (!Number.isFinite(input.nowMs)) return false')],
   ['convidado entra', muta(F.regra, "if (input.signedIn !== true) return null\n", '\n')],
-  ['Black Friday só para logado', muta(F.regra, "if (input.bfOpen === true) return { kind: 'black_friday_2026'", "if (input.bfOpen === true && input.signedIn) return { kind: 'black_friday_2026'")],
+  ['Black Friday só para logado', muta(F.regra, "if (input.bfOpen === true && TIERS_DA_BF.includes(input.tier)) return { kind: 'black_friday_2026'", "if (input.bfOpen === true && TIERS_DA_BF.includes(input.tier) && input.signedIn) return { kind: 'black_friday_2026'")],
+  ['(KINEO-BF-TODOS-ANUAIS-2611) Studio fora da BF na regra', muta(F.regra, "const TIERS_DA_BF: readonly string[] = ['starter', 'basic', 'pro']", "const TIERS_DA_BF: readonly string[] = ['starter', 'basic']")],
+  ['(KINEO-BF-TODOS-ANUAIS-2611) Business ganha a BF', muta(F.regra, "const TIERS_DA_BF: readonly string[] = ['starter', 'basic', 'pro']", "const TIERS_DA_BF: readonly string[] = ['starter', 'basic', 'pro', 'business']")],
+  ['(KINEO-BF-TODOS-ANUAIS-2611) BF ignora o plano na regra', muta(F.regra, ' && TIERS_DA_BF.includes(input.tier)) return', ') return')],
+  ['(KINEO-BF-TODOS-ANUAIS-2611) Studio entra nas 3 h', muta(F.regra, "  if (!TIERS_COM_ANUAL.includes(input.tier)) return null\n", '')],
   ['mensal ganha a oferta', muta(F.regra, 'input.isAnnual !== true || ', '')],
   ['Business ganha a oferta', muta(F.regra, "['starter', 'basic']", "['starter', 'basic', 'business']")],
   ['cupom da BF volta', muta(F.rota, '  const annualRecovery = annualOfferSessionRecovery', "  if (annualOffer?.kind === 'black_friday_2026') sessionParams.discounts = [{ coupon: 'KINEO_BF2026' }]\n  const annualRecovery = annualOfferSessionRecovery")],

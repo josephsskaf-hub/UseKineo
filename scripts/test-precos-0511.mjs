@@ -16,8 +16,11 @@ function prova(s) {
   const intro = s.preco.slice(s.preco.indexOf('export const INTRO_CREDITS'))
   if (!/basic: 150,/.test(intro.slice(0, intro.indexOf('\n}')))) e.push('A3 o 1º mês acompanha o grant')
   if (!s.oferta.includes("const TIERS_COM_ANUAL: readonly string[] = ['starter', 'basic']")) e.push('B1 oferta de 50% sem o Studio')
-  if (!/BF2026_TIERS: readonly CheckoutTier\[\] = \['starter'\]/.test(s.bf)) e.push('B2 Black Friday sem o Studio (e, desde KINEO-BF-SO-STARTER-2311, sem o Creator)')
-  if (!/const ofertaNoPlano = \(tier: string\): boolean => \(annualOfferLive && annualOfferCoversTier\(tier\)/.test(s.pagina)) e.push('B3 a página decide por plano') // KINEO-BF-SO-STARTER-2311: o parêntese agrupa a BF; as 3 h do Creator vêm depois do ||
+  // KINEO-BF-TODOS-ANUAIS-2611 [dono 26/11: "todos os planos estão com 50% de desconto. No plano anual"] — a BF volta aos 3 anuais (era só o Starter desde
+  // KINEO-BF-SO-STARTER-2311; o Studio estava fora desde KINEO-CREDITOS-B-0511). As 3 h da conta nova seguem sem o Studio (B1).
+  if (!/BF2026_TIERS: readonly CheckoutTier\[\] = \['starter', 'basic', 'pro'\]/.test(s.bf)) e.push('B2 Black Friday nos 3 anuais: Starter, Creator e Studio (KINEO-BF-TODOS-ANUAIS-2611)')
+  // KINEO-BF-TODOS-ANUAIS-2611 — na BF o plano é o de bf2026CoversTier (os 3, igual ao checkout); fora dela, o das 3 h (annualOfferCoversTier, sem o Studio).
+  if (!s.pagina.includes('const ofertaNoPlano = (tier: string): boolean => (annualOfferLive // KINEO-CREDITOS-B-0511') || !s.pagina.includes("    && (annualOffer?.kind === 'black_friday_2026' ? bf2026CoversTier(tier) : annualOfferCoversTier(tier)))")) e.push('B3 a página decide por plano')
   if (!/annualMinorFor = \(tier: PaidTier\): number =>\n\s*ofertaNoPlano\(tier\) \? ANNUAL_WELCOME_PRICES/.test(s.pagina)) e.push('B4 o preço do cartão segue o plano')
   if (!/save \$\{ofertaNoPlano\(p\.tier\) \?/.test(s.pagina)) e.push('B5 o "save %" segue o plano')
   if (!/\{annualOfferLive \? <>Up to \{ANNUAL_WELCOME_DISCOUNT_PERCENT\}%<\/> : <>Save \{ANNUAL_DISCOUNT_PERCENT\}%<\/>\}/.test(s.pagina)) e.push('B6 o selo só promete 50% com a oferta aberta')
@@ -45,7 +48,10 @@ const MUT = [
   ['preço muda', /A2/, { preco: base.preco.replace('basic: { usd: 1900 }', 'basic: { usd: 2900 }') }],
   ['1º mês esquecido', /A3/, { preco: base.preco.replace('  basic: 150, // KINEO-CREDITOS-B-0511', '  basic: 85,') }],
   ['Studio volta aos 50%', /B1/, { oferta: base.oferta.replace("const TIERS_COM_ANUAL: readonly string[] = ['starter', 'basic']", "const TIERS_COM_ANUAL: readonly string[] = ['starter', 'basic', 'pro']") }],
-  ['Black Friday com Studio', /B2/, { bf: base.bf.replace("BF2026_TIERS: readonly CheckoutTier[] = ['starter']", "BF2026_TIERS: readonly CheckoutTier[] = ['starter', 'pro']") }],
+  ['Black Friday sem o Studio', /B2/, { bf: base.bf.replace("BF2026_TIERS: readonly CheckoutTier[] = ['starter', 'basic', 'pro']", "BF2026_TIERS: readonly CheckoutTier[] = ['starter', 'basic']") }],
+  ['Black Friday sem o Creator', /B2/, { bf: base.bf.replace("BF2026_TIERS: readonly CheckoutTier[] = ['starter', 'basic', 'pro']", "BF2026_TIERS: readonly CheckoutTier[] = ['starter', 'pro']") }],
+  ['Black Friday volta a só o Starter', /B2/, { bf: base.bf.replace("BF2026_TIERS: readonly CheckoutTier[] = ['starter', 'basic', 'pro']", "BF2026_TIERS: readonly CheckoutTier[] = ['starter']") }],
+  ['cartão da BF volta a tirar o Studio', /B3/, { pagina: base.pagina.replace("annualOffer?.kind === 'black_friday_2026' ? bf2026CoversTier(tier) : annualOfferCoversTier(tier)", 'annualOfferCoversTier(tier)') }],
   ['cartão ignora o plano', /B4/, { pagina: base.pagina.replace('ofertaNoPlano(tier) ? ANNUAL_WELCOME_PRICES', 'annualOfferLive ? ANNUAL_WELCOME_PRICES') }],
   ['selo promete 50% sempre', /B6/, { pagina: base.pagina.replace('{annualOfferLive ? <>Up to {ANNUAL_WELCOME_DISCOUNT_PERCENT}%</> : <>Save {ANNUAL_DISCOUNT_PERCENT}%</>}', 'Up to {ANNUAL_WELCOME_DISCOUNT_PERCENT}%') }],
   ['número digitado', /C[12]/, { conta: base.conta.replace("creditsPerReferenceVideo('cinematic_ai')", '35') }],

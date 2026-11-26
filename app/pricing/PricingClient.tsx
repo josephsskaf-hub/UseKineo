@@ -573,8 +573,10 @@ export default function PricingClient({ initialBilling = 'annual', watchPreview 
   // KINEO-BF-SO-STARTER-2311 — na Black Friday o Starter segue o relógio dela (até 01/12) e o Creator, só as 3 h da conta nova (relógio próprio).
   const welcomeInBf = welcomeOffers.annualWelcomeInBf ?? null // sem o campo (leitor antigo, mock) = sem as 3 h na BF
   const welcomeInBfLive = welcomeInBf !== null && !planSwitch.subscribed
-  const ofertaNoPlano = (tier: string): boolean => (annualOfferLive && annualOfferCoversTier(tier) // KINEO-CREDITOS-B-0511 — os 50% não valem no Studio
-    && (annualOffer?.kind !== 'black_friday_2026' || bf2026CoversTier(tier))) // KINEO-BF-SO-STARTER-2311 — na Black Friday, só o Starter
+  // KINEO-BF-TODOS-ANUAIS-2611 [dono 26/11] — na Black Friday quem decide o plano é bf2026CoversTier (hoje os 3, o Studio inclusive, igual ao checkout);
+  // fora dela, as 3 h seguem em annualOfferCoversTier (sem o Studio). Era: annualOfferCoversTier(tier) && (kind !== BF || bf2026CoversTier(tier)).
+  const ofertaNoPlano = (tier: string): boolean => (annualOfferLive // KINEO-CREDITOS-B-0511 — os 50% das 3 h não valem no Studio
+    && (annualOffer?.kind === 'black_friday_2026' ? bf2026CoversTier(tier) : annualOfferCoversTier(tier))) // KINEO-BF-SO-STARTER-2311 → KINEO-BF-TODOS-ANUAIS-2611
     || (welcomeInBfLive && annualOfferCoversTier(tier) && !bf2026CoversTier(tier)) // KINEO-BF-SO-STARTER-2311 — o Creator pelas 3 h
   const annualMinorFor = (tier: PaidTier): number =>
     ofertaNoPlano(tier) ? ANNUAL_WELCOME_PRICES[tier][resolvedCurrency] : getAnnualPrice(tier, resolvedCurrency, resolvedRegion)
