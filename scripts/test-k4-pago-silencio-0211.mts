@@ -149,9 +149,39 @@ console.log('6. a régua de duração (plan_duration_below_request) julga o film
 
 console.log('7. 0211c: o meta95 volta a ser o da origin/main (ideia curta → recusa grátis no portão, nunca o planejador IA sem teto)')
 {
-  let diff = 'x'
-  try { diff = execFileSync('git', ['diff', '--name-only', 'origin/main', '--', 'lib/meta95/ideiaNoEscritor.ts'], { encoding: 'utf8' }).trim() } catch { /* sem git = falha */ }
-  ok(diff === '', 'lib/meta95/ideiaNoEscritor.ts sem mudança contra a origin/main')
+  // [KINEO-FALA-DOS-PERSONAGENS-2511 · CEO 25/11, opção A; revisora 52b12696] o arquivo é o da origin/main OU a origin/main + EXATAMENTE o recibo do modo
+  // falado (os trechos abaixo, cada um achado UMA vez). Desfeito o recibo, tem de sobrar a origin/main byte a byte: qualquer outra mudança no arquivo
+  // (no caminho narrado, no piso, no portão) continua vermelha. O recibo só age com falado === true (voice_mode 'characters' + chave + inglês, na rota).
+  const RECIBO_FALADO_2511: Array<[string, string]> = [
+    ["import { falasDoRoteiroSemElenco2511, PALAVRAS_MIN_NO_FILME_FALADO_2511 } from '@/lib/cinematic/roteiroFalado2511' // KINEO-FALA-DOS-PERSONAGENS-2511 — o piso do falado (módulo sem import)\n", ''],
+    ['export function avaliarRoteiroEscrito(args: { script: string; engine?: string | null; seconds: number; language?: string | null; falado?: boolean /* KINEO-FALA-DOS-PERSONAGENS-2511 */ }): AvaliacaoDoRoteiro {\n',
+      'export function avaliarRoteiroEscrito(args: { script: string; engine?: string | null; seconds: number; language?: string | null }): AvaliacaoDoRoteiro {\n'],
+    ["  // KINEO-FALA-DOS-PERSONAGENS-2511 [CEO 25/11] o roteiro FALADO (quem chama já conferiu voice_mode 'characters', a chave e o inglês) tem o piso PRÓPRIO: 12 palavras\n" +
+      '  // ditas em linhas "Nome: fala" (lib/cinematic/roteiroFalado2511). Sem isso, o piso do filme narrado, byte a byte.\n' +
+      '  const faladoNoPiso = args.falado === true && (() => { const f = falasDoRoteiroSemElenco2511(parsed.segments.map((s) => s.voiceover)); return !!f && f.palavras >= PALAVRAS_MIN_NO_FILME_FALADO_2511 })()\n' +
+      "  if (palavras < piso && !faladoNoPiso) return nao('curto')\n",
+      "  if (palavras < piso) return nao('curto')\n"],
+    ['escritor: Escritor; registrar?: Registrar; falado?: boolean /* KINEO-FALA-DOS-PERSONAGENS-2511 */ }): Promise<IdeiaNoEscritor> {\n', 'escritor: Escritor; registrar?: Registrar }): Promise<IdeiaNoEscritor> {\n'],
+    ['  const aval = avaliarRoteiroEscrito({ script: limpo.script, engine, seconds: args.seconds, language: args.language, ...(args.falado === true ? { falado: true } : {}) })\n',
+      '  const aval = avaliarRoteiroEscrito({ script: limpo.script, engine, seconds: args.seconds, language: args.language })\n'],
+  ]
+  const meta95ComRecibo = (atual: string, main: string): boolean => {
+    if (atual === main) return true // já publicado (ou nunca mexido): a origin/main, como sempre
+    let resto = atual
+    for (const [de, para] of RECIBO_FALADO_2511) { if (resto.split(de).length !== 2) return false; resto = resto.replace(de, () => para) }
+    return resto === main
+  }
+  let main = ''
+  try { main = execFileSync('git', ['show', 'origin/main:lib/meta95/ideiaNoEscritor.ts'], { encoding: 'utf8', maxBuffer: 1 << 26 }).replace(/\r\n/g, '\n') } catch { /* sem git = falha */ }
+  const atual = rd('lib/meta95/ideiaNoEscritor.ts')
+  ok(main !== '' && meta95ComRecibo(atual, main), 'lib/meta95/ideiaNoEscritor.ts = a origin/main, ou a origin/main + EXATAMENTE o recibo do falado')
+  // os mutantes do recibo: o caminho narrado mexido, o falado sem a trava, mudança fora do recibo, recibo pela metade
+  const narrado = atual.replace("  if (palavras < piso && !faladoNoPiso) return nao('curto')\n", "  if (palavras < piso - 2 && !faladoNoPiso) return nao('curto')\n")
+  const semTrava = atual.replace('  const faladoNoPiso = args.falado === true &&', '  const faladoNoPiso = args.falado !== false &&')
+  const fora = atual.replace("return nao('sem_marcadores')", "return nao('curto')")
+  const metade = atual.replace("  const aval = avaliarRoteiroEscrito({ script: limpo.script, engine, seconds: args.seconds, language: args.language, ...(args.falado === true ? { falado: true } : {}) })\n", "  const aval = avaliarRoteiroEscrito({ script: limpo.script, engine, seconds: args.seconds, language: args.language })\n")
+  const mutantes = atual === main ? [] : [narrado, semTrava, fora, metade]
+  ok(mutantes.every((m) => m !== atual) && mutantes.every((m) => !meta95ComRecibo(m, main)), `o recibo barra o caminho narrado mexido, o falado sem a trava, mudança fora do recibo e o recibo pela metade (${mutantes.length} mutantes)`)
 }
 
 console.log('8. a rota liga a régua nova antes do despacho (fonte)')

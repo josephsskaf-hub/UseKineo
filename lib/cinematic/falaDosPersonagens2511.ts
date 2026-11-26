@@ -11,6 +11,7 @@
 import { contaDaCasaExata } from '@/lib/internalAccounts'
 // [CEO 25/11] o piso do filme FALADO (12 palavras), lido pelos dois portões de tamanho; mora no módulo sem import para o escritor do servidor ler sem a régua
 export { PALAVRAS_MIN_NO_FILME_FALADO_2511, falasDoRoteiroSemElenco2511, roteiroFaladoNoPortao2511 } from '@/lib/cinematic/roteiroFalado2511'
+import { ANTES_DE_OUTRA_PESSOA_2511 } from '@/lib/cinematic/referenciaUnica2411' // [revisora 52b12696, boca errada] o mesmo corte da régua
 import { falanteConhecido2511, falanteAdulto2511 } from '@/lib/cinematic/reguaDaPessoaNaFala2511' // [revisora 392f0a52, T1 e T2] quem fala
 
 export const FALA_DOS_PERSONAGENS_2511_VERSAO = 'fala_dos_personagens_2511_v1'
@@ -127,7 +128,12 @@ const escapaPapel = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 export function papelDaFicha2511(f: { nome?: unknown; nucleo?: unknown; canonica?: unknown } | null | undefined): string | null {
   let t = typeof f?.canonica === 'string' ? f.canonica.trim() : ''
   for (const n of [f?.nome, f?.nucleo]) if (typeof n === 'string' && n.trim()) t = t.replace(new RegExp('^' + escapaPapel(n.trim()) + '(?:\\s*[,:—–-]\\s*|\\s+(?:is|was)\\s+)', 'iu'), '')
-  const oracao = (t.split(/[,;.\n]/u)[0] ?? '').replace(/\s+(?:named|called|who|that|which|whose)\s+.*$/iu, '').trim()
+  const inteira = (t.split(/[,;.\n]/u)[0] ?? '').replace(/\s+(?:named|called|who|that|which|whose)\s+.*$/iu, '').trim()
+  // [revisora 52b12696, boca errada] "the wife of the captain" é a ESPOSA, não o capitão: corta antes de of/by/with/beside/… (o corte da régua). Com "'s"
+  // ("the captain's wife") o substantivo antes é de OUTRA pessoa: sem papel. Sem isso, "Captain:" saía da boca da Mara.
+  const corte = ANTES_DE_OUTRA_PESSOA_2511.exec(inteira)
+  if (corte && /^['’]s$/iu.test(corte[0])) return null
+  const oracao = corte ? inteira.slice(0, corte.index).trim() : inteira
   const m = /^(?:a|an|the)\s+((?:[\p{L}'’-]+\s+){0,3}[\p{L}'’-]+)$/iu.exec(oracao)
   if (!m) return null
   const nucleo = (m[1].split(/\s+/u).pop() ?? '').toLowerCase()

@@ -178,7 +178,7 @@ const ADULTO_IDADE_PROPRIA_2511 = new RegExp(SEM_LETRA_ANTES + IDADE_ADULTA + '(
 const IDADE_EM_DECADA_2511 = new RegExp(SEM_LETRA_ANTES + 'in\\s+(?:his|her|their)\\s+(?:late\\s+|early\\s+|mid[\\s-]*)?(?:twenties|thirties|forties|fifties|sixties|seventies|eighties|nineties|[2-9]0(?:\\s*-\\s*[0-9]{2})?s)' + SEM_LETRA_DEPOIS, 'giu')
 const ANCORA_ADULTA_2511 = /appearance anchors?\s*:\s*([^,;\n]+)/iu
 const PRIMEIRA_ANCORA_ADULTA_2511 = /^(?:(?:1[89]|[2-9][0-9])\s*(?:-|–|to)\s*[0-9]{2,3}s?|(?:1[89]|[2-9][0-9])s?|adult|young adult|middle-aged|elderly|senior|older|old|mature)(?![\p{L}\p{N}])/iu
-const ANTES_DE_OUTRA_PESSOA_2511 = /(?<![\p{L}\p{N}])(?:of|by|with|beside|besides|next\s+to|alongside|near|his|her|their|its)(?![\p{L}\p{N}])|['’]s(?![\p{L}\p{N}])/iu
+export const ANTES_DE_OUTRA_PESSOA_2511 = /(?<![\p{L}\p{N}])(?:of|by|with|beside|besides|next\s+to|alongside|near|his|her|their|its)(?![\p{L}\p{N}])|['’]s(?![\p{L}\p{N}])/iu
 const SO_ADULTO_NO_NOME_2511 = new RegExp('^(?:(?:the|a|an)\\s+)?(?:(?:old|older|young|elderly|middle-aged|tall|short|gray-haired|grey-haired|bearded|retired)\\s+)*' + ADULTO_PALAVRA_2511.source.slice(SEM_LETRA_ANTES.length), 'iu')
 const escapaRe2511 = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 /** A 1ª oração da canônica, depois do nome ("Mara, a 30-year-old radio operator, …" → "a 30-year-old radio operator"), cortada antes de outra pessoa. */

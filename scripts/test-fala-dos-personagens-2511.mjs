@@ -102,11 +102,18 @@ async function suite(change) {
   igual(f.geminiFaladoDoKling4(FIX.kling4_input, ['Elias Ward', 'Mara Quinn'], lidas.falas.slice(0, 3), VOZES), { motivo: 'planos_desencontrados' }, 'A falas ≠ planos')
   // [CEO 25/11, regra única do rótulo] o personagem COM nome também fala pelo NÚCLEO do papel dele ("Captain:" = Rosa, a capitã), quando o papel é único
   for (const [canonica, papel] of [['Rosa, a pirate captain, exactly as the author wrote; appearance anchors: 30-40', 'captain'], ['Elias, a lighthouse keeper named Elias', 'keeper'],
-    ['Mara, the flight attendant who never sleeps', 'attendant'], ['the owl, a grumpy owl', 'owl'], ['Elias, kept the old lighthouse alone for thirty years', null], ['Rosa', null], ['Rosa, 42, tall', null]])
+    ['Mara, the flight attendant who never sleeps', 'attendant'], ['the owl, a grumpy owl', 'owl'], ['Elias, kept the old lighthouse alone for thirty years', null], ['Rosa', null], ['Rosa, 42, tall', null],
+    // [revisora 52b12696, boca errada] o papel de OUTRA pessoa na mesma oração não é o desta
+    ['Mara, the wife of the captain', 'wife'], ['Mara, a friend of the keeper', 'friend'], ["Mara, the captain's wife", null], ['Mara, a nurse with the captain', 'nurse']])
     assert.equal(f.papelDaFicha2511({ nome: canonica.split(',')[0], canonica }), papel, 'papel: ' + canonica)
   { const nomes = f.nomesDaFala2511([['Rosa', 'Rosa'], ['Elias', 'Elias']], [{ nome: 'Rosa', canonica: 'Rosa, a pirate captain' }, { nome: 'Elias', canonica: 'Elias, a lighthouse keeper' }])
     igual(nomes, [['Rosa', 'Rosa', 'captain'], ['Elias', 'Elias', 'keeper']], 'o papel entra depois do nome')
     igual(f.lerFalas2511(['Captain: Hold the course.', 'Keeper: The light is on.'], nomes, 2).falas, [[{ ref: 0, nome: 'Rosa', texto: 'Hold the course.' }], [{ ref: 1, nome: 'Elias', texto: 'The light is on.' }]], '"Captain:" casa com Rosa, a capitã') }
+  for (const [mara, rotulo] of [['Mara, the wife of the captain', 'Captain'], ['Mara, a friend of the keeper', 'Keeper']]) { // [revisora 52b12696] Elias sem aposto
+    const nomes = f.nomesDaFala2511([['Elias'], ['Mara']], [{ nome: 'Elias', canonica: 'Elias' }, { nome: 'Mara', canonica: mara }])
+    assert.ok(!nomes[1].includes(rotulo.toLowerCase()), 'boca errada: o papel do outro não entra na Mara: ' + mara)
+    const r = f.lerFalas2511([rotulo + ': The storm is coming.', 'Mara: Hold on.'], nomes, 2)
+    assert.ok(!('falas' in r) || !r.falas.flat().some((l) => l.nome === 'Mara' && l.texto === 'The storm is coming.'), 'boca errada: "' + rotulo + ':" não sai da boca da Mara (' + mara + ')') }
   igual(f.nomesDaFala2511([['Rosa'], ['Ana']], [{ nome: 'Rosa', canonica: 'Rosa, a pirate captain' }, { nome: 'Ana', canonica: 'Ana, a ship captain' }]), [['Rosa'], ['Ana']], 'dois capitães = ambíguo = nenhum papel')
   igual(f.nomesDaFala2511([['Rosa'], ['Captain']], [{ nome: 'Rosa', canonica: 'Rosa, a pirate captain' }, null]), [['Rosa'], ['Captain']], 'o papel que é o nome do outro = não entra')
   igual(f.nomesDaFala2511([['Rosa'], ['Elias']], [null, null]), [['Rosa'], ['Elias']], 'sem ficha = os nomes de sempre')
@@ -288,6 +295,8 @@ const mutantes = [
   [MOD, "if (!p || papeis.filter((x) => x === p).length > 1 || outro(p) ||", "if (!p || outro(p) ||"], // o papel ambíguo entra
   [MOD, "if (!p || papeis.filter((x) => x === p).length > 1 || outro(p) ||", "if (!p || papeis.filter((x) => x === p).length > 1 ||"], // o papel que é o nome do outro entra
   [MOD, ".replace(/\\s+(?:named|called|who|that|which|whose)\\s+.*$/iu, '')", ".replace(/\\s+(?:named|called)\\s+.*$/iu, '')"], // a relativa vira papel
+  [MOD, '  const oracao = corte ? inteira.slice(0, corte.index).trim() : inteira\n', '  const oracao = inteira\n'], // [52b12696] sem o corte: "Captain:" da boca da Mara
+  [MOD, "  if (corte && /^['’]s$/iu.test(corte[0])) return null\n", ''], // [52b12696] "the captain's wife" vira "the captain"
   [ROUTE, 'nomesDaFala2511(refs.map((r) => r.nomes as string[]), fichas2511)', 'refs.map((r) => r.nomes as string[])'], // a rota não lê o papel
   [COMPOSE, "faceless15.fases = faceless15.fases.filter(f => f !== 'f1' && f !== 'f3')", "faceless15.fases = faceless15.fases.filter(f => f !== 'f3')"], // [A] o F1 volta a refazer a legenda pela TTS
   [COMPOSE, "faceless15.fases = faceless15.fases.filter(f => f !== 'f1' && f !== 'f3')", "faceless15.fases = faceless15.fases.filter(f => f !== 'f1')"], // [A] o F3 volta a pôr música e efeitos
