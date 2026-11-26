@@ -244,6 +244,27 @@ A revisora 392f0a52 liberou a v6 para a casa. A régua do cliente segue desligad
   - **A conta "10 de 10 a 3 s" da volta 4 estava exagerada.**
 - **A régua do cliente pode ligar do lado do escritor** quando a opção B do leitor do filme (3bbf48a0, `8497b7b54`, `papelDaFicha2511`) estiver publicada.
 
+## v8 (26/11): sobre a main d098087c3, a régua única de adulto e a chave do cliente LIGADA
+Pedido da CEO às 09:40: o dono deu nota 10 ao filme falado da esteira.
+- **Rebase:** a v6, a v7 e a v7b foram reaplicadas sobre a main `d098087c3`. O conflito era de uma linha do guardião (a lista "criança não fala") e ficou com as duas mudanças: a raposa de 7 anos no lugar do filhote, e o caso "Tom is 9" do 3bbf48a0. A bambina já era `menor` dos dois lados.
+- **A régua de adulto do escritor é a ÚNICA do trecho de ideia:** `adultoNoTrechoDaIdeia2511`, publicada pelo 3bbf48a0. O escritor não chama mais o `adultoProvado2511`, que é a régua da ficha.
+  - **Os ofícios do escritor ficaram por cima** (driver, baker, operator, passenger, mom, dad, waiter…). Nenhum dos 109 está na lista única.
+  - **O custo de tirar, medido com o leitor real:** as 20 comuns caem de 19 para 12; os 10 casos, de 7 para 5 de 9. Decisão para a CEO: mantê-los aqui, ou o 3bbf48a0 levá-los para a lista única.
+- **A chave:** `CLIENTE_FALA_NO_ROTEIRO = 'public'`, num commit separado, o último.
+  - Os guardiões da chave foram reancorados: o cliente e o sem login vão à régua do cliente; as duas chaves desligadas, no trecho real da rota, não fazem nenhuma chamada.
+  - A casa segue com a v4. O `rejected_text` continua só na casa.
+
+### 3º ensaio (offline): o escritor real e o leitor real, o modelo simulado
+- **Como rodou:**
+  - as 10 ideias do pacote, nas duas réguas;
+  - o modelo simulado devolve o JSON que o pedido manda;
+  - o elenco e a ficha estão no formato de hoje do servidor;
+  - o leitor é o `lerFalas2511` da main, com o `nomesDaFala2511` (a opção B).
+- **A chamada real ao gpt-4o não rodou aqui:** não há chave nem deploy desta branch. É o próximo ensaio da CEO, na casa.
+- **Casa: 9 de 9** falados no leitor (o f3 vai ao narrado pelo `menor`, de propósito).
+- **Cliente: 8 de 9** falados no leitor. Cai o f4: o irmão Tomas fala, e "brother" não prova adulto. Com só a Rosa falando, o f4 também passaria.
+- **Detalhe para o 3bbf48a0:** o `papelDaFicha2511` dele pega a ÚLTIMA palavra da 1ª oração ("Rosa, a nurse in training" vira "training"). O escritor usa a palavra ANTES da preposição ("Nurse", o D1 da revisora). Para humano com nome e papel com preposição, os dois não casam.
+
 ## O risco do caminho do servidor (conferido, executado)
 O roteiro de diálogo passa intacto pelo que o caminho da ideia solta faz depois do escritor (`lib/meta95/ideiaNoEscritor.ts`):
 - `roteiroSemMetaTexto` (l. 224) não remove nenhuma linha `Nome: fala`;
