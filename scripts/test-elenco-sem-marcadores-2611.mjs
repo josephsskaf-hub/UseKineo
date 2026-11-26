@@ -82,6 +82,31 @@ async function suite(w) {
   equal(quoted.final[0].genero, null, 'pronome dentro da fala não define quem fala')
   const quotedNext = routeSlice(w, 'The adult engineer waits. "She made it." The adult nurse asks, "Ready?"', reading(who('adult engineer', 'female'), who('adult nurse')))
   equal(quotedNext.final[0].genero, null, 'fala citada na próxima frase não define gênero')
+  // Volta do revisor: a citação inteira é dado, mesmo com linhas e aspas diferentes.
+  for (const [open, close] of [['"', '"'], ['“', '”'], ["'", "'"], ['‘', '’'], ['«', '»']]) {
+    for (const newline of [' ', '\n', '\r\n']) {
+      const inside = open + 'Listen carefully.' + newline + 'The adult engineer checks a device. She turns the dial.' + close + ' The adult engineer closes the book. The adult nurse waits.'
+      const input = reading(who('adult engineer', 'female'), who('adult nurse'))
+      const got = routeSlice(w, inside, input)
+      equal(w.s.pronomeDoPapelSemNome(got.lido.protagonist, [got.lido.protagonist, ...got.lido.supporting], inside), null, 'nenhuma evidência dentro de aspas ' + open + JSON.stringify(newline))
+      yes(!got.final[0].canonica.includes('pronoun from script'), 'fala citada não entra na ficha: ' + open + JSON.stringify(newline))
+      const outside = 'The adult engineer checks a device. She turns the dial. ' + open + 'The adult nurse speaks.' + close
+      equal(routeSlice(w, outside, input).final[0].genero, 'woman', 'narração antes de aspas preservada: ' + open)
+      const afterQuote = open + 'The adult nurse speaks.' + close + ' The adult engineer checks a device. She turns the dial.'
+      equal(routeSlice(w, afterQuote, input).final[0].genero, 'woman', 'narração depois de aspas preservada: ' + open)
+    }
+  }
+  for (const apostrophe of ["'", '’']) {
+    const possessive = 'The adult engineer checks the device' + apostrophe + 's handle. She turns the dial. The adult nurse asks, "Ready?"'
+    equal(routeSlice(w, possessive, reading(who('adult engineer', 'female'), who('adult nurse'))).final[0].genero, 'woman', 'apóstrofo interno não abre fala: ' + apostrophe)
+    const contraction = 'The adult engineer isn' + apostrophe + 't worried. She turns the dial. The adult nurse asks, "Ready?"'
+    equal(routeSlice(w, contraction, reading(who('adult engineer', 'female'), who('adult nurse'))).final[0].genero, 'woman', 'contração fora da fala não some: ' + apostrophe)
+  }
+  for (const apostrophe of ["'", '’']) {
+    const inside = "'The adult engineer isn" + apostrophe + "t worried. She turns the dial.' The adult engineer closes a book. The adult nurse waits."
+    const got = routeSlice(w, inside, reading(who('adult engineer', 'female'), who('adult nurse')))
+    equal(w.s.pronomeDoPapelSemNome(got.lido.protagonist, [got.lido.protagonist, ...got.lido.supporting], inside), null, 'apóstrofo interno não fecha fala: ' + apostrophe)
+  }
   const conflictText = 'The adult engineer checks a copper device. He turns a handle. The adult engineer waits. She turns a dial. The adult nurse asks, "Ready?"'
   const conflict = routeSlice(w, conflictText, raw)
   equal(conflict.final[0].genero, null, 'evidência textual conflitante não é resolvida por chute')
@@ -112,6 +137,8 @@ async function suite(w) {
 const report = await suite(current)
 const mainChecks = checks
 const mutants = [
+  ['deixa fala citada atravessar linhas', MOD, 'semFalasCitadas2611(String(original', '((s: string) => s)(String(original'],
+  ['volta ao regex de citação de uma linha', MOD, 'return fora', "return texto.replace(/\"[^\"\\n]*\"|“[^”\\n]*”|‘[^’\\n]*’/gu, ' ')"],
   ['não admite papel sem nome', MOD, "const semNome = op.semMarcadores === true", 'const semNome = false && op.semMarcadores === true'],
   ['não liga na rota', ROUTE, 'semMarcadores: kling4TrialCandidate && verbatim && parsedScript.segments.length === 0', 'semMarcadores: false'],
   ['alarga para filme pago', ROUTE, 'kling4TrialCandidate && verbatim && parsedScript.segments.length === 0', 'verbatim && parsedScript.segments.length === 0'],

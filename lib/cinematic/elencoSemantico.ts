@@ -633,6 +633,25 @@ function evidenciaEscrita(p: PersonagemSemantico, texto: string): EvidenciaEscri
   return { genero: generoDoPapel(nucleoDoPapel(papel)) ?? generoDoPapel(nucleoDoPapel(p.role_text)) ?? generoDoPapel(p.name) ?? generoConfirmado(p, texto), literal: null }
 }
 
+/** Aspas podem cruzar linhas. Apóstrofos dentro de palavras não abrem nem fecham fala. */
+function semFalasCitadas2611(texto: string): string {
+  const pares: Record<string, string> = { '"': '"', "'": "'", '“': '”', '‘': '’', '«': '»' }
+  const letra = (c: string) => /[\p{L}\p{N}]/u.test(c)
+  let fecha: string | null = null
+  let fora = ''
+  for (let i = 0; i < texto.length; i++) {
+    const c = texto[i]
+    const apostrofo = (c === "'" || c === '’') && letra(texto[i - 1] ?? '') && letra(texto[i + 1] ?? '')
+    if (fecha) {
+      if (c === fecha && !apostrofo) { fecha = null; fora += ' ' }
+      continue
+    }
+    if (pares[c] && !apostrofo && !(c === "'" && letra(texto[i - 1] ?? ''))) { fecha = pares[c]; fora += ' '; continue }
+    fora += c
+  }
+  return fora
+}
+
 /**
  * C1 26/11: evidência conservadora de gênero de um papel humano sem nome, só no caminho sem marcadores.
  * O leitor tem de afirmar o mesmo gênero; o texto precisa apresentar esse papel como sujeito e a frase seguinte
@@ -641,7 +660,7 @@ function evidenciaEscrita(p: PersonagemSemantico, texto: string): EvidenciaEscri
  */
 export function pronomeDoPapelSemNome(p: PersonagemSemantico, elenco: readonly PersonagemSemantico[], original: string): { genero: 'male' | 'female'; texto: string } | null {
   if (p.name || p.kind !== 'human' || !p.role_text || !p.gender || generoEscrito(p)) return null
-  const texto = String(original ?? '').replace(/\[[^\]]*\]/gu, ' ').replace(/"[^"\n]*"|“[^”\n]*”|‘[^’\n]*’/gu, ' ').replace(/\*\*/gu, '')
+  const texto = semFalasCitadas2611(String(original ?? '').replace(/\[[^\]]*\]/gu, ' ').replace(/\*\*/gu, ''))
   const frases = texto.split(/(?:[.!?…;]+\s+|\n+)/u).map(limpa).filter(Boolean)
   const outros = elenco.filter((q) => q !== p).flatMap((q) => [q.name, q.role_text, q.role_text?.split(' ').pop()]).filter((s): s is string => !!s)
   const achados: Array<{ genero: 'male' | 'female'; texto: string }> = []
@@ -652,7 +671,7 @@ export function pronomeDoPapelSemNome(p: PersonagemSemantico, elenco: readonly P
     // Antes do papel só cabe artigo e a idade já conferida: nenhum outro sujeito ou fala.
     const prefixo = f.slice(0, at).replace(/^(?:a|an|the|o|a|um|uma|el|la|un|una)\s+/iu, '').trim()
     if (prefixo && prefixo.toLowerCase() !== p.age_text?.toLowerCase()) continue
-    if (outros.some((s) => palavraNoTexto(f, s)) || /[:"“”‘’]/u.test(f)) continue
+    if (outros.some((s) => palavraNoTexto(f, s)) || /:/u.test(f)) continue
     const m = /^(he|she|ele|ela|él|ella)(?![\p{L}])/iu.exec(frases[i + 1])
     if (!m) continue
     achados.push({ genero: /^(he|ele|él)$/iu.test(m[1]) ? 'male' : 'female', texto: m[1].toLowerCase() })
