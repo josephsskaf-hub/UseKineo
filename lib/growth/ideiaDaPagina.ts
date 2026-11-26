@@ -33,6 +33,7 @@ const NICHOS: Readonly<Record<string, string>> = {
   localbusiness: 'The one question every customer asks before booking us — answered in 30 seconds',
 }
 
+import type { FilmVoiceMode } from '@/lib/cinematic/filmVoice2511'
 import type { FilmLook } from '@/lib/cinematic/filmLook2511'
 
 const PAGINAS: Readonly<Record<string, string>> = {
@@ -57,11 +58,12 @@ export function ideiaDoLink(valor: string | string[] | undefined): string {
 }
 
 /** KINEO-PEDIDO-GUARDA-TEXTO-0611 — quem pede o filme grátis com texto na caixa volta para a mesma caixa, com o texto. Vazio ou longo demais = null (segue o destino de antes). */
-export function voltaParaCaixa(texto: string | null | undefined, look?: FilmLook): string | null {
+export function voltaParaCaixa(texto: string | null | undefined, look?: FilmLook, voiceMode?: FilmVoiceMode): string | null {
   const limpo = String(texto ?? '').trim()
   if (!limpo || limpo.length > 2000) return null
   const params = new URLSearchParams({ ideia: limpo })
   if (look) params.set('look', look)
+  if (voiceMode) params.set('voice_mode', voiceMode)
   return `/studio?${params.toString()}`
 }
 

@@ -16,7 +16,7 @@
 //      país, has_paid baixado, plano baixado) NÃO abre a compra sem a PROVA DE SERVIDOR (trial_region_excluded com país
 //      IN/PK/NG e nenhum payment_success/region_film_199_paid na história).
 import fs from 'node:fs'
-import { scenePreviewWithFilmLook } from './test-support/scene-preview-film-look.mjs'
+import { scenePreviewTransportMatches } from './test-support/scene-preview-film-look.mjs'
 import path from 'node:path'
 import vm from 'node:vm'
 import { execSync } from 'node:child_process'
@@ -273,8 +273,8 @@ async function suite(S) {
   t(/\{regiaoFilme199Fill\(fc\.cta, fv\)\}/.test(ST) && /href=\{film\.go\}/.test(ST) && /data-testid="region-film-199-cta"/.test(ST), 'faixa: botão principal = o filme, pela rota que grava o clique')
   t(/<a href=\{data\.go\} onClick=\{saveResume\} data-testid="region-preview-pricing-cta" style=\{\{ fontSize: 13/.test(ST) && /\{regiaoFilme199Fill\(fc\.starter, fv\)\}/.test(ST), 'faixa: Starter vira link secundário')
   t(/const fv = \{ price: film\.price, seconds: film\.seconds, starterPrice: data\.price, films: data\.films \}/.test(ST), 'faixa: todos os números vêm do servidor')
-  t(/data\.qa \|\| film\.qa \? <div[^>]*>\{copy\.qa\}<\/div> : null/.test(ST) && /if \(!film \|\| film\.qa \|\| data\.qa \|\| !data\.script\.trim\(\)\) return/.test(ST), 'faixa: conferência marcada e sem gravar retomada')
-  t(/sessionStorage\.setItem\(CARD_ENTRY_DRAFT_KEY, serializeCardEntryDraft\(\{ prompt: data\.script, quality: 'cinematic_ai', duration: film\.seconds, mode: 'cinematic_ai', engine: 'seedance'/.test(ST) && /saveResume\(\)\n/.test(ST), 'faixa: o roteiro vai junto para a volta (rascunho da aba + aviso da prévia)')
+  t(/data\.qa \|\| film\.qa \? <div[^>]*>\{copy\.qa\}<\/div> : null/.test(ST) && /if \(!film \|\| film\.qa \|\| !saved\) return/.test(ST) && /if \(data\.qa \|\| !data\.script\.trim\(\)\) return/.test(ST), 'faixa: conferência marcada e sem gravar retomada')
+  t(/sessionStorage\.setItem\(CARD_ENTRY_DRAFT_KEY, serializeCardEntryDraft\(\{ prompt: previaResumeScript\(saved\), quality: 'cinematic_ai', duration: film\.seconds, mode: 'cinematic_ai', engine: 'seedance'/.test(ST) && /const saved = saveResume\(\)\n/.test(ST), 'faixa: o roteiro vai junto para a volta (rascunho da aba + aviso da prévia)')
   const mainStrip = main(FILES.strip)
   const oldJsx = mainStrip ? mainStrip.slice(mainStrip.indexOf('  return (\n    <section'), mainStrip.lastIndexOf('}')) : null
   t(oldJsx && S.strip.includes(oldJsx), 'faixa sem a oferta: o JSX de sempre, byte a byte')
@@ -328,7 +328,7 @@ for (const rel of ['lib/scenePreview.ts', 'lib/freeFilmPolicy.ts', 'lib/regionPa
     continue
   }
   if (rel === 'lib/scenePreview.ts') {
-    ok(scenePreviewWithFilmLook(m) === read(rel), 'scenePreview: só o transporte do estilo pode mudar em relação à main')
+    ok(scenePreviewTransportMatches(m, read(rel), ROOT), 'scenePreview: só os blobs exatos de transporte de estilo e voz podem mudar')
     continue
   }
   ok(m !== null && m === read(rel), `${rel} idêntico à main`)
@@ -385,7 +385,7 @@ const MUT = [
   ['rota preço digitado', M('route', 'price: regiaoFilme199PriceLabel(),', "price: '$1.99',")],
   ['faixa preço digitado', M('strip', '{regiaoFilme199Fill(fc.cta, fv)}', 'Make my film — $1.99')],
   ['faixa Starter continua principal', M('strip', '<a href={data.go} onClick={saveResume} data-testid="region-preview-pricing-cta" style={{ fontSize: 13', '<a href={data.go} onClick={saveResume} data-testid="region-preview-pricing-cta" style={{ background: \'#2997ff\', fontSize: 13')],
-  ['faixa conferência grava', M('strip', 'if (!film || film.qa || data.qa || !data.script.trim()) return', 'if (!film || !data.script.trim()) return')],
+  ['faixa conferência grava', M('strip', 'if (!film || film.qa || !saved) return', 'if (!film || !saved) return')],
   ['evento cunhável pelo navegador', M('events', "  'region_film_199_paid',\n", '')],
 ]
 for (const [nome, m] of MUT) {

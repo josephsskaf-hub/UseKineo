@@ -125,7 +125,7 @@ ok(/const narration = previaNarrationLanguage\(body\?\.language, idea\)/.test(RO
 ok(ROUTE.includes("body: JSON.stringify({ topic: idea, language: narration, engine: PREVIA_ENGINE_QUALITY"), 'o /api/generate-script recebe a língua do texto, não a da interface')
 ok(!/JSON\.stringify\(\{ topic: idea, language,/.test(ROUTE), 'nenhuma chamada ao escritor com a língua da interface')
 ok(/return refuse\(user\.id, 'not_eligible', language\)/.test(ROUTE), 'recusas seguem na língua da interface')
-ok(/NextResponse\.json\(\{ script, scenes: shown, left, language: narration \}/.test(ROUTE), 'a resposta devolve a língua do roteiro (a volta ao Studio usa)')
+ok(/NextResponse\.json\(\{ script, scenes: shown, left, language: narration, \.\.\.previaIdentityFields\(myId\) \}/.test(ROUTE), 'a resposta devolve a língua do roteiro (a volta ao Studio usa)')
 ok(/scriptLanguage = language === 'pt' \|\| language === 'es' \? language : 'en'/.test(CLIENT), 'a tela segue mandando en/pt/es como dica (texto latino como antes)')
 ok(/language: typeof j\.language === 'string' \? j\.language : scriptLanguage/.test(CLIENT), 'a tela guarda a língua que o servidor usou')
 

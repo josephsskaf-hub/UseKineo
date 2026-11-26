@@ -24,6 +24,7 @@ import {
   PREVIA_COUNTED_STATUSES,
   PREVIA_DAY_MS,
   PREVIA_EVENTS,
+  previaIdentityFields,
   PREVIA_GLOBAL_PER_DAY,
   PREVIA_IDEA_MAX,
   PREVIA_IDEA_MIN,
@@ -102,14 +103,14 @@ export async function GET() {
   const all = await reservationIds(db, { userId: user.id, limit: 50 })
   const day = await reservationIds(db, { userId: user.id, since: new Date(Date.now() - PREVIA_DAY_MS).toISOString(), limit: 50 })
   const lastRow = await db.from('events').select('metadata, created_at').eq('user_id', user.id).eq('name', PREVIA_EVENTS.shown).order('created_at', { ascending: false }).limit(1)
-  const lastMeta = (lastRow.data?.[0] as { metadata?: { script?: unknown; scenes?: unknown; idea?: unknown; language?: unknown } } | undefined)?.metadata ?? null
+  const lastMeta = (lastRow.data?.[0] as { metadata?: { script?: unknown; scenes?: unknown; idea?: unknown; language?: unknown; reservation?: unknown } } | undefined)?.metadata ?? null
   const used = all ? all.length : null
   return NextResponse.json({
     eligible,
     used,
     left: used === null ? null : Math.max(0, PREVIA_PER_ACCOUNT_TOTAL - used),
     todayUsed: day ? day.length : null,
-    last: lastMeta && typeof lastMeta.script === 'string' ? { script: lastMeta.script, scenes: Array.isArray(lastMeta.scenes) ? lastMeta.scenes : [], idea: typeof lastMeta.idea === 'string' ? lastMeta.idea : '', language: typeof lastMeta.language === 'string' ? lastMeta.language : 'en' } : null,
+    last: lastMeta && typeof lastMeta.script === 'string' ? { ...previaIdentityFields(lastMeta.reservation), script: lastMeta.script, scenes: Array.isArray(lastMeta.scenes) ? lastMeta.scenes : [], idea: typeof lastMeta.idea === 'string' ? lastMeta.idea : '', language: typeof lastMeta.language === 'string' ? lastMeta.language : 'en' } : null,
   }, { headers: NO_STORE })
 }
 
@@ -225,5 +226,5 @@ export async function POST(req: NextRequest) {
       est_usd: null,
     },
   })
-  return NextResponse.json({ script, scenes: shown, left, language: narration }, { headers: NO_STORE })
+  return NextResponse.json({ script, scenes: shown, left, language: narration, ...previaIdentityFields(myId) }, { headers: NO_STORE })
 }

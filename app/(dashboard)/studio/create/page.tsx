@@ -21,6 +21,7 @@ import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { cookies, headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
+import { voiceModeFields } from '@/lib/cinematic/filmVoice2511'
 import { selectedFilmLook } from '@/lib/cinematic/filmLook2511Server'
 import { maybeActivateReverseTrial } from '@/lib/reverseTrial'
 import { paisDoRequest } from '@/lib/freeFilmPolicy'
@@ -89,6 +90,7 @@ export default async function StudioCreatePage({ searchParams }: StudioCreatePag
     error: authError,
   } = await supabase.auth.getUser()
   const filmLook = selectedFilmLook(searchParams?.look, authError ? null : user?.email)
+  const { voice_mode: initialVoiceMode } = voiceModeFields(searchParams?.voice_mode)
   const activationEntry = firstParam(searchParams, 'signup') === '1'
     ? 'oauth_signup'
     : firstParam(searchParams, 'welcome') === '1'
@@ -219,7 +221,7 @@ export default async function StudioCreatePage({ searchParams }: StudioCreatePag
     }
     if (shouldRouteGenerateToPreview({ profile: prev as PreviaProfile | null, params, filmCost, freeShortFilmCost: engineParam === 'seedance' && seedance15sVisible(user.email) ? creditCostForDuration('cinematic_ai', true, SEEDANCE_SHORT_SECONDS) : null })) { // KINEO-PRIMEIRO-FILME-2026-10-13: + freeShortFilmCost
       await writeServerEvent({ name: 'scene_preview_routed', userId: user.id, path: '/studio/create', metadata: { engine: engineParam, seconds: Number.isFinite(seconds) ? seconds : null, film_cost: filmCost } })
-      redirect(previaPath({ prompt: params.prompt ?? '', engine: engineParam, duration: firstParam(searchParams, 'duration'), language: firstParam(searchParams, 'language'), look: filmLook }))
+      redirect(previaPath({ prompt: params.prompt ?? '', engine: engineParam, duration: firstParam(searchParams, 'duration'), language: firstParam(searchParams, 'language'), look: filmLook, ...(initialVoiceMode ? { voiceMode: initialVoiceMode, scriptMode: firstParam(searchParams, 'script_mode') } : {}) }))
     }
   } catch (e) {
     // redirect() do Next lança de propósito: deixa passar. Qualquer outra falha = o caminho de sempre.
@@ -322,6 +324,7 @@ export default async function StudioCreatePage({ searchParams }: StudioCreatePag
         kineo1Visible={kineo1}
         seedance15={seedance15sVisible(user.email)}
         {...(filmLook ? { filmLook } : {})}
+        {...(initialVoiceMode ? { initialVoiceMode } : {})}
       />
     </Suspense>
   )

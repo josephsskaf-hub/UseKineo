@@ -25,6 +25,8 @@
 // pagamento. Os campos novos são ADITIVOS: rascunho velho devolve `mode: null` e
 // `engine: null`, e quem lê trata nulo como "não mexa no que já está na tela".
 
+import { voiceModeFields, type FilmVoiceMode } from '@/lib/cinematic/filmVoice2511'
+
 export const CARD_ENTRY_DRAFT_KEY = 'kineo_studio_draft_v1'
 export const CARD_ENTRY_DRAFT_TTL_MS = 45 * 60 * 1000
 
@@ -49,6 +51,8 @@ export interface CardEntryDraft {
   duration: number | null
   mode: DraftMode | null
   engine: DraftEngine | null
+  voice_mode?: FilmVoiceMode
+  script_mode?: 'ai' | 'verbatim'
   /** `at` dentro da janela de TTL. Fora dela o rascunho é lido, mas não arma o disparo. */
   fresh: boolean
 }
@@ -59,14 +63,19 @@ export function serializeCardEntryDraft(input: {
   duration: number
   mode: string
   engine: string
+  voiceMode?: FilmVoiceMode
+  scriptMode?: 'ai' | 'verbatim'
   at: number
 }): string {
+  const voice = voiceModeFields(input.voiceMode)
   return JSON.stringify({
     prompt: input.prompt,
     quality: input.quality,
     duration: input.duration,
     mode: input.mode,
     engine: input.engine,
+    ...voice,
+    ...(voice.voice_mode && input.scriptMode ? { script_mode: input.scriptMode } : {}),
     at: input.at,
   })
 }
@@ -105,5 +114,7 @@ export function readCardEntryDraft(raw: string | null, now: number): CardEntryDr
     : null
   const fresh = typeof draft.at === 'number' && now - draft.at < CARD_ENTRY_DRAFT_TTL_MS
 
-  return { prompt, quality, duration, mode, engine, fresh }
+  const voice = voiceModeFields(draft.voice_mode)
+  const scriptMode = draft.script_mode === 'verbatim' || draft.script_mode === 'ai' ? draft.script_mode : undefined
+  return { prompt, quality, duration, mode, engine, fresh, ...voice, ...(voice.voice_mode && scriptMode ? { script_mode: scriptMode } : {}) }
 }

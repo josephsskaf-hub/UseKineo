@@ -1,5 +1,7 @@
 // KINEO-CARDS-ANTES-DO-LOGIN-0411 — o que o visitante preencheu antes do login, só nesta aba (sessionStorage), lido uma vez e apagado na volta.
 // Sem foto e sem nada que custe: enviar foto já pede conta. Quem confere tudo de novo é o servidor, no pedido.
+import type { FilmVoiceMode } from '@/lib/cinematic/filmVoice2511'
+
 const CHAVE_ANUNCIO = 'kineo:visitante:anuncio:v1'
 const CHAVE_DESENHO = 'kineo:visitante:desenho:v1'
 const VALIDADE_MS = 2 * 60 * 60 * 1000
@@ -38,10 +40,10 @@ export function lerRascunhoDoAnuncio<F extends CamposDoAnuncio>(): { campos: Par
   return { campos: campos as Partial<F>, link: typeof d.link === 'string' ? d.link.slice(0, 2000) : '' }
 }
 
-export function guardarRascunhoDoDesenho(r: { character: string; idea: string; ideaId: string | null; language: string; duration: number }): void {
+export function guardarRascunhoDoDesenho(r: { character: string; idea: string; ideaId: string | null; language: string; duration: number; voice_mode?: FilmVoiceMode }): void {
   guardar(CHAVE_DESENHO, r)
 }
 
-export function lerRascunhoDoDesenho(): { character?: unknown; idea?: unknown; ideaId?: unknown; language?: unknown; duration?: unknown } | null { // KINEO-CARTOON-SO-PLANO-0411 — + ideaId e duration: a ideia pronta e a duração voltam junto
+export function lerRascunhoDoDesenho(): { character?: unknown; idea?: unknown; ideaId?: unknown; language?: unknown; duration?: unknown; voice_mode?: unknown } | null { // KINEO-CARTOON-SO-PLANO-0411 — + ideaId e duration: a ideia pronta e a duração voltam junto
   return ler(CHAVE_DESENHO)
 }

@@ -16,10 +16,10 @@ const require = createRequire(import.meta.url)
 const R = require('../docs/studio-na-moldura-1011/runtime.cjs')
 const { aba, React, read, ROOT } = R
 const BASE = 'ec6348f4b7beafa640bc3fb5d9dc5da3b7ce7b0b'
-// SHA-256 dos arquivos de estilo em 8a1fb2fa8, já nas provas visual e funcional.
+// SHA-256 das duas fontes do pedido após acrescentar a escolha de voz. O guardião de voz também compara OFF com eb07dbd73.
 const ESTILO = {
-  'components/studio/StudioSimples.tsx': '8babb630db69ba0f2375d5263f63d0e4f66ad76c0821f3f3e30b5b46c7446c6b',
-  'lib/growth/studioSimples.ts': 'f6653593438fd8514111eee8ee9687bbba902bc8aa95c7e6b622feda9d61f9a1',
+  'components/studio/StudioSimples.tsx': '12799c6f5961c11dba331478b842ba311fb70fecd242744bc871d1e2191fc501',
+  'lib/growth/studioSimples.ts': 'bafa414b1ca6e9218db3e27c9c10a610e863f566ebdc4b68774e74eb80ced03e',
 }
 const baseSrc = (ref, p) => execFileSync('git', ['show', `${ref}:${p}`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 })
 const lf = s => s.replace(/\r\n/g, '\n')
@@ -53,7 +53,7 @@ function casosA(o) {
 // ─── B. O gerador é o de antes ─────────────────────────────────────────────────────────────────────────────────────────
 function casosB(o) {
   return [
-    ...Object.entries(ESTILO).map(([file, hash], i) => [`B${i + 1} ${file} igual à versão de estilo revisada`, createHash('sha256').update(src(o, file)).digest('hex') === hash]),
+    ...Object.entries(ESTILO).map(([file, hash], i) => [`B${i + 1} ${file} igual à referência do pedido com voz`, createHash('sha256').update(src(o, file)).digest('hex') === hash]),
     ...['lib/create/filmNaMoldura.ts', 'lib/credits/engineCost.ts'].map((file, i) => [`B${i + 3} ${file} igual à main ${BASE.slice(0, 9)}`, src(o, file) === lf(baseSrc(BASE, file))]),
   ]
 }

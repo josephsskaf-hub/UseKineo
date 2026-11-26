@@ -22,7 +22,10 @@ const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail+
 function load(src) {
   const js = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText
   const mod = { exports: {} }
-  new Function('module', 'exports', 'require', js)(mod, mod.exports, (p) => { throw new Error('import inesperado: ' + p) })
+  new Function('module', 'exports', 'require', js)(mod, mod.exports, (p) => {
+    if (p === '@/lib/cinematic/filmVoice2511') return load(read('lib/cinematic/filmVoice2511.ts'))
+    throw new Error('import inesperado: ' + p)
+  })
   return mod.exports
 }
 const ordem = (src, ...marcas) => { let at = -1; for (const m of marcas) { const i = src.indexOf(m, at + 1); if (i < 0 || i <= at) return false; at = i } return true }

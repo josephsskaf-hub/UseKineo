@@ -15,6 +15,8 @@ import { guardarRascunhoDoDesenho } from '@/lib/ads/rascunhoDoVisitante'
 import { CARTOON_IDEA_MAX_CHARS, CREATE_COPY, CREATE_EVENTS, CREATE_EXAMPLES, FILM_IDEA_MAX_CHARS, adsContinueHref, cartoonContinueHref, cartoonDraft, continueBlocker, filmContinueHref, type CreateExample, type CreateTab } from '@/lib/create/tabs'
 import '@/app/recreate/recreate.css'
 import './create.css'
+import FilmVoicePicker from '@/components/studio/FilmVoicePicker'
+import { filmVoiceEnabled, voiceModeFields, type FilmVoiceMode } from '@/lib/cinematic/filmVoice2511'
 import CartoonOffer, { CARTOON_OFFER_CSS, CartoonPurchaseDock } from '@/components/kidsCartoon/CartoonOffer'
 import ContagemSocial, { CONTAGEM_SOCIAL_CSS } from '@/components/create/ContagemSocial' // KINEO-FILMES-VIRAIS-1511
 
@@ -25,6 +27,8 @@ export function continueHref(tab: CreateTab, idea: string, signedIn: boolean): s
 // KINEO-STUDIO-NA-MOLDURA-1011 — `painel` (opcional) troca SÓ os passos do painel pelos do Studio real (StudioSimples); `aoEscolher` recebe a
 // ideia do exemplo. Sem eles, o HTML é byte a byte o de antes (scripts/test-studio-na-moldura-1011.mjs).
 export default function CreateShell({ tab, signedIn = true, showRecreate = true, showClip = false, painel, aoEscolher, aoComprar }: { tab: CreateTab; signedIn?: boolean; showRecreate?: boolean; /** KINEO-CLIP-NA-MOLDURA-1011 */ showClip?: boolean; painel?: ReactNode; aoEscolher?: (ideia: string) => void; aoComprar?: () => void }) {
+  const [voiceMode, setVoiceMode] = useState<FilmVoiceMode>('narrator')
+  const cartoonVoice = tab === 'cartoon' ? voiceModeFields(voiceMode) : {}
   const copy = CREATE_COPY[tab]
   const examples = CREATE_EXAMPLES[tab]
   const [example, setExample] = useState<CreateExample>(examples[0])
@@ -45,7 +49,7 @@ export default function CreateShell({ tab, signedIn = true, showRecreate = true,
   function go() {
     if (!ready) return
     void trackClosedEvent(CREATE_EVENTS.continueClicked, { tab, has_text: idea.trim().length > 0 })
-    if (tab === 'cartoon') guardarRascunhoDoDesenho(cartoonDraft(idea))
+    if (tab === 'cartoon') guardarRascunhoDoDesenho({ ...cartoonDraft(idea), ...cartoonVoice })
     window.location.assign(continueHref(tab, idea, signedIn))
   }
 
@@ -77,6 +81,7 @@ export default function CreateShell({ tab, signedIn = true, showRecreate = true,
         </details></section>
         <section className={`rc-step rc-generate-area rc-step-${states[2]}`} data-step-state={states[2]} aria-labelledby="ct-step3">
           <div className="rc-step-heading">{marker(3)}<h2 id="ct-step3">{copy.step3}</h2><span className="rc-step-status">{stateLabel(states[2])}</span></div>
+          {tab === 'cartoon' && filmVoiceEnabled() && <FilmVoicePicker value={voiceMode} onSelect={setVoiceMode} />}
           <div className="ct-action-dock">
             <button type="button" className="rc-generate" data-create-continue={continueHref(tab, idea, signedIn)} aria-describedby="ct-continue-reason" disabled={!ready} onClick={go}>{copy.button} <span aria-hidden="true">→</span></button>
             <p className="rc-next-note" id="ct-continue-reason" role="status">{blocker ?? copy.note}</p>
@@ -98,7 +103,7 @@ export default function CreateShell({ tab, signedIn = true, showRecreate = true,
     </div>
     {tab === 'cartoon' ? <CartoonPurchaseDock onPlans={() => {
       if (aoComprar) aoComprar()
-      else if (!painel) guardarRascunhoDoDesenho(cartoonDraft(idea))
+      else if (!painel) guardarRascunhoDoDesenho({ ...cartoonDraft(idea), ...cartoonVoice })
     }} /> : null}
   </main>
 }

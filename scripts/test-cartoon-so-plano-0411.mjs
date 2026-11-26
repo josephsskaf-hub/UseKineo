@@ -203,7 +203,7 @@ function provaDaTela(mutar = {}) {
   exige(/35-second cartoon · 21 credits/.test(rev) && (rev.match(/kkc-cost/g) ?? []).length === 1, 'plano: a linha de custo segue uma só, com o preço de sempre')
   const fonte = (mutar[TPL] ?? ((t) => t))(ler(TPL))
   const ir = fonte.slice(fonte.indexOf('function irAosPlanos()'), fonte.indexOf('async function write('))
-  exige(ir.includes('guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration })') && ir.includes('window.location.assign(KIDS_PLANS_PATH)') && !ir.includes('fetch('), 'See plans: guarda o rascunho, vai aos planos, não começa nada')
+  exige(ir.includes('guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration, ...voiceModeFields(voiceMode) })') && ir.includes('window.location.assign(KIDS_PLANS_PATH)') && !ir.includes('fetch('), 'See plans: guarda o rascunho, vai aos planos, não começa nada')
   exige(fonte.includes("data.reason === 'kids_plan_required'"), 'a tela entende a recusa do servidor')
   exige(fonte.includes('d?.cartoon_plan === false') && fonte.includes("if (!visitante) fetch('/api/kids-venda/status'"), 'a tela pergunta ao servidor, e o visitante não pergunta')
   return e
@@ -330,7 +330,7 @@ const MUTANTES = [
   ['botão do grátis de volta', TPL, (t) => t.replace('{KIDS_EPISODIO_GRATIS_LIVE && !visitante ? <KidsEpisodioGratis', '{!visitante ? <KidsEpisodioGratis'), provaDaTela, /episódio grátis/],
   ['sem plano começa a história', TPL, (t) => t.replace('{semPlano && !visitante ? <button', '{false ? <button'), provaDaTela, /See plans/],
   ['visitante vai direto aos planos', TPL, (t) => t.replace('{semPlano && !visitante ? <button', '{semPlano ? <button'), provaDaTela, /visitante vai pelo cadastro/],
-  ['See plans sem guardar o rascunho', TPL, (t) => t.replace("    guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration })\n    void trackEvent('kids_cartoon_plans_clicked', { credits: cost, balance, duration, surface: 'form' })", "    void trackEvent('kids_cartoon_plans_clicked', { credits: cost, balance, duration, surface: 'form' })"), provaDaTela, /guarda o rascunho/],
+  ['See plans sem guardar o rascunho', TPL, (t) => t.replace("    guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration, ...voiceModeFields(voiceMode) })\n    void trackEvent('kids_cartoon_plans_clicked', { credits: cost, balance, duration, surface: 'form' })", "    void trackEvent('kids_cartoon_plans_clicked', { credits: cost, balance, duration, surface: 'form' })"), provaDaTela, /guarda o rascunho/],
   ['promessa de volta na página', PAGINAS, (t) => t.replace('Cartoons are included in paid plans and use your plan credits; the credit cost', 'Try your first episode free; the credit cost'), provaDosTextos, /sem a promessa antiga|paid plans/],
   ['"currently unavailable" de volta', PAGINAS, (t) => t.replace("'Cartoons are included in paid plans and use your plan credits. There is no separate subscription: see the plans on the pricing page. The credit cost appears before you confirm.'", "'Dedicated offers are currently unavailable.'"), provaDosTextos, /sem a promessa antiga/],
   ['seis personagens de volta', PAGINAS, (t) => t.replace('using one of nine characters', 'using one of six characters'), provaDosTextos, /sem a promessa antiga|nove personagens/],

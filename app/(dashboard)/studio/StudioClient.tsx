@@ -1,6 +1,8 @@
 'use client'
 
 import type { FilmLook } from '@/lib/cinematic/filmLook2511'
+import FilmVoicePicker from '@/components/studio/FilmVoicePicker'
+import { voiceModeFields, type FilmVoiceMode } from '@/lib/cinematic/filmVoice2511'
 import FilmStylePicker from '@/components/studio/FilmStylePicker'
 
 import Kling4PaidNotice, { useKling4PaidAvailability } from '@/components/Kling4PaidNotice'
@@ -289,7 +291,7 @@ function EngineHero({ name, desc, meta, videos, fallback }: { name: string; desc
   )
 }
 
-export default function StudioClient({ engineHeroes = {}, bestFilms = [], initialFilmLook }: { engineHeroes?: Record<string, StudioHeroVideo[]>; bestFilms?: StudioBestFilm[]; initialFilmLook?: FilmLook } = {}) {
+export default function StudioClient({ engineHeroes = {}, bestFilms = [], initialFilmLook, initialVoiceMode }: { engineHeroes?: Record<string, StudioHeroVideo[]>; bestFilms?: StudioBestFilm[]; initialFilmLook?: FilmLook; initialVoiceMode?: FilmVoiceMode } = {}) {
   const t = useUiCopy()
   // KINEO-STUDIO-MELHORES-2026-09-30 — o filme da vitrine clicado abre no palco do motor dele.
   const [heroPick, setHeroPick] = useState<StudioBestFilm | null>(null)
@@ -431,6 +433,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [], initia
   const [preset, setPreset] = useState<string | null>(null)
   const [prompt, setPrompt] = useState('')
   const [filmLook, setFilmLook] = useState(initialFilmLook)
+  const [voiceMode, setVoiceMode] = useState(initialVoiceMode)
   const [filmLookChanged, setFilmLookChanged] = useState(false)
   const [originalIdea, setOriginalIdea] = useState<string | null>(null) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
   const linkOnlyInput = isStandaloneHttpUrl(prompt) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
@@ -1003,6 +1006,8 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [], initia
       sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine, prompt: finalPrompt, language }))
     } catch {}
     const q = new URLSearchParams({ engine, prompt: finalPrompt, duration: String(duration), script_mode: scriptMode, autoanalyze: '1', studio: '1', intent_campaign: campaignRef.current })
+    const { voice_mode } = voiceModeFields(voiceMode)
+    if (voice_mode) q.set('voice_mode', voice_mode)
     if (filmLook) {
       q.set('look', filmLook)
       void trackEvent('studio_film_style_submitted', { initial_look: initialFilmLook, chosen_look: filmLook, changed: filmLookChanged })
@@ -1245,6 +1250,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [], initia
                 : chatGptQuickstart === 'idea'
                   ? (t('Paste the idea from ChatGPT here…', 'Pega aquí la idea de ChatGPT…'))
                   : (t('What’s your video about? One idea in — a finished film out: voiced, scored and captioned.', '¿De qué trata tu vídeo? Una idea se convierte en un vídeo con voz, música y subtítulos.'))} />
+            {voiceMode && scriptMode !== 'clip' && <FilmVoicePicker value={voiceMode} onSelect={setVoiceMode} />}
             {filmLook && scriptMode !== 'clip' && <FilmStylePicker look={filmLook} text={finalPrompt} onSelect={next => {
               setFilmLook(next)
               if (next !== filmLook) setFilmLookChanged(true)

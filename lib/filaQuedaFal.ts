@@ -81,6 +81,8 @@ export function decidirEstacionamento(input: {
   return { park: true, reason: saldo ? 'balance_quota' : 'capacity', why: saldo ? 'all_balance_quota' : 'all_rate_limit' }
 }
 
+import { filmVoiceMode, type FilmVoiceMode } from '@/lib/cinematic/filmVoice2511'
+
 export type PedidoEstacionado = {
   prompt: string
   duration: number
@@ -92,6 +94,7 @@ export type PedidoEstacionado = {
   characterId?: string
   kids_cartoon?: string
   look?: string
+  voice_mode?: FilmVoiceMode
   allow_shorter_duration?: boolean
   formatFlags?: unknown
   format_flags?: unknown
@@ -117,6 +120,8 @@ export function pedidoEstacionavel(body: unknown): PedidoEstacionado | null {
   if (!Number.isFinite(duration) || duration <= 0) return null
   const out: PedidoEstacionado = { prompt, duration }
   for (const k of PEDIDO_TEXTO) if (typeof b[k] === 'string' && (b[k] as string).length <= 200) out[k] = b[k] as string
+  const voiceMode = filmVoiceMode(b.voice_mode)
+  if (voiceMode) out.voice_mode = voiceMode
   if (b.allow_shorter_duration === true) out.allow_shorter_duration = true
   for (const k of PEDIDO_LIVRE) if (b[k] !== undefined && b[k] !== null) out[k] = b[k]
   try {

@@ -8,7 +8,8 @@
 import { useEffect, useState } from 'react'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { pickInterfaceCopy } from '@/lib/ui/interfaceLanguage'
-import { PREVIA_RESUME_STORAGE_KEY, type PreviaResume } from '@/lib/scenePreview'
+import { filmVoiceEnabled, voiceModeFields } from '@/lib/cinematic/filmVoice2511'
+import { PREVIA_RESUME_STORAGE_KEY, mesmaPreviaParaRetomar, previaResumeScript, previaResumeValid, type PreviaResume } from '@/lib/scenePreview'
 import { REGIAO_PAGA_COPY, REGIAO_PAGA_STRIP_API, regiaoPagaFill, type RegiaoPagaScene, type RegiaoPagaSurface } from '@/lib/growth/regiaoPaga1011'
 // KINEO-REGIAO-FILME-199-1011 [fundador 10/11: "1.99 1 filme!"] — com `film199` na resposta (o servidor decidiu: conta
 // elegível com o interruptor 'public', ou a conferência da casa), o botão principal vira o filme avulso de 15 s (preço da fonte única) e o
@@ -17,7 +18,7 @@ import { REGIAO_FILME_199_COPY, regiaoFilme199Fill, type RegiaoFilme199Offer } f
 import { CARD_ENTRY_DRAFT_KEY, serializeCardEntryDraft } from '@/lib/growth/cardEntryResumeDraft'
 import { WALL_V1_PACK_BALANCE_KEY } from '@/lib/growth/wallV1'
 
-type Data = { show: true; qa: boolean; scenes: RegiaoPagaScene[]; idea: string; script: string; language: string; price: string; films: number; go: string; film199?: RegiaoFilme199Offer }
+type Data = { show: true; qa: boolean; scenes: RegiaoPagaScene[]; idea: string; script: string; language: string; previewId?: string; price: string; films: number; go: string; film199?: RegiaoFilme199Offer }
 
 export default function PreviewPricingStrip({ surface = 'pricing' }: { surface?: RegiaoPagaSurface }) {
   const language = useInterfaceLanguage()
@@ -38,20 +39,31 @@ export default function PreviewPricingStrip({ surface = 'pricing' }: { surface?:
   // A retomada depois de pagar (ScenePreviewResumeBanner) lê esta chave — a mesma que o "Turn into a film" grava.
   const saveResume = () => {
     if (data.qa || !data.script.trim()) return
+    const now = Date.now()
+    let saved: PreviaResume = { t: now, idea: data.idea, script: data.script, language: data.language }
+    if (filmVoiceEnabled()) {
+      try {
+        const prior: unknown = JSON.parse(localStorage.getItem(PREVIA_RESUME_STORAGE_KEY) ?? 'null')
+        if (previaResumeValid(prior, now) && voiceModeFields(prior.voice_mode).voice_mode &&
+            mesmaPreviaParaRetomar(prior, data)) {
+          saved = { ...prior, t: now }
+        }
+      } catch { /* rascunho velho inválido: guarda a prévia atual */ }
+    }
     try {
-      const saved: PreviaResume = { t: Date.now(), idea: data.idea, script: data.script, language: data.language }
       localStorage.setItem(PREVIA_RESUME_STORAGE_KEY, JSON.stringify(saved))
     } catch { /* sem armazenamento: o roteiro continua no servidor (GET /api/scene-preview) */ }
+    return saved
   }
   // KINEO-REGIAO-FILME-199-1011 — o filme avulso volta a /studio/create?resume=wall_v1 (a volta do pacote, que espera o
   // crédito cair): o rascunho dessa volta vive no sessionStorage DESTA aba, então o roteiro vai junto, no motor e na
   // duração do filme comprado. Conferência da casa nunca grava nada.
   const film = data.film199 && typeof data.film199.go === 'string' ? data.film199 : null
   const saveFilmResume = () => {
-    saveResume()
-    if (!film || film.qa || data.qa || !data.script.trim()) return
+    const saved = saveResume()
+    if (!film || film.qa || !saved) return
     try {
-      sessionStorage.setItem(CARD_ENTRY_DRAFT_KEY, serializeCardEntryDraft({ prompt: data.script, quality: 'cinematic_ai', duration: film.seconds, mode: 'cinematic_ai', engine: 'seedance', at: Date.now() }))
+      sessionStorage.setItem(CARD_ENTRY_DRAFT_KEY, serializeCardEntryDraft({ prompt: previaResumeScript(saved), quality: 'cinematic_ai', duration: film.seconds, mode: 'cinematic_ai', engine: 'seedance', at: Date.now(), voiceMode: saved.voice_mode, scriptMode: saved.voice_mode ? 'verbatim' : undefined }))
       if (typeof film.balance === 'number' && film.balance >= 0) sessionStorage.setItem(WALL_V1_PACK_BALANCE_KEY, String(film.balance))
     } catch { /* sem armazenamento: o aviso da prévia no painel leva ao mesmo roteiro */ }
   }

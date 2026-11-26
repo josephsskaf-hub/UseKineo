@@ -72,7 +72,11 @@ function loadModule(rel) {
   const js = ts.transpileModule(read(rel), {
     compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS },
   }).outputText
-  vm.runInNewContext(js, { module: box, exports: box.exports, console }, { filename: rel })
+  const requireLocal = name => {
+    if (rel === MODULO && name === '@/lib/cinematic/filmVoice2511') return loadModule('lib/cinematic/filmVoice2511.ts')
+    throw new Error('import inesperado: ' + name)
+  }
+  vm.runInNewContext(js, { module: box, exports: box.exports, console, require: requireLocal }, { filename: rel })
   return box.exports
 }
 const M = loadModule(MODULO)

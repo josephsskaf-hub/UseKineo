@@ -15,6 +15,8 @@
 // "Captions on the video" (ligado por padrão) viaja no corpo do filme como kids_captions:false quando desligado.
 // KINEO-CARTOON-TELA-0411 [fundador 05/11] — o layout da tela nova de anúncios: cabeçalho igual, formulário à esquerda, personagem à direita (celular: formulário primeiro), um botão principal, opcionais em "More options", preço só na linha do botão final. Pedidos, endpoints e retomada do filme não mudaram.
 import { cadastroComVolta } from '@/lib/growth/visitanteEscreveAntes' // KINEO-CARDS-ANTES-DO-LOGIN-0411
+import FilmVoicePicker from '@/components/studio/FilmVoicePicker'
+import { filmVoiceEnabled, filmVoiceMode, voiceModeFields, type FilmVoiceMode } from '@/lib/cinematic/filmVoice2511'
 import { guardarRascunhoDoDesenho, lerRascunhoDoDesenho } from '@/lib/ads/rascunhoDoVisitante' // KINEO-CARDS-ANTES-DO-LOGIN-0411
 import Link from 'next/link'
 import CartoonOffer, { CARTOON_OFFER_CSS, CartoonPurchaseDock } from './CartoonOffer'
@@ -74,6 +76,7 @@ function newGenerationId(): string {
 /** O que precisa sobreviver a um recarregar de página (só dados do próprio pedido; nada de segredo). */
 interface KidsRender {
   generationId: string
+  voice_mode?: FilmVoiceMode
   startedAt: number
   script: string
   caption: string
@@ -166,6 +169,7 @@ export default function KidsCartoonTemplate({ visitante = false, episodios = nul
   const [composePct, setComposePct] = useState(0)
   const [filmeGratis, setFilmeGratis] = useState(false) // KINEO-CELULAR-FLUXO-0611 — por último: o guardião do Cartoon conta os estados pela ordem
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
+  const [voiceMode, setVoiceMode] = useState<FilmVoiceMode>('narrator')
   // KINEO-ESTREIA-3110 — o status de CADA cena que o poll já recebia (só tela) + a fala de cada cena para a linha "agora".
   const [sceneClips, setSceneClips] = useState<{ status: string; url: string | null }[]>([])
   const [sceneLines, setSceneLines] = useState<string[]>([])
@@ -196,6 +200,7 @@ export default function KidsCartoonTemplate({ visitante = false, episodios = nul
       if (r) {
         if (KIDS_CHARACTERS.some((c) => c.id === r.character)) setCharacter(r.character as KidsCharacterId)
         if (typeof r.idea === 'string') setIdea(r.idea)
+        if (filmVoiceEnabled()) setVoiceMode(filmVoiceMode(r.voice_mode) ?? 'narrator')
         if (isKidsCartoonLanguage(r.language)) setLanguage(r.language)
         if (KIDS_IDEAS.some((i) => i.id === r.ideaId)) setIdeaId(r.ideaId as KidsIdeaId) // KINEO-CARTOON-SO-PLANO-0411
         if ((KIDS_CARTOON_DURATIONS as readonly unknown[]).includes(r.duration)) setDuration(r.duration as KidsCartoonDuration) // KINEO-CARTOON-SO-PLANO-0411
@@ -210,6 +215,7 @@ export default function KidsCartoonTemplate({ visitante = false, episodios = nul
       const r = raw ? (JSON.parse(raw) as KidsRender) : null
       if (r && typeof r.generationId === 'string' && Date.now() - r.startedAt < CLIPS_DEADLINE_MS + COMPOSE_DEADLINE_MS) {
         setCharacter(r.character); setLanguage(r.language); setDuration(r.duration); setScript(r.script); setCaption(r.caption)
+        if (filmVoiceEnabled()) setVoiceMode(filmVoiceMode(r.voice_mode) ?? 'narrator')
         void follow(r)
       } else if (raw) localStorage.removeItem(RENDER_KEY)
     } catch { /* sem armazenamento */ }
@@ -238,32 +244,33 @@ export default function KidsCartoonTemplate({ visitante = false, episodios = nul
 
   /** KINEO-CARTOON-SO-PLANO-0411 — sem plano: nada começa; guarda o que a pessoa escolheu e vai aos planos. */
   function irAosPlanos() {
-    guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration })
+    guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration, ...voiceModeFields(voiceMode) })
     void trackEvent('kids_cartoon_plans_clicked', { credits: cost, balance, duration, surface: 'form' })
     window.location.assign(KIDS_PLANS_PATH)
   }
 
   async function write(dur: KidsCartoonDuration = duration) {
     if (visitante) { // KINEO-CARDS-ANTES-DO-LOGIN-0411 — a primeira ação que precisa de conta: guarda as escolhas e volta à mesma tela depois do login
-      guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration: dur })
+      guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration: dur, ...voiceModeFields(voiceMode) })
       void trackEvent('visitor_login_asked', { surface: 'kids_cartoon', action: 'write' })
       window.location.assign(cadastroComVolta(`${window.location.pathname}${window.location.search}`))
       return
     }
+    const canRestoreReview = Boolean(script) && (stage !== 'idle' || !filmVoiceEnabled())
     setStage('writing'); setError(null); setNeedPlans(false); setCopied(false)
     try {
       const res = await fetch('/api/kids-cartoon/story', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ character, language, duration: dur, idea: idea.trim(), ideaId }),
+        body: JSON.stringify({ character, language, duration: dur, idea: idea.trim(), ideaId, ...voiceModeFields(voiceMode) }),
       })
       const data = await res.json().catch(() => ({})) as { script?: string; caption?: string; error?: string; reason?: string }
       if (data.reason === 'kids_plan_required') { setSemPlano(true); setError(data.error ?? null); setStage('idle'); return } // KINEO-CARTOON-SO-PLANO-0411 — a tela ainda não sabia; o servidor sabe
-      if (!res.ok || !data.script) { setError(data.error ?? 'Something went wrong. Nothing was charged — please try again.'); setStage(script ? 'review' : 'idle'); return }
+      if (!res.ok || !data.script) { setError(data.error ?? 'Something went wrong. Nothing was charged — please try again.'); setStage(canRestoreReview ? 'review' : 'idle'); return }
       setScript(data.script); setCaption(data.caption ?? ''); setStage('review')
       void trackEvent('kids_cartoon_story_ready', { character, language, duration: dur, idea_id: ideaId })
     } catch {
-      setError('Network error. Nothing was charged — please try again.'); setStage(script ? 'review' : 'idle')
+      setError('Network error. Nothing was charged — please try again.'); setStage(canRestoreReview ? 'review' : 'idle')
     }
   }
 
@@ -293,8 +300,12 @@ export default function KidsCartoonTemplate({ visitante = false, episodios = nul
     setSceneClips([]); setSceneLines([]) // KINEO-ESTREIA-3110 — filme novo começa com a sala vazia
     void trackEvent('kids_cartoon_make_clicked', { character, language, duration, credits: cost, balance, captions })
     try {
-      const { res, data } = await postJson('/api/generate-video-cinematic', kidsCinematicPayload({ generationId, script: texto, request: { character, language, duration }, captions }))
-      if (res.status === 401) { window.location.href = `/login?redirect=${encodeURIComponent('/kids-cartoon')}`; return }
+      const { res, data } = await postJson('/api/generate-video-cinematic', { ...kidsCinematicPayload({ generationId, script: texto, request: { character, language, duration }, captions }), ...voiceModeFields(voiceMode) })
+      if (res.status === 401) {
+        if (filmVoiceEnabled()) guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration, ...voiceModeFields(voiceMode) })
+        window.location.href = `/login?redirect=${encodeURIComponent('/kids-cartoon')}`
+        return
+      }
       const msg = typeof data.error === 'string' ? data.error : null
       if (res.status === 402) {
         // credits_held_by_render: o saldo está preso num filme que ainda volta sozinho — pedir compra aqui seria o defeito de 15/08.
@@ -306,6 +317,7 @@ export default function KidsCartoonTemplate({ visitante = false, episodios = nul
       const ids = Array.isArray(data.fal_request_ids) ? data.fal_request_ids.map((x) => (typeof x === 'string' ? x : null)) : []
       const r: KidsRender = {
         generationId, startedAt: Date.now(), script: texto, caption, character, language, duration, ids,
+        ...voiceModeFields(voiceMode),
         model: typeof data.fal_model === 'string' ? data.fal_model : '',
         models: Array.isArray(data.fal_models) ? data.fal_models.filter((m): m is string => typeof m === 'string') : [],
         scenePrompts: Array.isArray(data.scene_prompts) ? data.scene_prompts.map((x) => (typeof x === 'string' ? x : '')) : [],
@@ -560,6 +572,7 @@ export default function KidsCartoonTemplate({ visitante = false, episodios = nul
 
           {stage === 'idle' || stage === 'writing' || (stage === 'failed' && !script) ? (
             <div className="ace-actions" data-kineo="kids-botao">
+              {filmVoiceEnabled() && <FilmVoicePicker value={voiceMode} onSelect={setVoiceMode} disabled={busy} />}
               {semPlano && !visitante ? <button type="button" className="kkc-go kkc-big" data-kineo="kids-ver-planos" onClick={irAosPlanos}>{t.plans} <span aria-hidden="true">→</span></button> : <button type="button" className="kkc-go kkc-big" onClick={() => { void write() }} disabled={busy || (!idea.trim() && !ideaId)}>{stage === 'writing' ? t.writing : t.write} <span aria-hidden="true">→</span></button>}
               {error ? <p className="kkc-err" role="alert">{error}</p> : null}
               {KIDS_EPISODIO_GRATIS_LIVE && !visitante ? <KidsEpisodioGratis character={character} language={language} tema={idea} /> : null}
@@ -569,19 +582,25 @@ export default function KidsCartoonTemplate({ visitante = false, episodios = nul
               <h3 className="ace-step">{t.story}</h3>
               <div className="kkc-who"><img src={char.portrait} alt="" /><div><b>{char.name}</b><span>{char.kind[ideaLang]} · {LANG_LABEL[language]}</span></div></div>
               <div className="ace-field"><textarea className="kkc-edit" value={script} maxLength={KIDS_HANDOFF_PROMPT_MAX_CHARS} onChange={(e) => { setScript(e.target.value); if (stage === 'failed') setStage('review') }} aria-label={t.story} /></div>
-              <p className="kkc-note">{t.storyHint} {t.rules}</p>
+              <p className="kkc-note">{filmVoiceEnabled() && voiceMode === 'characters' ? 'Read or edit the lines before making your cartoon.' : t.storyHint} {t.rules}</p>
               {editedRefusal ? <p className="kkc-err" role="alert">{language === 'pt' ? KIDS_REFUSAL_MESSAGE.pt : KIDS_REFUSAL_MESSAGE.en}</p> : null}
               <div className="kkc-actions" style={{ marginTop: 10 }}>
                 <button type="button" className="kkc-ghost" onClick={() => { void write() }}>{t.again}</button>
                 <button type="button" className="kkc-ghost" onClick={() => { setStage('idle'); setScript(''); setError(null) }}>{t.back}</button>
               </div>
               <label className="kkc-toggle" data-kids-captions="1"><input type="checkbox" checked={captions} onChange={(e) => setCaptions(e.target.checked)} /><span><b>{t.captionsToggle}</b><small>{t.captionsHint}</small></span></label>
+              {filmVoiceEnabled() && <FilmVoicePicker value={voiceMode} onSelect={next => {
+                if (next === voiceMode) return
+                setVoiceMode(next)
+                setError(null)
+                setStage('idle')
+              }} />}
               <div className="kkc-buy" data-kids-cost="1">
                 <p className="kkc-cost" data-enough={String(costLine.enough)}><i aria-hidden="true" />{costLine.text}</p>
-                {!semPlano && !visitante && costLine.enough !== false ? <BuyCreditsLink surface="kids_cartoon" idea={idea.trim() || null} onOpen={() => guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration })} /> : null /* KINEO-ASSINANTE-COMPRA-SEMPRE-1211 — com saldo que paga: o link discreto; sem saldo, o aviso abaixo */}
+                {!semPlano && !visitante && costLine.enough !== false ? <BuyCreditsLink surface="kids_cartoon" idea={idea.trim() || null} onOpen={() => guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration, ...voiceModeFields(voiceMode) })} /> : null /* KINEO-ASSINANTE-COMPRA-SEMPRE-1211 — com saldo que paga: o link discreto; sem saldo, o aviso abaixo */}
                 {costLine.enough === false ? (
                   <div className="kkc-actions">
-                    {recargaPintou ? null : <Link className="kkc-go kkc-big" href={KIDS_PLANS_PATH} onClick={() => { void trackEvent('kids_cartoon_plans_clicked', { credits: cost, balance, duration }) }}>{t.plans} <span aria-hidden="true">→</span></Link>}
+                    {recargaPintou ? null : <Link className="kkc-go kkc-big" href={KIDS_PLANS_PATH} onClick={() => { if (filmVoiceEnabled()) guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration, ...voiceModeFields(voiceMode) }); void trackEvent('kids_cartoon_plans_clicked', { credits: cost, balance, duration }) }}>{t.plans} <span aria-hidden="true">→</span></Link>}
                     {shorterFits ? <button type="button" className="kkc-ghost" onClick={() => { setDuration(15); void write(15) }}>{t.shorter} · {kidsDurationChip(ui, 15, shortCost).split(' · ').slice(1).join(' · ')}</button> : null}
                   </div>
                 ) : (
@@ -596,7 +615,7 @@ export default function KidsCartoonTemplate({ visitante = false, episodios = nul
                 {!semPlano && !visitante && (costLine.enough === false || (stage === 'failed' && needPlans)) ? (
                   <SubscriberUpgradeNudge surface="kids_cartoon_sem_saldo" topup idea={idea.trim() || null}
                     onShown={() => setRecargaPintou(true)}
-                    onChoice={() => guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration })}
+                    onChoice={() => guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration, ...voiceModeFields(voiceMode) })}
                     onDone={(b) => { if (typeof b === 'number') setBalance(b); else readBalance() }} />
                 ) : null}
               </div>
@@ -619,7 +638,7 @@ export default function KidsCartoonTemplate({ visitante = false, episodios = nul
       </div>
       </div>
       <CartoonPurchaseDock language={ui} onPlans={() => {
-        guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration })
+        guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration, ...voiceModeFields(voiceMode) })
         void trackEvent('kids_cartoon_plans_clicked', { credits: cost, balance, duration, surface: 'purchase_dock' })
       }} />
     </div>

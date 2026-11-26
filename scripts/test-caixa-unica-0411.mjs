@@ -31,7 +31,7 @@ checa('o texto recusado não navega', comp.indexOf('sexual.refuse') < comp.index
 checa('Studio completo a 1 clique', comp.includes('avancado') && comp.includes('More options'))
 checa('nenhum preço na tela', !/[$€£]\s*\d|\d+\s*(?:cr\b|credits)/i.test(comp.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n')))
 const pag = lf(fs.readFileSync('app/(dashboard)/studio/page.tsx', 'utf8'))
-checa('a página escolhe pela regra', pag.includes('usarCaixaUnica(searchParams') && pag.includes('<StudioSimples') && pag.includes('<StudioClient'))
+checa('a página escolhe pela regra', pag.includes('usarCaixaUnica(entryParams)') && pag.includes('const entryParams = initialVoiceMode ? entryWithoutVoiceMode : searchParams') && pag.includes('<StudioSimples') && pag.includes('<StudioClient'))
 const shell = lf(fs.readFileSync('app/(dashboard)/DashboardShell.tsx', 'utf8'))
 checa('visitante não recebe oferta na cara', shell.includes('{isLoggedIn && <WelcomeOfferModal surface="dashboard" />}') && shell.includes('{isLoggedIn && <Creator30OfferModal />}'))
 const mw = lf(fs.readFileSync('middleware.ts', 'utf8'))

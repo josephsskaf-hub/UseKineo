@@ -231,7 +231,9 @@ const page = load('app/checkout/success/page.tsx', {
   // r4 09/09: a chave do rascunho do Studio passou a ter dono unico, e a tela
   // do sucesso a importa em vez de redigitar o literal. O modulo REAL entra no
   // mapa (nao um duble): se ele quebrar, este contrato quebra junto.
-  '@/lib/growth/cardEntryResumeDraft': load('lib/growth/cardEntryResumeDraft.ts'),
+  '@/lib/growth/cardEntryResumeDraft': load('lib/growth/cardEntryResumeDraft.ts', {
+    '@/lib/cinematic/filmVoice2511': load('lib/cinematic/filmVoice2511.ts'),
+  }),
   // KINEO-PAREDE-V1-2026-09-23 — a tela do sucesso passou a importar a volta
   // ao rascunho (checkoutSuccessResumeHref) e o carimbo WALL_V1_VERSION. O
   // modulo REAL entra no mapa, com o seu unico import (engineLabel), para que

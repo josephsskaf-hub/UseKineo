@@ -740,7 +740,7 @@ export function parseSpeed(raw: string): number | null {
   return Math.max(0.7, Math.min(1.3, n))
 }
 
-export function parseUserScript(raw: string): ParsedScript {
+export function parseUserScript(raw: string, preserveSceneLines = false): ParsedScript {
   const text = (raw ?? '').toString()
   const speed = parseSpeed(text)
 
@@ -776,8 +776,16 @@ export function parseUserScript(raw: string): ParsedScript {
     const { end, query } = markers[i]
     if (!query) continue
     const followEnd = i + 1 < markers.length ? markers[i + 1].start : text.length
-    const voiceover = cleanNarration(text.slice(end, followEnd), false, true, contaFalasDePersonagem(text) >= 2) // KINEO-PARCEIRO-EYEBIBLE-1410 — o trecho herda o contexto de diálogo do roteiro inteiro
-    segments.push({ voiceover, pexelsQuery: query })
+    if (preserveSceneLines === true) {
+      // A prévia do plano usa a mesma separação de cenas, mas mantém nomes e quebras.
+      const nextLine = text.lastIndexOf('\n', followEnd - 1) + 1
+      const nextHeader = text.slice(nextLine, followEnd).trim()
+      const displayEnd = i + 1 < markers.length && nextLine >= end && /^[^\r\n[\]]{1,90}:$/.test(nextHeader) ? nextLine : followEnd
+      segments.push({ voiceover: text.slice(end, displayEnd).trim(), pexelsQuery: query })
+    } else {
+      const voiceover = cleanNarration(text.slice(end, followEnd), false, true, contaFalasDePersonagem(text) >= 2) // KINEO-PARCEIRO-EYEBIBLE-1410 — o trecho herda o contexto de diálogo do roteiro inteiro
+      segments.push({ voiceover, pexelsQuery: query })
+    }
   }
 
   const hasMarkers = segments.length > 0

@@ -43,6 +43,7 @@ export interface CaixaDeCriarProps {
   /** Linha logo abaixo da caixa (ex.: o filme grátis) — só quando o servidor provou. */
   nota?: ReactNode
   filmStylePicker?: ReactNode
+  filmVoicePicker?: ReactNode
   exemplos: readonly ExemploDaCaixa[]
   exemplosTitulo: string
   exemplosDica: string
@@ -105,6 +106,7 @@ export default function CaixaDeCriar(p: CaixaDeCriarProps) {
           onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && temTexto) { e.preventDefault(); p.gerar.aoClicar() } }} />
       </div>
       {p.filmStylePicker}
+      {p.filmVoicePicker}
       {p.aviso ? <p className="cx-aviso" role="alert">{p.aviso}</p> : null}
       <div className="cx-base">
         <div className="cx-chips" role="toolbar" aria-label="Settings">

@@ -33,12 +33,15 @@ const F = {
   vercel: 'vercel.json',
 }
 
-/** Compila um módulo TS SEM imports (o lib é puro de propósito); `over` troca a fonte (mutantes). */
+/** Carrega os módulos puros permitidos. O mapa `over` troca a fonte dos mutantes. */
 function load(rel, over = {}) {
   const src = over[rel] ?? read(rel)
   const js = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }, fileName: rel }).outputText
   const mod = { exports: {} }
-  new Function('require', 'module', 'exports', js)(() => { throw new Error(rel + ': import inesperado') }, mod, mod.exports)
+  new Function('require', 'module', 'exports', js)((name) => {
+    if (rel === F.lib && name === '@/lib/cinematic/filmVoice2511') return load('lib/cinematic/filmVoice2511.ts', over)
+    throw new Error(rel + ': import inesperado ' + name)
+  }, mod, mod.exports)
   return mod.exports
 }
 /** A decisão REAL do cron de resgate: o recorte NAO_E_BUG…classifyFailure, como scripts/test-resgate-defeito.mjs compila. */

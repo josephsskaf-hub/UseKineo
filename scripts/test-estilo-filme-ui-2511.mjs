@@ -68,7 +68,8 @@ function interceptPost(filmLook, source = read(DISPATCH)) {
   let call
   const payload = namedExpression(source, 'cinematicPayload', DISPATCH)
   runJS('const cinematicPayload = ' + payload + '\n' + postExpression(source), {
-    filmLook, cinematicGenerationId: 'synthetic-attempt', trimmed: ordinary, duration: 60, language: 'en', aspectRequested: '9:16',
+    filmLook, voiceMode: 'narrator', voiceModeFields: load('@/lib/cinematic/filmVoice2511').voiceModeFields,
+    cinematicGenerationId: 'synthetic-attempt', trimmed: ordinary, duration: 60, language: 'en', aspectRequested: '9:16',
     scriptMode: 'ai', analysis: null, aiEngine: mode, cineBrollScenes: undefined, cineUsable: false,
     ideiaDoRoteiroRef: { current: null }, estrelaRef: { current: null }, kidsCartoonId: null,
     dispatchTimeoutSignal: () => undefined, CINEMATIC_DISPATCH_TIMEOUT_MS: 10000,

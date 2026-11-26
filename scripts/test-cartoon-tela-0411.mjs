@@ -253,9 +253,10 @@ async function provaDaPagina(mutar = {}) {
     let idea = textoInicial
     const codigo = ts.transpileModule(restaura.getText(), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText
     vm.runInNewContext(codigo, {
-      ...carregador({ mutar })('lib/kidsCartoon/kidsCartoon.ts'), visitante, ideiaInicial: textoInicial,
+      ...carregador({ mutar })('lib/kidsCartoon/kidsCartoon.ts'),
+      ...carregador({ mutar })('lib/cinematic/filmVoice2511.ts'), visitante, ideiaInicial: textoInicial,
       lerRascunhoDoDesenho: () => ({ idea: 'Minha história já editada' }),
-      setIdea(v) { idea = v }, setCharacter() {}, setLanguage() {}, setIdeaId() {}, setDuration() {},
+      setIdea(v) { idea = v }, setCharacter() {}, setLanguage() {}, setIdeaId() {}, setDuration() {}, setVoiceMode() {},
     }, { timeout: 5000 })
     exige(idea === (visitante ? textoInicial : 'Minha história já editada'), 'o rascunho do cadastro preserva o texto editado; o visitante ainda não o consome')
   }

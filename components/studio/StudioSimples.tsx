@@ -24,6 +24,8 @@ import { KineoBrandIcon } from '@/components/KineoBolt' // KINEO-CELULAR-A-0611
 import { requestFilmProjection } from './requestFilmProjection'
 import { suggestedFilmLook, type FilmLook } from '@/lib/cinematic/filmLook2511'
 import FilmStylePicker from './FilmStylePicker'
+import FilmVoicePicker from './FilmVoicePicker'
+import { filmVoiceEnabled, voiceModeFields, type FilmVoiceMode } from '@/lib/cinematic/filmVoice2511'
 
 const CSS = `
 .ksx{max-width:760px;margin:0 auto;padding:clamp(20px,6vh,64px) 16px 48px;color:var(--text)}
@@ -110,9 +112,10 @@ export interface CaixaNaMoldura {
   /** KINEO-MOTOR-OPCIONAL-1011 — a leitura do Kling 4.0 pago (GET /api/kling4-paid/availability), feita junto com as flags; null = não lida. */
   kling4: unknown
   filmStylePicker?: ReactNode
+  filmVoicePicker?: ReactNode
 }
 
-export default function StudioSimples({ filmes, motor: motorDoLink, campanha, ideiaInicial = '', moldura, showFilmStyle = false, initialFilmLook }: { filmes: ReadonlyArray<FilmeDaCaixa>; motor: string; campanha: string; ideiaInicial?: string; moldura?: (c: CaixaNaMoldura) => ReactNode; showFilmStyle?: boolean; initialFilmLook?: FilmLook }) {
+export default function StudioSimples({ filmes, motor: motorDoLink, campanha, ideiaInicial = '', moldura, showFilmStyle = false, initialFilmLook, initialVoiceMode }:  { filmes: ReadonlyArray<FilmeDaCaixa>; motor: string; campanha: string; ideiaInicial?: string; moldura?: (c: CaixaNaMoldura) => ReactNode; showFilmStyle?: boolean; initialFilmLook?: FilmLook; initialVoiceMode?: FilmVoiceMode }) {
   const router = useRouter()
   const registrar = useMrrStudioFunnel()
   const caixa = useRef<HTMLTextAreaElement>(null)
@@ -120,6 +123,8 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
   const [styleChoice, setStyleChoice] = useState<{ initial: FilmLook; chosen: FilmLook; changed: boolean } | null>(() =>
     initialFilmLook ? { initial: initialFilmLook, chosen: initialFilmLook, changed: false } : null,
   )
+  const [voiceMode, setVoiceMode] = useState<FilmVoiceMode>(initialVoiceMode ?? 'narrator')
+  const filmVoicePicker = filmVoiceEnabled() && <FilmVoicePicker value={voiceMode} onSelect={setVoiceMode} />
   const suggestedLook = showFilmStyle ? suggestedFilmLook(texto) : null
   const selectedLook = showFilmStyle ? styleChoice?.chosen : undefined
   const look = selectedLook ?? suggestedLook
@@ -181,8 +186,10 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
     const q = new URLSearchParams({ avancado: '1', engine: motor, intent_campaign: campanha })
     if (texto.trim() && texto.length < 1500) q.set('prompt', texto)
     if (selectedLook) q.set('look', selectedLook)
+    const { voice_mode } = voiceModeFields(voiceMode)
+    if (voice_mode) q.set('voice_mode', voice_mode)
     return `/studio?${q.toString()}`
-  }, [motor, campanha, texto, selectedLook])
+  }, [motor, campanha, texto, selectedLook, voiceMode])
 
   function gerar() {
     const t = texto.trim()
@@ -202,7 +209,7 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
       void trackEvent('studio_film_style_submitted', { initial_look: styleChoice?.initial ?? look, chosen_look: selectedLook ?? null, changed: styleChoice?.changed ?? false })
     }
     try { sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine: motor, prompt: t, language: lingua === 'auto' ? 'en' : lingua })) } catch {}
-    router.push(pedidoDoStudioSimples({ motor, texto: t, duracao, formato, lingua, palavraPorPalavra, campanha, ...(selectedLook ? { look: selectedLook } : {}) }))
+    router.push(pedidoDoStudioSimples({ motor, texto: t, duracao, formato, lingua, palavraPorPalavra, campanha, ...(selectedLook ? { look: selectedLook } : {}), ...(filmVoiceEnabled() ? { voiceMode } : {}) }))
   }
 
   // KINEO-STUDIO-NA-MOLDURA-1011 — com a moldura (só /create/film, interruptor CREATE_FILM_INPLACE), troca SÓ o desenho; sem ela, nada muda.
@@ -231,7 +238,7 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
       if (!opcoes.includes(duracao)) setDuracao(opcoes.find((d) => d >= duracao) ?? opcoes[opcoes.length - 1])
       void trackEvent('create_engine_chosen', { engine: k, from: motor })
     }
-    return <>{moldura({ motor, texto, escrever, caixa, aviso, limiteMax: limite.max, duracao, opcoesDuracao, setDuracao, formato, formatos: FORMATOS, setFormato, lingua, setLingua, palavraPorPalavra, setPalavraPorPalavra, maisOpcoes, temFilmeGratis, gerar, contaPaga, motores, motoresEstado, abrirMotores, escolherMotor, kling4, filmStylePicker })}</>
+    return <>{moldura({ motor, texto, escrever, caixa, aviso, limiteMax: limite.max, duracao, opcoesDuracao, setDuracao, formato, formatos: FORMATOS, setFormato, lingua, setLingua, palavraPorPalavra, setPalavraPorPalavra, maisOpcoes, temFilmeGratis, gerar, contaPaga, motores, motoresEstado, abrirMotores, escolherMotor, kling4, filmStylePicker, ...(filmVoicePicker ? { filmVoicePicker } : {}) })}</>
   }
 
   return (
@@ -257,6 +264,7 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
           }}
         />
         {filmStylePicker}
+        {filmVoicePicker}
         {aviso ? <p className="ksx-msg" role="alert">{aviso}</p> : null}
         <div className="ksx-row">
           <button type="button" className="ksx-set" data-testid="studio-simple-settings" aria-haspopup="dialog" onClick={() => setFolha(true)}><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" strokeLinecap="round" aria-hidden="true"><path d="M2 4h7M13 4h1M2 12h1M7 12h7"></path><circle cx="11" cy="4" r="2"></circle><circle cx="5" cy="12" r="2"></circle></svg>Settings<span className="ksx-set-v">{duracao} s · {formato}</span></button>

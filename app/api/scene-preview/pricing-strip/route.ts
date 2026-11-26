@@ -12,7 +12,7 @@ import type { SupabaseClient } from '@supabase/supabase-js' // KINEO-REGIAO-FILM
 import { createClient } from '@/lib/supabase/server'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { releaseVisible } from '@/lib/recreate/access'
-import { PREVIA_CENAS_PUBLIC, PREVIA_EVENTS, previaEligible, type PreviaProfile } from '@/lib/scenePreview'
+import { PREVIA_CENAS_PUBLIC, PREVIA_EVENTS, previaEligible, previaIdentityFields, type PreviaProfile } from '@/lib/scenePreview'
 import { STARTER_CREDITS, STARTER_MO, SEEDANCE_SHORT_FILM_CREDITS } from '@/lib/marketingPrice'
 import {
   REGIAO_PAGA_1011_RELEASE,
@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
   }
 
   const { data: rows } = await db.from('events').select('metadata').eq('user_id', user.id).eq('name', PREVIA_EVENTS.shown).order('created_at', { ascending: false }).limit(1)
-  const meta = (rows?.[0] as { metadata?: { scenes?: unknown; idea?: unknown; script?: unknown; language?: unknown } } | undefined)?.metadata ?? null
+  const meta = (rows?.[0] as { metadata?: { scenes?: unknown; idea?: unknown; script?: unknown; language?: unknown; reservation?: unknown } } | undefined)?.metadata ?? null
   const own = regiaoPagaScenes(meta?.scenes, url)
   const sample = qa && own.length === 0
   const scenes = sample ? REGIAO_PAGA_QA_SAMPLE.scenes : own
@@ -100,6 +100,7 @@ export async function GET(req: NextRequest) {
   if (film199) await writeServerEvent({ name: REGIAO_FILME_199_EVENTS.shown, userId: user.id, path: REGIAO_PAGA_STRIP_API, metadata: { campaign: REGIAO_FILME_199_CAMPAIGN, surface, qa: film199.qa, credits: film199.credits, price: film199.price } })
   return NextResponse.json({
     ...(film199 ? { film199 } : {}),
+    ...(!sample ? previaIdentityFields(meta?.reservation) : {}),
     show: true,
     qa,
     scenes,

@@ -13,6 +13,7 @@
 // Gerar (/studio/create) e o guardião (scripts/test-previa-cenas-2026-10-03.mjs) leem as MESMAS regras.
 
 /** Interruptor em código (env da Vercel nos dá 403). Nasce ligado por ordem do fundador (03/10). */
+import { filmVoiceEnabled, voiceModeFields, type FilmVoiceMode } from '@/lib/cinematic/filmVoice2511'
 import type { FilmLook } from '@/lib/cinematic/filmLook2511'
 
 export const PREVIA_CENAS_PUBLIC = true
@@ -96,12 +97,16 @@ export function shouldRouteGenerateToPreview(args: {
 }
 
 /** Destino do desvio: a tela da prévia com a ideia (e o que a pessoa escolheu) — nunca gera nada sozinha. */
-export function previaPath(params: { prompt: string; engine?: string | null; duration?: string | null; language?: string | null; look?: FilmLook }): string {
-  const q = new URLSearchParams({ prompt: params.prompt.slice(0, PREVIA_IDEA_MAX), from: 'generate' })
+export function previaPath(params: { prompt: string; engine?: string | null; duration?: string | null; language?: string | null; look?: FilmLook; voiceMode?: FilmVoiceMode; scriptMode?: string | null }): string {
+  const { voice_mode } = voiceModeFields(params.voiceMode)
+  const keepVerbatim = voice_mode === 'characters' && params.scriptMode === 'verbatim'
+  const q = new URLSearchParams({ prompt: params.prompt.slice(0, keepVerbatim ? 5000 : PREVIA_IDEA_MAX), from: 'generate' })
   if (params.engine && /^[a-z0-9_]{1,24}$/.test(params.engine)) q.set('engine', params.engine)
   if (params.duration && /^\d{1,3}$/.test(params.duration)) q.set('duration', params.duration)
   if (params.language && /^[a-z]{2}$/.test(params.language)) q.set('language', params.language)
   if (params.look) q.set('look', params.look)
+  if (voice_mode) q.set('voice_mode', voice_mode)
+  if (keepVerbatim) q.set('script_mode', 'verbatim')
   return `/studio/previa?${q.toString()}`
 }
 
@@ -301,11 +306,31 @@ export const PREVIA_COPY: { en: PreviaCopy; pt: PreviaCopy; es: PreviaCopy } = {
 /** Chave do navegador que guarda ideia + roteiro para a volta depois de pagar (14 dias). */
 export const PREVIA_RESUME_STORAGE_KEY = 'kineo:previa:v1'
 export const PREVIA_RESUME_MAX_AGE_MS = 14 * PREVIA_DAY_MS
-export interface PreviaResume { t: number; idea: string; script: string; language: string; look?: FilmLook }
-/** Link do Studio com o roteiro da prévia, verbatim, no motor da prévia — a pessoa só aperta Gerar. */
+/** Identidade opaca da reserva já gravada no evento da prévia. */
+export function previaIdentityFields(value: unknown): { previewId?: string } {
+  return filmVoiceEnabled() && typeof value === 'string' && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(value) ? { previewId: value } : {}
+}
+
+export interface PreviaResume { t: number; idea: string; script: string; language: string; look?: FilmLook; voice_mode?: FilmVoiceMode; script_mode?: 'verbatim'; preview_idea?: string; previewId?: string }
+export function mesmaPreviaParaRetomar(saved: PreviaResume, current: { previewId?: string; idea: string; script: string; language: string }): boolean {
+  const savedId = previaIdentityFields(saved.previewId).previewId
+  const currentId = previaIdentityFields(current.previewId).previewId
+  if (savedId || currentId) return Boolean(savedId && savedId === currentId)
+  // Respostas antigas só permitem comparar ideias que não alcançaram o corte da faixa.
+  return current.idea.length < 140 && (saved.preview_idea ?? saved.idea).trim() === current.idea.trim() &&
+    saved.script === current.script && saved.language === current.language
+}
+
+export function previaResumeScript(r: PreviaResume): string {
+  const { voice_mode } = voiceModeFields(r.voice_mode)
+  return voice_mode === 'characters' && r.script_mode === 'verbatim' && r.idea.trim() ? r.idea : r.script
+}
+
+/** Link do Studio com o roteiro aprovado na prévia e as escolhas do pedido. */
 export function previaResumeStudioHref(r: PreviaResume): string {
+  const { voice_mode } = voiceModeFields(r.voice_mode)
   const q = new URLSearchParams({
-    prompt: r.script.slice(0, 5000),
+    prompt: previaResumeScript(r).slice(0, 5000),
     engine: PREVIA_ENGINE_STUDIO_KEY,
     duration: String(PREVIA_TARGET_SECONDS),
     script_mode: 'verbatim',
@@ -313,6 +338,7 @@ export function previaResumeStudioHref(r: PreviaResume): string {
   })
   if (/^[a-z]{2}$/.test(r.language) && r.language !== 'en') q.set('language', r.language)
   if (r.look === 'photoreal' || r.look === 'animated3d' || r.look === 'anime') q.set('look', r.look)
+  if (voice_mode) q.set('voice_mode', voice_mode)
   return `/studio?${q.toString()}`
 }
 export function previaResumeValid(r: unknown, now: number): r is PreviaResume {

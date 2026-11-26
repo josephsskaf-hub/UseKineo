@@ -29,6 +29,7 @@ export function PassosDoStudio({ c, preco }: { c: CaixaNaMoldura; preco: number 
       {c.aviso ? <p className="ct-alert" role="alert">{c.aviso}</p> : null}
       <span className="ct-count" aria-live="off">{c.texto.trim().length} / {c.limiteMax}</span>
       {c.filmStylePicker}
+      {c.filmVoicePicker}
       <p className="ct-step-text">Or choose an example, then make it yours.</p>
     </section>
     <section className={`rc-step rc-step-${states[1]}`} data-step-state={states[1]} aria-label="Details"><details className="rc-adjustments">

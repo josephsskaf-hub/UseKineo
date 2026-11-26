@@ -1,5 +1,7 @@
 'use client'
 
+import { filmVoiceEnabled, voiceModeFields, type FilmVoiceMode } from '@/lib/cinematic/filmVoice2511'
+import FilmVoicePicker from '@/components/studio/FilmVoicePicker'
 import type { FilmLook } from '@/lib/cinematic/filmLook2511'
 
 import Kling4PaidNotice, { useKling4PaidAvailability } from '@/components/Kling4PaidNotice'
@@ -1198,6 +1200,7 @@ export default function GenerateClient({
   kineo1Visible,
   seedance15: seedance15Prop,
   filmLook,
+  initialVoiceMode,
 }: {
   initialViralPrompt?: string
   initialUserId: string
@@ -1219,6 +1222,7 @@ export default function GenerateClient({
    */
   seedance15?: boolean
   filmLook?: FilmLook
+  initialVoiceMode?: FilmVoiceMode
 }) {
   // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier via contexto (client).
   const OFFER = useFreeTierOffer()
@@ -1524,13 +1528,16 @@ export default function GenerateClient({
     void handleAnalyze(goal.topic, { fromTopic: true, skipPreview: true, structureFirst: true, targetSeconds: duracaoDoOnboarding })
   }
 
+  const [voiceMode, setVoiceMode] = useState<FilmVoiceMode>(initialVoiceMode ?? 'narrator')
+
   function redirectToLoginPreservingPrompt() {
     const cleanPrompt = prompt.trim()
     try {
       if (cleanPrompt) sessionStorage.setItem('pendingVideoPrompt', cleanPrompt)
     } catch { /* ignore */ }
+    const { voice_mode } = voiceModeFields(voiceMode)
     const returnPath = cleanPrompt
-      ? `/studio/create?prompt=${encodeURIComponent(cleanPrompt)}`
+      ? `/studio/create?prompt=${encodeURIComponent(cleanPrompt)}${voice_mode ? `&voice_mode=${voice_mode}` : ''}`
       : '/studio'
     router.push(`/login?redirect=${encodeURIComponent(returnPath)}`)
   }
@@ -3724,10 +3731,10 @@ export default function GenerateClient({
       if (resumeConsumidoRef.current !== null && resumeConsumidoRef.current === clean) return // KINEO-SEM-INICIO-AUTOMATICO-0211
       sessionStorage.setItem(
         CARD_ENTRY_DRAFT_KEY,
-        serializeCardEntryDraft({ prompt: clean, quality, duration, mode, engine: aiEngine, at: Date.now() }),
+        serializeCardEntryDraft({ prompt: clean, quality, duration, mode, engine: aiEngine, voiceMode, scriptMode, at: Date.now() }),
       )
     } catch { /* ignore */ }
-  }, [prompt, quality, duration, mode, aiEngine])
+  }, [prompt, quality, duration, mode, aiEngine, voiceMode, scriptMode])
   const resumeArmedRef = useRef(false)
   const resumeBlockedReportedRef = useRef(false)
   // KINEO-SEM-INICIO-AUTOMATICO-0211 — a tela restaurou um pedido da pessoa (card_entry ou wall_v1): os defaults por
@@ -3749,6 +3756,8 @@ export default function GenerateClient({
       if (draft.duration) setDuration(draft.duration as Duration)
       if (draft.mode) setMode(draft.mode)
       if (draft.engine) setAiEngine(draft.engine)
+      if (draft.voice_mode) setVoiceMode(draft.voice_mode)
+      if (draft.script_mode) setScriptMode(draft.script_mode)
       resumeArmedRef.current = draft.fresh
       setResumeAguardandoClique(draft.fresh) // KINEO-SEM-INICIO-AUTOMATICO-0211 — mostra o pedido; o render espera o clique
       void trackEvent('card_entry_resume_restored', {
@@ -3829,7 +3838,7 @@ export default function GenerateClient({
       if (!clean) return
       sessionStorage.setItem(
         CARD_ENTRY_DRAFT_KEY,
-        serializeCardEntryDraft({ prompt: clean, quality, duration, mode, engine: aiEngine, at: Date.now() }),
+        serializeCardEntryDraft({ prompt: clean, quality, duration, mode, engine: aiEngine, voiceMode, scriptMode, at: Date.now() }),
       )
     } catch { /* ignore */ }
   }
@@ -3862,6 +3871,8 @@ export default function GenerateClient({
       if (draft.duration) setDuration(draft.duration as Duration)
       if (draft.mode) setMode(draft.mode)
       if (draft.engine) setAiEngine(draft.engine)
+      if (draft.voice_mode) setVoiceMode(draft.voice_mode)
+      if (draft.script_mode) setScriptMode(draft.script_mode)
       void trackEvent('wall_v1_resume_restored', {
         version: WALL_V1_VERSION,
         had_prompt: draft.prompt.length > 0,
@@ -7655,7 +7666,7 @@ export default function GenerateClient({
         try {
           sessionStorage.setItem(
             CARD_ENTRY_DRAFT_KEY,
-            serializeCardEntryDraft({ prompt: clique.prompt, quality, duration, mode, engine: aiEngine, at: Date.now() }),
+            serializeCardEntryDraft({ prompt: clique.prompt, quality, duration, mode, engine: aiEngine, voiceMode, scriptMode, at: Date.now() }),
           )
         } catch { /* ignore */ }
         setResumeAguardandoClique(true)
@@ -8310,6 +8321,7 @@ export default function GenerateClient({
           language,
           targetSeconds: alvo.targetSeconds,
           forceAuthoring: true,
+          ...(mode === 'cinematic_ai' ? voiceModeFields(voiceMode) : {}),
           engine: mode === 'fast' || mode === 'creator' ? 'fast' : quality, // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — writer uses the same speech ruler as the guard
         }),
       })
@@ -8895,7 +8907,7 @@ export default function GenerateClient({
           // pedida e o motor (a régua do Kineo 1 é a voz da persona, ~2,8 pal/s; a hollywood é 2,3). Sem
           // isso ele dimensionava tudo a 2,3 pal/s e 60 s, e o portão do Kineo 1 recusava o roteiro recém-
           // nascido ("narração curta": 38 pessoas em 7 dias, 10 nunca fizeram filme).
-          body: JSON.stringify({ topic: rawSource, language, targetSeconds: duracaoPedida, engine: mode === 'fast' || mode === 'creator' ? 'fast' : quality }),
+          body: JSON.stringify({ topic: rawSource, language, targetSeconds: duracaoPedida, engine: mode === 'fast' || mode === 'creator' ? 'fast' : quality, ...(mode === 'cinematic_ai' ? voiceModeFields(voiceMode) : {}) }),
         })
         if (sgRes.ok) {
           const sgData = await sgRes.json()
@@ -10232,6 +10244,7 @@ export default function GenerateClient({
         const cineBrollScenes = cineUsable ? cinePlan!.scenes.map((s, sceneIdx) => ({ sceneNumber: s.sceneNumber, brollPrompt: s.brollPrompt, shotType: s.shotType, negativePrompt: s.negativePrompt, ...(cineFootage[sceneIdx] ? { userFootageUrl: cineFootage[sceneIdx].url } : {}) })) : undefined
         const cinematicPayload = {
           ...(filmLook ? { look: filmLook } : {}),
+          ...voiceModeFields(voiceMode),
           generationId: cinematicGenerationId,
           prompt: trimmed,
           duration,
@@ -10496,6 +10509,16 @@ export default function GenerateClient({
         // cinco estatísticas (inclusive "200% de chance de monetização").
         // Oferecer + mostrar antes de renderizar preserva o C1 (ela autoriza)
         // e põe olhos humanos no texto novo antes de virar vídeo.
+        if (res.status === 422 && data?.narrationTooShort === true && data.reason === 'fala_curta_cliente') {
+          generationInFlightRef.current = false
+          activationAutoGenerateRef.current = false
+          onboardingAutoGenerateRef.current = false
+          setPrompt(trimmed)
+          setScriptMode('verbatim')
+          setError(typeof data.error === 'string' && data.error.trim() ? data.error : 'Add more spoken dialogue before generating your film.')
+          setPhase('idle')
+          return
+        }
         if (res.status === 422 && data?.narrationTooShort === true) {
           // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — the released claim enters neutral review, never a failure.
           offerScriptCompletion(Number(data?.speechSeconds) || 0, Number(data?.missingWords) || 0)
@@ -14041,6 +14064,9 @@ export default function GenerateClient({
   }, [composerEpisodeVideo])
 
   const showScriptPreview = phase === 'script_preview'
+  const showDialoguePlan = filmVoiceEnabled() && mode === 'cinematic_ai' && voiceMode === 'characters'
+  const filmPlan = showScriptPreview ? cenasDoPlano(structuredScriptRef.current, showDialoguePlan) : []
+  const showFilmPlan = showDialoguePlan ? filmPlan.length > 0 : filmPlan.length > 1
   // Phase 3 — new intermediate phases
   const showBrollPlanning = phase === 'broll_planning'
   const showVisualDirector = phase === 'visual_director'
@@ -16416,6 +16442,8 @@ export default function GenerateClient({
           {/* feat/ui-polish — Language selector removed: English-only channel.
               `language` state stays 'en' (default) and is still sent to the API. */}
 
+          {filmVoiceEnabled() && <FilmVoicePicker value={voiceMode} onSelect={setVoiceMode} disabled={phase !== 'idle'} />}
+
           {/* Push #266 — Media & Quality selector removed from Cinematic mode.
               Quality is fixed at 'basic_ai' (the default) — no user choice needed. */}
 
@@ -16566,17 +16594,17 @@ export default function GenerateClient({
           className="gv-card rounded-2xl p-5 sm:p-6 mb-6"
           style={{ background: '#131316', border: '1px solid var(--border)' }}
         >
-          {cenasDoPlano(structuredScriptRef.current).length > 1 ? (<>{/* KINEO-PLANO-ANTES-DE-GASTAR-3010 — o plano cena a cena, o final em destaque */}
-          <div className="mb-4" ref={(el) => { if (el && !planoVistoRef.current) { planoVistoRef.current = true; void trackEvent(PLANO_EVENTOS.shown, { engine: aiEngine, mode, scenes: cenasDoPlano(structuredScriptRef.current).length, duration }) } }}>
+          {showFilmPlan ? (<>{/* KINEO-PLANO-ANTES-DE-GASTAR-3010 — o plano cena a cena, o final em destaque */}
+          <div className="mb-4" ref={(el) => { if (el && !planoVistoRef.current) { planoVistoRef.current = true; void trackEvent(PLANO_EVENTOS.shown, { engine: aiEngine, mode, scenes: filmPlan.length, duration }) } }}>
             <div className="font-black text-base" style={{ color: 'var(--text)' }}>🎬 {planoCopy(capacityLocale).title}</div>
             <div className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{planoCopy(capacityLocale).sub}</div>
           </div>
           <ol className="mb-3" style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 8 }} data-film-scenes="">
-            {cenasDoPlano(structuredScriptRef.current).map((c) => (
+            {filmPlan.map((c) => (
               <li key={c.n} className="rounded-xl px-4 py-3 text-sm leading-relaxed" data-film-ending={c.final ? '' : undefined}
                 style={{ background: c.final ? 'rgba(41,151,255,.12)' : 'rgba(255,255,255,.03)', border: c.final ? '1px solid rgba(41,151,255,.55)' : '1px solid var(--border)', color: 'var(--text)' }}>
                 <span className="text-xs font-black" style={{ color: c.final ? '#5cb3ff' : 'var(--muted)', marginRight: 8 }}>{c.final ? planoCopy(capacityLocale).ending : `${planoCopy(capacityLocale).scene} ${c.n}`}</span>
-                {c.texto}
+                {showDialoguePlan ? <div style={{ whiteSpace: 'pre-wrap' }}>{c.texto}</div> : c.texto}
               </li>
             ))}
           </ol>
@@ -16628,7 +16656,7 @@ export default function GenerateClient({
                 boxShadow: '0 10px 34px rgba(41,151,255,.45)',
               }}
             >
-              {cenasDoPlano(structuredScriptRef.current).length > 1 ? planoCopy(capacityLocale).confirm : 'Looks good — create my Short'}
+              {showFilmPlan ? planoCopy(capacityLocale).confirm : 'Looks good — create my Short'}
             </button>
             <button
               type="button"
@@ -16642,7 +16670,7 @@ export default function GenerateClient({
                 cursor: 'pointer',
               }}
             >
-              {cenasDoPlano(structuredScriptRef.current).length > 1 ? planoCopy(capacityLocale).edit : 'Start over'}
+              {showFilmPlan ? planoCopy(capacityLocale).edit : 'Start over'}
             </button>
           </div>
         </section>

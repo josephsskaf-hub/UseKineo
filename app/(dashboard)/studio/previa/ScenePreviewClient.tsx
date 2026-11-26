@@ -5,17 +5,18 @@
 // guarda ideia + roteiro no navegador (lib/scenePreview PREVIA_RESUME_STORAGE_KEY) e leva aos planos. Depois de pagar, o
 // aviso ScenePreviewResumeBanner (layout) devolve a pessoa ao Studio com o roteiro, a 1 clique de Gerar.
 import { useCallback, useEffect, useState } from 'react'
+import { voiceModeFields, type FilmVoiceMode } from '@/lib/cinematic/filmVoice2511'
 import type { FilmLook } from '@/lib/cinematic/filmLook2511'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { pickInterfaceCopy } from '@/lib/ui/interfaceLanguage'
-import { PREVIA_COPY, PREVIA_IDEA_MAX, PREVIA_IDEA_MIN, PREVIA_RESUME_STORAGE_KEY, type PreviaResume } from '@/lib/scenePreview'
+import { PREVIA_COPY, PREVIA_IDEA_MAX, PREVIA_IDEA_MIN, PREVIA_RESUME_STORAGE_KEY, previaIdentityFields, type PreviaResume } from '@/lib/scenePreview'
 import { REGION_PAID_ONLY_PLANS_HREF } from '@/lib/freeFilmPolicy'
 import { trackEvent } from '@/lib/analytics' // KINEO-FLUXO2-G-0411
 import { previaResumeStudioHref } from '@/lib/scenePreview' // KINEO-FLUXO2-G-0411
 import { TRIAL_PEDIDO_CLAIM_PATH, TRIAL_PEDIDO_COPY, TRIAL_PEDIDO_PREVIA_EVENT, TRIAL_PEDIDO_TESTE } from '@/lib/trialPedido' // KINEO-FLUXO2-G-0411
 
 type Scene = { label: string; text: string; image: string }
-type Preview = { script: string; scenes: Scene[]; idea: string; language: string }
+type Preview = { script: string; scenes: Scene[]; idea: string; language: string; previewId?: string }
 
 const C = { card: 'var(--card)', border: '1px solid var(--border)', text: 'var(--text)', text2: 'var(--text2)', muted: 'var(--muted)', accent: 'var(--accent)', danger: 'var(--danger, #D93025)' }
 const btn = (primary: boolean, disabled = false): React.CSSProperties => ({
@@ -28,7 +29,7 @@ import { voltaParaCaixa } from '@/lib/growth/ideiaDaPagina' // KINEO-PREVIA-LIMI
 import PreviewPricingStrip from '@/components/PreviewPricingStrip' // KINEO-REGIAO-PAGA-1011 (3)
 import { REGIAO_PAGA_1011_RELEASE } from '@/lib/growth/regiaoPaga1011' // KINEO-REGIAO-PAGA-1011 (3)
 
-export default function ScenePreviewClient({ initialIdea, from, aPedido = false, filmLook }: { initialIdea: string; from: string; aPedido?: boolean; filmLook?: FilmLook }) {
+export default function ScenePreviewClient({ initialIdea, from, aPedido = false, filmLook, voiceMode, originalScript }: { initialIdea: string; from: string; aPedido?: boolean; filmLook?: FilmLook; voiceMode?: FilmVoiceMode; originalScript?: string }) {
   const language = useInterfaceLanguage()
   const copy = pickInterfaceCopy(PREVIA_COPY, language)
   const scriptLanguage = language === 'pt' || language === 'es' ? language : 'en'
@@ -49,7 +50,7 @@ export default function ScenePreviewClient({ initialIdea, from, aPedido = false,
         if (typeof d.left === 'number') setLeft(d.left)
         // Volta à tela sem ideia nova: mostra a última prévia (ela não some ao recarregar nem em outro aparelho).
         if (!initialIdea && d.last && typeof d.last.script === 'string') {
-          setPreview({ script: d.last.script, scenes: Array.isArray(d.last.scenes) ? d.last.scenes : [], idea: d.last.idea ?? '', language: d.last.language ?? 'en' })
+          setPreview({ ...previaIdentityFields(d.last.previewId), script: d.last.script, scenes: Array.isArray(d.last.scenes) ? d.last.scenes : [], idea: d.last.idea ?? '', language: d.last.language ?? 'en' })
           if (d.last.idea) setIdea(d.last.idea)
         }
       })
@@ -62,18 +63,25 @@ export default function ScenePreviewClient({ initialIdea, from, aPedido = false,
       const r = await fetch('/api/scene-preview', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ idea, language: scriptLanguage }) })
       const j = await r.json().catch(() => null)
       if (!r.ok || !j?.script) { setError(typeof j?.error === 'string' ? j.error : copy.refused.busy); if (j?.reason === 'daily_limit' || j?.reason === 'total_limit' || j?.reason === 'global_limit') setLimite(true); return }
-      setPreview({ script: j.script, scenes: j.scenes ?? [], idea, language: typeof j.language === 'string' ? j.language : scriptLanguage })
+      setPreview({ ...previaIdentityFields(j.previewId), script: j.script, scenes: j.scenes ?? [], idea, language: typeof j.language === 'string' ? j.language : scriptLanguage })
       if (typeof j.left === 'number') setLeft(j.left)
     } finally {
       setBusy(false)
     }
   }, [idea, scriptLanguage, copy])
 
+  function filmDraft(preview: Preview): PreviaResume {
+    return {
+      t: Date.now(), idea: originalScript || preview.idea || idea, script: preview.script, language: preview.language,
+      ...(originalScript ? { script_mode: 'verbatim', preview_idea: preview.idea } : {}),
+      ...(filmLook ? { look: filmLook } : {}), ...voiceModeFields(voiceMode), ...previaIdentityFields(preview.previewId),
+    }
+  }
+
   function toFilm(placement: string) {
     if (preview) {
       try {
-        const saved: PreviaResume = { t: Date.now(), idea: preview.idea || idea, script: preview.script, language: preview.language, ...(filmLook ? { look: filmLook } : {}) }
-        localStorage.setItem(PREVIA_RESUME_STORAGE_KEY, JSON.stringify(saved))
+        localStorage.setItem(PREVIA_RESUME_STORAGE_KEY, JSON.stringify(filmDraft(preview)))
       } catch { /* sem armazenamento: o roteiro continua no servidor (GET /api/scene-preview) */ }
     }
     void fetch('/api/scene-preview/cta', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ placement, scenes: preview?.scenes.length ?? 0 }), keepalive: true }).catch(() => undefined)
@@ -90,8 +98,12 @@ export default function ScenePreviewClient({ initialIdea, from, aPedido = false,
       if (!res.ok) throw new Error(String(res.status))
       window.dispatchEvent(new Event('creditsChanged'))
       // KINEO-PREVIA-LIMITE-FILME-0611 — sem prévia na tela, a pessoa volta à caixa com a ideia escrita; o filme só começa no Generate dela.
-      if (!preview) { window.location.assign(voltaParaCaixa(idea, filmLook) ?? '/studio'); return }
-      window.location.assign(previaResumeStudioHref({ t: Date.now(), idea: preview.idea || idea, script: preview.script, language: preview.language, look: filmLook }))
+      if (!preview) {
+        const fallback = originalScript ? previaResumeStudioHref(filmDraft({ idea, script: originalScript, language: scriptLanguage, scenes: [] })) : voltaParaCaixa(idea, filmLook, voiceModeFields(voiceMode).voice_mode)
+        window.location.assign(fallback ?? '/studio')
+        return
+      }
+      window.location.assign(previaResumeStudioHref(filmDraft(preview)))
     } catch {
       setPedido('falhou')
     }
@@ -143,7 +155,7 @@ export default function ScenePreviewClient({ initialIdea, from, aPedido = false,
 
           <section aria-label={copy.scriptTitle} style={{ maxWidth: 720 }}>
             <h2 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: '0 0 8px' }}>{copy.scriptTitle}</h2>
-            <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: 14, lineHeight: 1.55, color: C.text2, background: C.card, border: C.border, borderRadius: 12, padding: 14, margin: 0 }}>{preview.script.replace(/\[[^\]]*\]\s*/g, '')}</pre>
+            <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: 14, lineHeight: 1.55, color: C.text2, background: C.card, border: C.border, borderRadius: 12, padding: 14, margin: 0 }}>{originalScript ?? preview.script.replace(/\[[^\]]*\]\s*/g, '')}</pre>
           </section>
 
           <section style={{ display: 'grid', gap: 6, maxWidth: 720 }}>

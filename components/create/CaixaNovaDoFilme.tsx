@@ -94,6 +94,7 @@ export default function CaixaNovaDoFilme({ c, preco, showRecreate, showClip }: {
         <CaixaDeCriar
           titulo={CAIXA_NOVA_TITULO}
           filmStylePicker={c.filmStylePicker}
+          filmVoicePicker={c.filmVoicePicker}
           texto={c.texto} aoEscrever={c.escrever} caixaRef={c.caixa} placeholder={CAIXA_NOVA_PLACEHOLDER} aviso={c.aviso} limiteMax={c.limiteMax}
           foto={{ tipo: 'link', href: c.maisOpcoes, rotulo: CAIXA_NOVA_FOTO_FILME.rotulo, dica: CAIXA_NOVA_FOTO_FILME.dica }}
           chips={chipsDoFilme(c)}

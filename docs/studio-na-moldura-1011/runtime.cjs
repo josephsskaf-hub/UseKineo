@@ -22,6 +22,7 @@ function aba(overrides = {}, { now = 1_800_000_000_000, cookie = '', credits = n
     ...React,
     useState: init => { const k = key(); if (!store.has(k)) store.set(k, typeof init === 'function' ? init() : init); return [store.get(k), v => store.set(k, typeof v === 'function' ? v(store.get(k)) : v)] },
     useRef: init => { const k = key(); if (!store.has(k)) store.set(k, { current: init }); return store.get(k) },
+    useId: () => key(),
     useMemo: f => { key(); return f() },
     useCallback: f => { key(); return f },
     // This fixture mounts standalone controls without a provider. Read the real React default.

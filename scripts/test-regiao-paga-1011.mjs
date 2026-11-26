@@ -9,7 +9,7 @@
 //   (6) eventos de medição de servidor, fora do alcance do navegador; o aviso invertido marca os seus eventos;
 //   (7) mutantes: cada regra quebrada derruba pelo menos uma verificação.
 import fs from 'node:fs'
-import { scenePreviewWithFilmLook } from './test-support/scene-preview-film-look.mjs'
+import { scenePreviewTransportMatches } from './test-support/scene-preview-film-look.mjs'
 import path from 'node:path'
 import { execSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
@@ -28,7 +28,10 @@ const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail+
 function load(src) {
   const js = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText
   const mod = { exports: {} }
-  new Function('module', 'exports', 'require', js)(mod, mod.exports, (p) => { throw new Error('import inesperado: ' + p) })
+  new Function('module', 'exports', 'require', js)(mod, mod.exports, (p) => {
+    if (p === '@/lib/cinematic/filmVoice2511') return load(read('lib/cinematic/filmVoice2511.ts'))
+    throw new Error('import inesperado: ' + p)
+  })
   return mod.exports
 }
 
@@ -76,7 +79,13 @@ for (const rel of ['lib/scenePreview.ts', 'app/api/scene-preview/route.ts', 'lib
     continue
   }
   if (rel === 'lib/scenePreview.ts') {
-    ok(scenePreviewWithFilmLook(m) === read(rel), 'scenePreview: só o transporte do estilo pode mudar em relação à main')
+    ok(scenePreviewTransportMatches(m, read(rel), ROOT), 'scenePreview: só os blobs exatos de transporte de estilo e voz podem mudar')
+    continue
+  }
+  if (rel === 'app/api/scene-preview/route.ts') {
+    const blob = sha => norm(execSync('git show ' + sha + ':' + rel, { cwd: ROOT, encoding: 'utf8' }))
+    const mapped = m === blob('eb07dbd73e281bb3df6ae802fa50726199a8c448') && read(rel) === blob('a5bb4b5eec4d8290e58ac9098f9f04862857ab08')
+    ok(m !== null && (m === read(rel) || mapped), 'rota de prévia idêntica à main ou ao blob exato que devolve a reserva')
     continue
   }
   ok(m !== null && m === read(rel), `${rel} idêntico à main`)

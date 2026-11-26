@@ -29,7 +29,7 @@ function battery(src) {
   if (!tag.includes('onShown={() => setRecargaPintou(true)}')) p.push('o link de planos não sabe se o aviso pintou')
   if (/make\(|write\(|postJson|generate-video-cinematic/u.test(tag)) p.push('o aviso dispara geração (nada pode começar sozinho)')
   if (/\$\s?\d|US\$|credits for|60 credits/u.test(tag)) p.push('preço ou texto de oferta digitado no desenho (tem de vir do aviso/servidor)')
-  if (!t.includes("{recargaPintou ? null : <Link className=\"kkc-go kkc-big\" href={KIDS_PLANS_PATH} onClick={() => { void trackEvent('kids_cartoon_plans_clicked', { credits: cost, balance, duration }) }}>")) p.push('o link de planos antes do clique não cede o lugar ao aviso (ou sumiu sem o aviso)')
+  if (!t.includes("{recargaPintou ? null : <Link className=\"kkc-go kkc-big\" href={KIDS_PLANS_PATH} onClick={() => { if (filmVoiceEnabled()) guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration, ...voiceModeFields(voiceMode) }); void trackEvent('kids_cartoon_plans_clicked', { credits: cost, balance, duration }) }}>")) p.push('o link de planos antes do clique não cede o lugar ao aviso (ou sumiu sem o aviso)')
   if (!t.includes("{stage === 'failed' && needPlans && !recargaPintou ? <p className=\"kkc-note\"><Link className=\"kkc-ghost\" href={KIDS_PLANS_PATH}>{t.plans}</Link></p> : null}")) p.push('o link de planos depois do 402 não cede o lugar ao aviso')
   if (!t.includes('const [recargaPintou, setRecargaPintou] = useState(false)')) p.push('o link de planos começa escondido (sem aviso, o assinante ficaria sem saída)')
   // a porta de quem não assina, intocada
@@ -55,7 +55,7 @@ const MUTANTES = [
   ['sem recarga', muta(TPL, '<SubscriberUpgradeNudge surface="kids_cartoon_sem_saldo" topup idea=', '<SubscriberUpgradeNudge surface="kids_cartoon_sem_saldo" idea=')],
   ['link começa escondido', muta(TPL, 'const [recargaPintou, setRecargaPintou] = useState(false)', 'const [recargaPintou, setRecargaPintou] = useState(true)')],
   ['link não cede', muta(TPL, 'onShown={() => setRecargaPintou(true)}', 'onShown={() => undefined}')],
-  ['começa sozinho', muta(TPL, 'onChoice={() => guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration })}', 'onChoice={() => { void make() }}')],
+  ['começa sozinho', muta(TPL, 'onChoice={() => guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration, ...voiceModeFields(voiceMode) })}', 'onChoice={() => { void make() }}')],
   ['preço digitado', muta(TPL, '<SubscriberUpgradeNudge surface="kids_cartoon_sem_saldo" topup idea={idea.trim() || null}', '<SubscriberUpgradeNudge surface="kids_cartoon_sem_saldo" topup idea={"60 credits for US$ 9"}')],
 ]
 let killed = 0

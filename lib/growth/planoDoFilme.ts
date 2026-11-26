@@ -7,8 +7,9 @@ import { parseUserScript } from '@/lib/scriptParser'
 export interface CenaDoPlano { n: number; texto: string; final: boolean }
 
 /** As cenas do roteiro marcado, na ordem (fala de cada bloco); a última é o final do filme. */
-export function cenasDoPlano(script: string | null | undefined): CenaDoPlano[] {
-  const segs = parseUserScript(String(script ?? '')).segments.map((s) => s.voiceover.trim()).filter(Boolean)
+export function cenasDoPlano(script: string | null | undefined, preserveDialogue = false): CenaDoPlano[] {
+  const text = String(script ?? '')
+  const segs = parseUserScript(text, preserveDialogue).segments.map(scene => scene.voiceover.trim()).filter(Boolean)
   return segs.map((texto, i) => ({ n: i + 1, texto, final: i === segs.length - 1 && segs.length > 1 }))
 }
 
