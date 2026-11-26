@@ -28,7 +28,7 @@ import { KLING4_TRIAL_MAX_SECONDS, KLING4_TRIAL_MAX_SECONDS_ENSAIO, kling4TrialT
 import { submitKling4TrialVideo, orchestrateKling4Trial, buildKling4TrialInput, kling4TrialSceneDurations, kling4TrialClipTotal /* KINEO-K4-GRATIS-20S-1711 */, approvedKling4TrialStills, KLING4_DURACAO_PELA_VOZ, duracaoPelaVozLigada, type Kling4TrialResult } from '@/lib/kling4Trial' // KINEO-K4-DURACAO-PELA-VOZ-1311: + interruptor
 import { reserveKling4Trial, recordKling4TrialFilm } from '@/lib/kling4TrialBudget'
 import { roteiroFaladoNoPortao2511 } from '@/lib/cinematic/roteiroFalado2511' // KINEO-FALA-DOS-PERSONAGENS-2511 — o piso próprio do falado nos portões de tamanho
-import { FALA_DOS_PERSONAGENS_2511, FALA_DOS_PERSONAGENS_2511_VERSAO, falaDosPersonagensLigada, vozPedida2511, lerFalas2511, vozDaFicha2511, geminiFaladoDoKling4, admitirFalantes2511, type MarcadorDaFala2511 } from '@/lib/cinematic/falaDosPersonagens2511' // KINEO-FALA-DOS-PERSONAGENS-2511 — o modo "personagens falam" (só a casa)
+import { FALA_DOS_PERSONAGENS_2511, FALA_DOS_PERSONAGENS_2511_VERSAO, falaDosPersonagensLigada, vozPedida2511, lerFalas2511, vozDaFicha2511, geminiFaladoDoKling4, admitirFalantes2511, nomesDaFala2511, type MarcadorDaFala2511 } from '@/lib/cinematic/falaDosPersonagens2511' // KINEO-FALA-DOS-PERSONAGENS-2511 — o modo "personagens falam" (só a casa)
 import { motorDoFilmeGratis2511 } from '@/lib/cinematic/chaveDoMotor2511' // KINEO-TOMADA-DO-MOTOR-2511 — o motor do filme grátis sem deploy
 import { gravarSeloDoFilmeGratis2511 } from '@/lib/kling4TrialBudget' // KINEO-GEMINI-NA-ESTEIRA-2511 [revisora 25/11, conserto 1]
 import { medirFalaDoKling4Trial as medirFalaK4Crua } from '@/lib/kling4TrialScript' // KINEO-K4-SEMPRE-0511 [TRAVA 8.2 — fundador 05/11 "vai"]
@@ -8684,9 +8684,10 @@ async function manipularPost(req: NextRequest) {
       if (fm2511 && fm2511.motivo === 'sem_gemini') {
         const nPlanos = ((wire.input.multi_prompt as unknown[] | undefined) ?? []).length
         const refs = [ru, ru?.segundo].filter((r): r is NonNullable<typeof r> => !!r && Array.isArray(r.nomes) && r.nomes.length > 0)
-        const lidas = lerFalas2511((e.timing?.voiceovers ?? []) as string[], refs.map((r) => r.nomes as string[]), nPlanos)
-        const estilizado2511 = isStylizedLook(styleAnchor) || desenhoInfantil.ativo
         const fichas2511 = refs.map((r) => qualitySnapshot?.characters?.find((c) => c.nome === r.nomes?.[0]) ?? null)
+        // [CEO 25/11, regra única do rótulo] o leitor aceita também o núcleo do papel do personagem com nome ("Captain:" = Rosa, a capitã), quando é único
+        const lidas = lerFalas2511((e.timing?.voiceovers ?? []) as string[], nomesDaFala2511(refs.map((r) => r.nomes as string[]), fichas2511), nPlanos)
+        const estilizado2511 = isStylizedLook(styleAnchor) || desenhoInfantil.ativo
         const falantes2511 = 'motivo' in lidas ? null : admitirFalantes2511(lidas.falas, fichas2511, refs.map((r) => r.nomes as string[]), estilizado2511) // [revisora 392f0a52, T1 e T2]
         if ('motivo' in lidas) fm2511.motivo = lidas.motivo
         else if (mentionsRealPerson(lidas.falas.flat().map((l) => l.texto).join(' '))) fm2511.motivo = 'fala_com_pessoa_real'

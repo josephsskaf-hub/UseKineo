@@ -100,6 +100,16 @@ async function suite(change) {
   { const semCauda = JSON.parse(JSON.stringify(FIX.kling4_input)); semCauda.multi_prompt[2].prompt = semCauda.multi_prompt[2].prompt.replace(' Mouth closed, no speaking.', '')
     igual(f.geminiFaladoDoKling4(semCauda, ['Elias Ward', 'Mara Quinn'], lidas.falas, VOZES), { motivo: 'plano_sem_cauda' }, 'A plano sem a cauda de hoje = narrado') }
   igual(f.geminiFaladoDoKling4(FIX.kling4_input, ['Elias Ward', 'Mara Quinn'], lidas.falas.slice(0, 3), VOZES), { motivo: 'planos_desencontrados' }, 'A falas ≠ planos')
+  // [CEO 25/11, regra única do rótulo] o personagem COM nome também fala pelo NÚCLEO do papel dele ("Captain:" = Rosa, a capitã), quando o papel é único
+  for (const [canonica, papel] of [['Rosa, a pirate captain, exactly as the author wrote; appearance anchors: 30-40', 'captain'], ['Elias, a lighthouse keeper named Elias', 'keeper'],
+    ['Mara, the flight attendant who never sleeps', 'attendant'], ['the owl, a grumpy owl', 'owl'], ['Elias, kept the old lighthouse alone for thirty years', null], ['Rosa', null], ['Rosa, 42, tall', null]])
+    assert.equal(f.papelDaFicha2511({ nome: canonica.split(',')[0], canonica }), papel, 'papel: ' + canonica)
+  { const nomes = f.nomesDaFala2511([['Rosa', 'Rosa'], ['Elias', 'Elias']], [{ nome: 'Rosa', canonica: 'Rosa, a pirate captain' }, { nome: 'Elias', canonica: 'Elias, a lighthouse keeper' }])
+    igual(nomes, [['Rosa', 'Rosa', 'captain'], ['Elias', 'Elias', 'keeper']], 'o papel entra depois do nome')
+    igual(f.lerFalas2511(['Captain: Hold the course.', 'Keeper: The light is on.'], nomes, 2).falas, [[{ ref: 0, nome: 'Rosa', texto: 'Hold the course.' }], [{ ref: 1, nome: 'Elias', texto: 'The light is on.' }]], '"Captain:" casa com Rosa, a capitã') }
+  igual(f.nomesDaFala2511([['Rosa'], ['Ana']], [{ nome: 'Rosa', canonica: 'Rosa, a pirate captain' }, { nome: 'Ana', canonica: 'Ana, a ship captain' }]), [['Rosa'], ['Ana']], 'dois capitães = ambíguo = nenhum papel')
+  igual(f.nomesDaFala2511([['Rosa'], ['Captain']], [{ nome: 'Rosa', canonica: 'Rosa, a pirate captain' }, null]), [['Rosa'], ['Captain']], 'o papel que é o nome do outro = não entra')
+  igual(f.nomesDaFala2511([['Rosa'], ['Elias']], [null, null]), [['Rosa'], ['Elias']], 'sem ficha = os nomes de sempre')
   // [T1 e T2] quem fala
   const ADULTOS = [{ nome: 'Elias Ward', nucleo: 'Elias', canonica: 'appearance anchors: 50-60' }, { nome: 'Mara Quinn', nucleo: 'Mara', canonica: 'appearance anchors: 20-30' }]
   assert.equal(f.admitirFalantes2511(lidas.falas, ADULTOS, NOMES, false), null, 'T1/T2 dois adultos comuns falam')
@@ -140,7 +150,7 @@ async function suite(change) {
       submitGeminiTrialVideo: async (e) => { envios.push(e); if (envio) return envio(e); return { requestId: 'gem-1', model: GEMINI, submittedAt: 'x' } },
       GeminiRecusadoNoEnvio: g.GeminiRecusadoNoEnvio, writeServerEvent: async () => true, GEMINI_ENVIO_EVENTO: 'x', generationId: GEN, ctxDespacho: () => ({ totalPosts: 0 }), process: { env: {} },
       falaDosPersonagensLigada: f.falaDosPersonagensLigada, FALA_DOS_PERSONAGENS_2511: chave, FALA_DOS_PERSONAGENS_2511_VERSAO: f.FALA_DOS_PERSONAGENS_2511_VERSAO, vozPedida2511: f.vozPedida2511,
-      lerFalas2511: f.lerFalas2511, vozDaFicha2511: f.vozDaFicha2511, admitirFalantes2511: f.admitirFalantes2511, geminiFaladoDoKling4: f.geminiFaladoDoKling4, body: { voice_mode: voz }, narrationLanguage: { language: lingua }, verbatim,
+      lerFalas2511: f.lerFalas2511, vozDaFicha2511: f.vozDaFicha2511, admitirFalantes2511: f.admitirFalantes2511, nomesDaFala2511: f.nomesDaFala2511, geminiFaladoDoKling4: f.geminiFaladoDoKling4, body: { voice_mode: voz }, narrationLanguage: { language: lingua }, verbatim,
       mentionsRealPerson: (t) => /Obama/.test(t), isStylizedLook: () => false, styleAnchor: { look: 'photoreal' }, desenhoInfantil: { ativo: false },
       qualitySnapshot: { characters: fichas ?? [{ nome: 'Elias Ward', genero: 'man', tipo: 'humano', canonica: 'appearance anchors: 50-60' }, { nome: 'Mara Quinn', genero: 'woman', tipo: 'humano', canonica: 'appearance anchors: 20-30' }] } }
     const corpo = ts.transpile('let kling4Posts = 0\n' + trecho + '\nreturn (async () => ({ job: await tentarGemini2511(), gemini2511, fala2511: typeof fala2511 === "undefined" ? undefined : fala2511 }))()', { target: ts.ScriptTarget.ES2022 })
@@ -158,11 +168,15 @@ async function suite(change) {
     igual(x.gemini2511.kling4, { model: K4R, input: FIX.kling4_input }, 'B a entrada do Kling 4 guardada para a queda = a de hoje (narrada)')
     igual(x.gemini2511.entrada, fal.entrada, 'B o claim guarda o pedido falado que foi à fal')
     igual(x.fala2511.marcador, { versao: 'fala_dos_personagens_2511_v1', pedida: 'characters', modo: 'falado', motivo: null, falas: lidas.falas }, 'B o marcador: falado, com as falas') }
+  { const x = await rodar({ falas: ['Elias: The storm is coming tonight.', 'Operator: I hear a boat calling.', '', ''], fichas: [{ nome: 'Elias Ward', genero: 'man', tipo: 'humano', canonica: 'appearance anchors: 50-60' }, { nome: 'Mara Quinn', genero: 'woman', tipo: 'humano', canonica: 'Mara Quinn, a radio operator, appearance anchors: 20-30' }] })
+    assert.equal(x.fala2511.marcador.modo, 'falado', 'B rótulo pelo papel: "Operator:" = Mara, a operadora de rádio (falado)')
+    assert.ok(x.envios[0].prompt.includes('Mara Quinn says: "I hear a boat calling."'), 'B o motor recebe o NOME (o papel só serve à leitura)') }
   { const x = await rodar({ verbatim: false }) // [CEO 25/11] não depende de script_mode: o roteiro do nosso escritor com "Nome: fala" vale igual
     igual(x.envios, [fal.entrada], 'B fora do verbatim (o escritor): o pedido falado'); assert.equal(x.fala2511.marcador.modo, 'falado', 'B fora do verbatim: falado') }
   for (const [nome, opts, motivo] of [['outra língua', { lingua: 'pt' }, 'lingua'], ['roteiro sem falas', { falas: ['', '', '', ''] }, 'roteiro_sem_falas'],
     ['fora do formato', { falas: ['The storm is coming.', 'Mara: Hi.', '', ''] }, 'fala_fora_do_formato'], ['pessoa real na fala', { falas: ['Elias: Obama is here.', '', '', ''] }, 'fala_com_pessoa_real'],
     ['recusa no envio', { envio: () => { throw new g.GeminiRecusadoNoEnvio(422) } }, 'gemini_recusou_no_envio'],
+    ['papel ambíguo (dois operadores)', { falas: ['Elias: The storm is coming tonight.', 'Operator: I hear a boat calling.', '', ''], fichas: [{ nome: 'Elias Ward', genero: 'man', tipo: 'humano', canonica: 'Elias Ward, a radio operator, appearance anchors: 50-60' }, { nome: 'Mara Quinn', genero: 'woman', tipo: 'humano', canonica: 'Mara Quinn, a radio operator, appearance anchors: 20-30' }] }, 'falante_fora_do_elenco'],
     ['menor fotorreal falando', { fichas: [{ nome: 'Elias Ward', genero: 'man', tipo: 'humano', canonica: 'appearance anchors: 50-60' }, { nome: 'Mara Quinn', genero: 'woman', tipo: 'humano', canonica: 'a 12-year-old girl' }] }, 'falante_menor']]) {
     const x = await rodar(opts)
     assert.equal(x.fala2511.marcador.modo, 'narrado', `B ${nome}: narrado`)
@@ -270,6 +284,11 @@ async function suite(change) {
 
 await suite(null)
 const mutantes = [
+  [MOD, '    return [...lista, p]\n', '    return [...lista]\n'], // o papel não entra
+  [MOD, "if (!p || papeis.filter((x) => x === p).length > 1 || outro(p) ||", "if (!p || outro(p) ||"], // o papel ambíguo entra
+  [MOD, "if (!p || papeis.filter((x) => x === p).length > 1 || outro(p) ||", "if (!p || papeis.filter((x) => x === p).length > 1 ||"], // o papel que é o nome do outro entra
+  [MOD, ".replace(/\\s+(?:named|called|who|that|which|whose)\\s+.*$/iu, '')", ".replace(/\\s+(?:named|called)\\s+.*$/iu, '')"], // a relativa vira papel
+  [ROUTE, 'nomesDaFala2511(refs.map((r) => r.nomes as string[]), fichas2511)', 'refs.map((r) => r.nomes as string[])'], // a rota não lê o papel
   [COMPOSE, "faceless15.fases = faceless15.fases.filter(f => f !== 'f1' && f !== 'f3')", "faceless15.fases = faceless15.fases.filter(f => f !== 'f3')"], // [A] o F1 volta a refazer a legenda pela TTS
   [COMPOSE, "faceless15.fases = faceless15.fases.filter(f => f !== 'f1' && f !== 'f3')", "faceless15.fases = faceless15.fases.filter(f => f !== 'f1')"], // [A] o F3 volta a pôr música e efeitos
   [PISO, 'export const PALAVRAS_MIN_NO_FILME_FALADO_2511 = 12', 'export const PALAVRAS_MIN_NO_FILME_FALADO_2511 = 25'],

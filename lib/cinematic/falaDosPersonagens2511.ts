@@ -118,6 +118,32 @@ export function admitirFalantes2511(falas: ReadonlyArray<ReadonlyArray<LinhaDeFa
   return null
 }
 
+// [CEO 25/11, combinado com a 2c5749dd (volta 7): REGRA ÚNICA DO RÓTULO] quem fala pelo PAPEL usa o NÚCLEO do papel ("Keeper", "Captain"). O personagem COM nome
+// ("a pirate captain named Rosa") fica no elenco só como "Rosa", e o escritor não põe nome de gente no rótulo: o leitor aceita também o núcleo do papel
+// dele, tirado da canônica ("Rosa, a pirate captain, …" → "captain"). Só quando o papel é ÚNICO entre os falantes e não é o nome de outro (ambíguo = não
+// casa = narrado). Sem o aposto na canônica (só o nome), nada muda. Os nomes que vão ao motor e às frases da referência NÃO mudam (só a leitura das falas).
+const escapaPapel = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+/** O núcleo do papel na canônica: a 1ª oração depois do nome, "a/an/the … X" (sem o "named …"), X = a última palavra. Sem isso, null. */
+export function papelDaFicha2511(f: { nome?: unknown; nucleo?: unknown; canonica?: unknown } | null | undefined): string | null {
+  let t = typeof f?.canonica === 'string' ? f.canonica.trim() : ''
+  for (const n of [f?.nome, f?.nucleo]) if (typeof n === 'string' && n.trim()) t = t.replace(new RegExp('^' + escapaPapel(n.trim()) + '(?:\\s*[,:—–-]\\s*|\\s+(?:is|was)\\s+)', 'iu'), '')
+  const oracao = (t.split(/[,;.\n]/u)[0] ?? '').replace(/\s+(?:named|called|who|that|which|whose)\s+.*$/iu, '').trim()
+  const m = /^(?:a|an|the)\s+((?:[\p{L}'’-]+\s+){0,3}[\p{L}'’-]+)$/iu.exec(oracao)
+  if (!m) return null
+  const nucleo = (m[1].split(/\s+/u).pop() ?? '').toLowerCase()
+  return nucleo.length >= 3 && nucleo.length <= 20 && /^\p{L}+$/u.test(nucleo) ? nucleo : null
+}
+/** Os nomes que o leitor das falas aceita para cada referência: os de sempre + o núcleo do papel, quando ele é único e não é o nome de outro. */
+export function nomesDaFala2511(nomes: ReadonlyArray<ReadonlyArray<string>>, fichas: ReadonlyArray<{ nome?: unknown; nucleo?: unknown; canonica?: unknown } | null>): string[][] {
+  const papeis = nomes.map((_, k) => papelDaFicha2511(fichas[k] ?? null))
+  return nomes.map((lista, k) => {
+    const p = papeis[k]
+    const outro = (q: string) => nomes.some((l, j) => j !== k && l.some((n) => String(n).trim().toLowerCase() === q))
+    if (!p || papeis.filter((x) => x === p).length > 1 || outro(p) || lista.some((n) => String(n).trim().toLowerCase() === p)) return [...lista]
+    return [...lista, p]
+  })
+}
+
 /** A voz do personagem, pela ficha (idade, gênero, tipo): nunca sotaque, nunca nome de pessoa real. */
 export function vozDaFicha2511(f: { nome?: unknown; genero?: unknown; tipo?: unknown; canonica?: unknown } | null | undefined, estilizado: boolean): string {
   const c = typeof f?.canonica === 'string' ? f.canonica : ''
