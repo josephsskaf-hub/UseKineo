@@ -123,5 +123,7 @@ Branch `codex/dominio-antigo-2611`, de origin/main. Nada na Vercel, na conta do 
 ## Provas (como rodar)
 - **Guardião:** `node scripts/test-dominio-antigo-2611.mjs` (13/13 mutantes, só AssertionError).
 - **tsc:** `--noEmit -p .`, 0.
+- **`novos-vermelhos`** sobre os 20 guardiões que citam o `middleware.ts` ou a regra: 16 verdes; 4 vermelhos, todos já vermelhos na main; **0 vermelho novo**.
+  - O `test-afiliados-40-2026-10-06` monta o middleware real com um dublê por import e acusava "import sem dublê". Ganhou o dublê da regra, inerte em www.usekineo.com como a real. Ele segue com 31 ok e 0 falha, e os mutantes dele seguem mortos.
 - **Tabela:** gerada com `next build` e `next start` desta branch (env falsa, sem chave) e `curl -H "Host: shortsforgeai.com" -H "X-Forwarded-Host: shortsforgeai.com"`.
 - **Chamadas da página:** medidas com `performance.getEntriesByType('resource')` no navegador, ao abrir `/` e `/pricing` locais.
