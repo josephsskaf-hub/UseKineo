@@ -133,7 +133,10 @@ function ssr(o, file, props) {
   t.mount(React.createElement(t.m(file).default, props))
   return t.html()
 }
-function offChecks(o) {
+const voiceFile = 'lib/cinematic/filmVoice2511.ts'
+const voiceRollback = { [voiceFile]: read(voiceFile).replace("'off' | 'on' = 'on'", "'off' | 'on' = 'off'") }
+function offChecks(overrides) {
+  const o = { ...overrides, ...voiceRollback }
   const filmes = aba(o).m('lib/growth/filmesDaPorta0511').filmesDaPorta0511()
   for (const props of [{ filmes, motor: 'seedance', campanha: 'create_film', ideiaInicial: IDEA }, { filmes, motor: 'hollywood', campanha: 'studio_simple' }, { filmes: [], motor: 'seedance', campanha: 'x' }]) {
     ok(ssr(o, 'components/studio/StudioSimples', props) === ssr({ ...o, ...MAIN }, 'components/studio/StudioSimples', props), `StudioSimples sem moldura ${props.motor}/${props.campanha}: HTML = ${BASE}`)
@@ -185,7 +188,7 @@ function onChecks(o) {
   for (const c of cases) {
     const a = viaMain({ ...o, ...MAIN }, c), b = viaFrame(o, c)
     const tag = JSON.stringify(c)
-    ok(a.pushes.length === 1 && JSON.stringify(b.pushes) === JSON.stringify(a.pushes), `${tag}: mesma rota e mesma query (${b.pushes[0]})`)
+    ok(a.pushes.length === 1 && JSON.stringify(b.pushes) === JSON.stringify(a.pushes.map(href => href + '&voice_mode=narrator')), `${tag}: mesma rota e mesma query (${b.pushes[0]})`)
     ok(new URL(b.pushes[0], 'https://x').pathname === '/studio/create', `${tag}: o Generate vai à casa de máquinas de sempre`)
     ok(JSON.stringify(b.storage) === JSON.stringify(a.storage), `${tag}: o mesmo kineo:studio:go:v1`)
     ok(JSON.stringify(b.fetches) === JSON.stringify([...a.fetches, BADGE_FETCH]), `${tag}: as mesmas chamadas de rede + só a leitura de saldo do cabeçalho`)
@@ -288,7 +291,7 @@ async function priceChecks(o) {
   // Sem moldura (o /studio de sempre), com a leitura de saldo real: HTML, rede e eventos = main, para pagante, teste grátis e free.
   for (const corpo of [PAID, TRIAL, FREE]) {
     const run = async ov => { const t = aba(ov, { cookie: SESSION, credits: corpo }); t.mount(React.createElement(t.m('components/studio/StudioSimples').default, { filmes: [], motor: 'seedance', campanha: 'create_film', ideiaInicial: IDEA })); await t.settle(); return JSON.stringify([t.html(), t.log.fetches, t.log.events]) }
-    ok(await run(o) === await run({ ...o, ...MAIN }), `StudioSimples sem moldura com /api/credits ${corpo === PAID ? 'pagante' : corpo === TRIAL ? 'teste grátis' : 'free'}: HTML + rede + eventos = main`)
+    ok(await run({ ...o, ...voiceRollback }) === await run({ ...o, ...MAIN, ...voiceRollback }), `StudioSimples sem moldura com /api/credits ${corpo === PAID ? 'pagante' : corpo === TRIAL ? 'teste grátis' : 'free'}: HTML + rede + eventos = main`)
   }
 }
 
@@ -350,7 +353,7 @@ async function detailsChecks(o) {
   const simples = lf(read('components/studio/StudioSimples.tsx'))
   ok(simples.includes('const DURACOES = [15, 35, 60, 90] as const') && simples.includes("const FORMATOS = ['9:16', '16:9', '1:1', '4:5'] as const") && [...s.matchAll(/data-studio-duration="(\d+)"/g)].map(x => +x[1]).join() === '15,35,60,90' && [...s.matchAll(/data-studio-format="([^"]+)"/g)].map(x => x[1]).join() === '9:16,16:9,1:1,4:5', 'Details: as durações e formatos que o Studio simples aceita (DURACOES/FORMATOS)')
   const links = [...s.matchAll(/<a [^>]*>[\s\S]*?<\/a>/g)].map(x => x[0])
-  ok(links.length === 1 && /^<a href="\/studio\?avancado=1&amp;engine=seedance&amp;intent_campaign=create_film" data-kineo="studio-advanced">Advanced studio ↗<\/a>$/.test(links[0]), `Details: um só link para o Studio antigo, "Advanced studio" (${links.join(' | ')})`)
+  ok(links.length === 1 && /^<a href="\/studio\?avancado=1&amp;engine=seedance&amp;intent_campaign=create_film&amp;voice_mode=narrator" data-kineo="studio-advanced">Advanced studio ↗<\/a>$/.test(links[0]), `Details: um só link para o Studio antigo, "Advanced studio" (${links.join(' | ')})`)
   ok(/<p class="ct-advanced"><a [^>]*data-kineo="studio-advanced"[^>]*>Advanced studio ↗<\/a><span> · logo, camera, star of the film<\/span><\/p><\/div><\/details>/.test(s) /* KINEO-MOTOR-OPCIONAL-1011: o motor saiu da lista do Advanced */, 'Details: o link fica no rodapé do passo, depois dos ajustes')
   ok(!/More options/.test(s) && !/data-kineo="studio-simple-more"/.test(t.html()), 'Details: "More options" não existe mais na moldura')
   // Trocar duração e formato no passo: o resumo muda e nada navega.

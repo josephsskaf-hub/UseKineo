@@ -25,6 +25,7 @@ import { requestFilmProjection } from './requestFilmProjection'
 import { suggestedFilmLook, type FilmLook } from '@/lib/cinematic/filmLook2511'
 import FilmStylePicker from './FilmStylePicker'
 import FilmVoicePicker from './FilmVoicePicker'
+import { characterVoiceAvailable } from '@/lib/cinematic/characterVoiceAvailable'
 import { filmVoiceEnabled, voiceModeFields, type FilmVoiceMode } from '@/lib/cinematic/filmVoice2511'
 
 const CSS = `
@@ -124,7 +125,6 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
     initialFilmLook ? { initial: initialFilmLook, chosen: initialFilmLook, changed: false } : null,
   )
   const [voiceMode, setVoiceMode] = useState<FilmVoiceMode>(initialVoiceMode ?? 'narrator')
-  const filmVoicePicker = filmVoiceEnabled() && <FilmVoicePicker value={voiceMode} onSelect={setVoiceMode} />
   const suggestedLook = showFilmStyle ? suggestedFilmLook(texto) : null
   const selectedLook = showFilmStyle ? styleChoice?.chosen : undefined
   const look = selectedLook ?? suggestedLook
@@ -138,6 +138,9 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
   const [duracao, setDuracao] = useState<number>(60)
   const [formato, setFormato] = useState<string>('9:16')
   const [lingua, setLingua] = useState<string>('auto') /* KINEO-ROTEIRO-NA-LINGUA-0411 — sem escolha, o filme fala a língua do texto */
+  const voiceAvailable = filmVoiceEnabled() && characterVoiceAvailable(duracao, lingua, texto, selectedLook)
+  const effectiveVoice = voiceAvailable ? voiceMode : 'narrator'
+  const filmVoicePicker = filmVoiceEnabled() && <FilmVoicePicker value={voiceMode} onSelect={setVoiceMode} available={voiceAvailable} />
   const [palavraPorPalavra, setPalavraPorPalavra] = useState(false)
   const [folha, setFolha] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
@@ -186,10 +189,11 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
     const q = new URLSearchParams({ avancado: '1', engine: motor, intent_campaign: campanha })
     if (texto.trim() && texto.length < 1500) q.set('prompt', texto)
     if (selectedLook) q.set('look', selectedLook)
-    const { voice_mode } = voiceModeFields(voiceMode)
+    const { voice_mode } = voiceModeFields(effectiveVoice)
+    if (voice_mode === 'characters') q.set('duration', String(duracao))
     if (voice_mode) q.set('voice_mode', voice_mode)
     return `/studio?${q.toString()}`
-  }, [motor, campanha, texto, selectedLook, voiceMode])
+  }, [motor, campanha, texto, selectedLook, effectiveVoice, duracao])
 
   function gerar() {
     const t = texto.trim()
@@ -209,7 +213,7 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
       void trackEvent('studio_film_style_submitted', { initial_look: styleChoice?.initial ?? look, chosen_look: selectedLook ?? null, changed: styleChoice?.changed ?? false })
     }
     try { sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine: motor, prompt: t, language: lingua === 'auto' ? 'en' : lingua })) } catch {}
-    router.push(pedidoDoStudioSimples({ motor, texto: t, duracao, formato, lingua, palavraPorPalavra, campanha, ...(selectedLook ? { look: selectedLook } : {}), ...(filmVoiceEnabled() ? { voiceMode } : {}) }))
+    router.push(pedidoDoStudioSimples({ motor, texto: t, duracao, formato, lingua, palavraPorPalavra, campanha, ...(selectedLook ? { look: selectedLook } : {}), ...(filmVoiceEnabled() ? { voiceMode: effectiveVoice } : {}) }))
   }
 
   // KINEO-STUDIO-NA-MOLDURA-1011 — com a moldura (só /create/film, interruptor CREATE_FILM_INPLACE), troca SÓ o desenho; sem ela, nada muda.

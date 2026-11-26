@@ -15,12 +15,14 @@ const CSS = `
 .film-voice-options button:hover:not(:disabled){border-color:currentColor}
 .film-voice-options button:focus-visible{outline:2px solid currentColor;outline-offset:2px}
 .film-voice-options button:disabled{cursor:default}
+.film-voice-options button:disabled[aria-pressed=false]{opacity:.58}
 .film-voice-picker p{margin:0;font-size:13px;line-height:1.4;color:var(--rc-body,var(--muted,var(--text2,currentColor)))}
 `
 
-export default function FilmVoicePicker({ value, onSelect, disabled }: {
-  value: FilmVoiceMode
-  onSelect: (mode: FilmVoiceMode) => void
+export default function FilmVoicePicker({ value = 'narrator', onSelect, disabled, available = false }: {
+  value?: FilmVoiceMode
+  available?: boolean
+  onSelect?: (mode: FilmVoiceMode) => void
   disabled?: boolean
 }) {
   const label = useId()
@@ -29,8 +31,8 @@ export default function FilmVoicePicker({ value, onSelect, disabled }: {
     <style>{CSS}</style>
     <span className="film-voice-label" id={label}>Voice</span>
     <div className="film-voice-options">
-      {OPTIONS.map(option => <button key={option.mode} type="button" aria-pressed={value === option.mode} disabled={disabled} onClick={() => onSelect(option.mode)}>{option.label}</button>)}
+      {OPTIONS.map(option => <button key={option.mode} type="button" aria-pressed={(available ? value : 'narrator') === option.mode} disabled={disabled || !onSelect || (!available && option.mode === 'characters')} onClick={() => onSelect?.(option.mode)}>{option.label}</button>)}
     </div>
-    <p id={hint}>For a 15-second photorealistic film in English, write 29–45 spoken words for up to two adults. Use an approved character photo. Other films use narration.</p>
+    <p id={hint}>{available ? 'For a 15-second photorealistic film in English, write 29–45 spoken words for up to two adults. Use an approved character photo. Other films use narration.' : 'This film uses narration. Character dialogue is available for 15-second photorealistic films in English.'}</p>
   </div>
 }

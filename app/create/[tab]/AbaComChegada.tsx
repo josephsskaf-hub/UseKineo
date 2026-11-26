@@ -9,7 +9,7 @@
 // Nada aqui gera, cobra ou mostra preço.
 import { useState } from 'react'
 import FilmVoicePicker from '@/components/studio/FilmVoicePicker'
-import { filmVoiceEnabled, voiceModeFields, type FilmVoiceMode } from '@/lib/cinematic/filmVoice2511'
+import { filmVoiceEnabled, voiceModeFields } from '@/lib/cinematic/filmVoice2511'
 import CreateShell from '@/components/create/CreateShell' // fora de components/create (diretório em obra do GPT, 11/11)
 import { trackClosedEvent } from '@/lib/analytics'
 import { guardarRascunhoDoDesenho } from '@/lib/ads/rascunhoDoVisitante'
@@ -17,7 +17,6 @@ import { CARTOON_IDEA_MAX_CHARS, CREATE_COPY, CREATE_EVENTS, cartoonDraft, conti
 
 export default function AbaComChegada({ tab, showRecreate, showClip = false, destino }: { tab: 'ads' | 'cartoon'; showRecreate: boolean; showClip?: boolean; destino: string }) { // KINEO-CLIP-NA-MOLDURA-1011 — + showClip
   const [idea, setIdea] = useState('')
-  const [voiceMode, setVoiceMode] = useState<FilmVoiceMode>('narrator')
   const copy = CREATE_COPY[tab]
   const hasInput = copy.placeholder !== null
   const blocker = continueBlocker(tab, idea)
@@ -28,7 +27,7 @@ export default function AbaComChegada({ tab, showRecreate, showClip = false, des
   function go() {
     if (!ready) return
     void trackClosedEvent(CREATE_EVENTS.continueClicked, { tab, has_text: idea.trim().length > 0 })
-    if (tab === 'cartoon') guardarRascunhoDoDesenho({ ...cartoonDraft(idea), ...voiceModeFields(voiceMode) })
+    if (tab === 'cartoon') guardarRascunhoDoDesenho({ ...cartoonDraft(idea), ...voiceModeFields('narrator') })
     window.location.assign(destino)
   }
   const painel = <>
@@ -48,12 +47,12 @@ export default function AbaComChegada({ tab, showRecreate, showClip = false, des
     </details></section>
     <section className={`rc-step rc-generate-area rc-step-${states[2]}`} data-step-state={states[2]} aria-labelledby="ct-step3">
       <div className="rc-step-heading">{marker(3)}<h2 id="ct-step3">{copy.step3}</h2><span className="rc-step-status">{stateLabel(states[2])}</span></div>
-      {tab === 'cartoon' && filmVoiceEnabled() && <FilmVoicePicker value={voiceMode} onSelect={setVoiceMode} />}
+      {tab === 'cartoon' && filmVoiceEnabled() && <FilmVoicePicker />}
       <div className="ct-action-dock">
         <button type="button" className="rc-generate" data-create-continue={destino} aria-describedby="ct-continue-reason" disabled={!ready} onClick={go}>{copy.button} <span aria-hidden="true">→</span></button>
         <p className="rc-next-note" id="ct-continue-reason" role="status">{blocker ?? copy.note}</p>
       </div>
     </section>
   </>
-  return <CreateShell tab={tab} showRecreate={showRecreate} showClip={showClip} painel={painel} aoComprar={tab === 'cartoon' ? () => guardarRascunhoDoDesenho({ ...cartoonDraft(idea), ...voiceModeFields(voiceMode) }) : undefined} aoEscolher={hasInput ? (ideia: string) => setIdea(ideia.slice(0, CARTOON_IDEA_MAX_CHARS)) : undefined} />
+  return <CreateShell tab={tab} showRecreate={showRecreate} showClip={showClip} painel={painel} aoComprar={tab === 'cartoon' ? () => guardarRascunhoDoDesenho({ ...cartoonDraft(idea), ...voiceModeFields('narrator') }) : undefined} aoEscolher={hasInput ? (ideia: string) => setIdea(ideia.slice(0, CARTOON_IDEA_MAX_CHARS)) : undefined} />
 }

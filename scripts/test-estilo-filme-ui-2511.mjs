@@ -16,6 +16,8 @@ const ADVANCED = 'app/(dashboard)/studio/StudioClient.tsx'
 const CREATE_FILM = 'app/create/[tab]/page.tsx'
 const DISPATCH = 'app/(dashboard)/generate/GenerateClient.tsx'
 const BASE = '9270f6e05'
+const voiceFile = 'lib/cinematic/filmVoice2511.ts'
+const voiceRollback = { [voiceFile]: read(voiceFile).replace("'off' | 'on' = 'on'", "'off' | 'on' = 'off'") }
 const BASE_UI = Object.fromEntries([SIMPLE, LINK].map(file => [file, fromGit(file)]))
 const load = createOfflineLoader()
 const gate = load('@/lib/cinematic/filmLook2511Server')
@@ -68,7 +70,7 @@ function interceptPost(filmLook, source = read(DISPATCH)) {
   let call
   const payload = namedExpression(source, 'cinematicPayload', DISPATCH)
   runJS('const cinematicPayload = ' + payload + '\n' + postExpression(source), {
-    filmLook, voiceMode: 'narrator', voiceModeFields: load('@/lib/cinematic/filmVoice2511').voiceModeFields,
+    filmLook, resumedStyle: () => undefined, voiceMode: 'narrator', voiceForFilm: () => 'narrator', voiceModeFields: load('@/lib/cinematic/filmVoice2511').voiceModeFields,
     cinematicGenerationId: 'synthetic-attempt', trimmed: ordinary, duration: 60, language: 'en', aspectRequested: '9:16',
     scriptMode: 'ai', analysis: null, aiEngine: mode, cineBrollScenes: undefined, cineUsable: false,
     ideiaDoRoteiroRef: { current: null }, estrelaRef: { current: null }, kidsCartoonId: null,
@@ -134,8 +136,8 @@ for (const surface of ['simple', 'steps', 'box']) {
   assert.equal(marked(auto), 'Cartoon')
   assert.equal(submit(auto).searchParams.has('look'), false, 'a sugestão visível não autoriza look')
   assert.deepEqual(styleEvents(auto), [{ initial_look: 'animated3d', chosen_look: null, changed: false }])
-  const off = mount(surface, false, {}, ordinary)
-  const existing = mount(surface, false, BASE_UI, ordinary)
+  const off = mount(surface, false, voiceRollback, ordinary)
+  const existing = mount(surface, false, { ...BASE_UI, ...voiceRollback }, ordinary)
   // Each harness shares the globals it installs. Compare markup before the click and keep the requests independent.
   assert.equal(off.html(), existing.html(), 'OFF preserva o HTML da base')
   assert.equal(submit(off).href, submit(existing).href, 'OFF preserva o pedido da base byte a byte')
@@ -163,6 +165,8 @@ function untouched(surface, overrides = {}) {
     tab.log.pushes.length = 0
     const url = submit(tab)
     assert.equal(url.searchParams.has('look'), false, 'sem toque, a URL não leva look')
+    assert.equal(url.searchParams.get('voice_mode'), 'narrator', 'voz padrão explícita')
+    url.searchParams.delete('voice_mode')
     assert.equal(url.pathname + url.search, base.pedidoDoStudioSimples({ motor: mode, texto: text, duracao: 60, formato: '9:16', lingua: 'auto', palavraPorPalavra: false, campanha: 'studio_simple' }))
     assert.equal(runEntry(url.searchParams, internal), undefined, 'sem toque, o POST continua sem estilo explícito')
   }
@@ -171,7 +175,7 @@ for (const surface of ['simple', 'steps', 'box']) untouched(surface)
 
 const dispatched = JSON.parse(interceptPost(runEntry(new URLSearchParams('look=animated3d'), internal)))
 assert.equal(dispatched.look, 'animated3d')
-const none = interceptPost(undefined, fromGit(DISPATCH))
+const none = JSON.stringify({ voice_mode: 'narrator', ...JSON.parse(interceptPost(undefined, fromGit(DISPATCH))) })
 for (const [query, email, authError] of [
   ['', internal], ['look=anime', external], ['look=photoreal', null],
   ['look=animated3d', internal, new Error('auth unavailable')],

@@ -12,7 +12,7 @@ import { pickInterfaceCopy } from '@/lib/ui/interfaceLanguage'
 import { PREVIA_COPY, PREVIA_IDEA_MAX, PREVIA_IDEA_MIN, PREVIA_RESUME_STORAGE_KEY, previaIdentityFields, type PreviaResume } from '@/lib/scenePreview'
 import { REGION_PAID_ONLY_PLANS_HREF } from '@/lib/freeFilmPolicy'
 import { trackEvent } from '@/lib/analytics' // KINEO-FLUXO2-G-0411
-import { previaResumeStudioHref } from '@/lib/scenePreview' // KINEO-FLUXO2-G-0411
+import { previaResumeStudioHref, previaVoiceFields } from '@/lib/scenePreview' // KINEO-FLUXO2-G-0411
 import { TRIAL_PEDIDO_CLAIM_PATH, TRIAL_PEDIDO_COPY, TRIAL_PEDIDO_PREVIA_EVENT, TRIAL_PEDIDO_TESTE } from '@/lib/trialPedido' // KINEO-FLUXO2-G-0411
 
 type Scene = { label: string; text: string; image: string }
@@ -71,11 +71,12 @@ export default function ScenePreviewClient({ initialIdea, from, aPedido = false,
   }, [idea, scriptLanguage, copy])
 
   function filmDraft(preview: Preview): PreviaResume {
-    return {
+    const draft: PreviaResume = {
       t: Date.now(), idea: originalScript || preview.idea || idea, script: preview.script, language: preview.language,
       ...(originalScript ? { script_mode: 'verbatim', preview_idea: preview.idea } : {}),
       ...(filmLook ? { look: filmLook } : {}), ...voiceModeFields(voiceMode), ...previaIdentityFields(preview.previewId),
     }
+    return { ...draft, ...previaVoiceFields(draft) }
   }
 
   function toFilm(placement: string) {

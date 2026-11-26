@@ -105,8 +105,9 @@ check('(2) a ida-e-volta preserva o `aiEngine` escolhido', () => {
   assert.equal(d.engine, 's25', 'o motor escolhido nao sobreviveu ao Stripe')
 })
 
-check('(3) os 8 motores atravessam, nenhum vira null', () => {
-  for (const engine of ['seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'omni', 's25']) {
+check('(3) os motores atuais atravessam e os dois retirados voltam ao padrão', () => {
+  for (const engine of ['kling', 'veo']) assert.equal(M.readCardEntryDraft(gravar({ engine }), AGORA).engine, null)
+  for (const engine of ['seedance', 'sora', 'hollywood', 'h3', 'h3max', 'omni', 's25']) {
     const d = M.readCardEntryDraft(gravar({ engine }), AGORA)
     assert.equal(d.engine, engine, 'motor perdido: ' + engine)
   }

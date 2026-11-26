@@ -18,7 +18,7 @@ const { aba, React, read, ROOT } = R
 const BASE = 'ec6348f4b7beafa640bc3fb5d9dc5da3b7ce7b0b'
 // SHA-256 das duas fontes do pedido após acrescentar a escolha de voz. O guardião de voz também compara OFF com eb07dbd73.
 const ESTILO = {
-  'components/studio/StudioSimples.tsx': '12799c6f5961c11dba331478b842ba311fb70fecd242744bc871d1e2191fc501',
+  'components/studio/StudioSimples.tsx': '1c8b795ff2e0cf980b06d8f01f78c1aa9346db70c37cc64f6e4769f1e54c8c66',
   'lib/growth/studioSimples.ts': 'bafa414b1ca6e9218db3e27c9c10a610e863f566ebdc4b68774e74eb80ced03e',
 }
 const baseSrc = (ref, p) => execFileSync('git', ['show', `${ref}:${p}`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 })

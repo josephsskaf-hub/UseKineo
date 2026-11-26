@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { pickInterfaceCopy } from '@/lib/ui/interfaceLanguage'
 import { filmVoiceEnabled, voiceModeFields } from '@/lib/cinematic/filmVoice2511'
-import { PREVIA_RESUME_STORAGE_KEY, mesmaPreviaParaRetomar, previaResumeScript, previaResumeValid, type PreviaResume } from '@/lib/scenePreview'
+import { PREVIA_RESUME_STORAGE_KEY, mesmaPreviaParaRetomar, previaResumeScript, previaResumeValid, previaVoiceFields, type PreviaResume } from '@/lib/scenePreview'
 import { REGIAO_PAGA_COPY, REGIAO_PAGA_STRIP_API, regiaoPagaFill, type RegiaoPagaScene, type RegiaoPagaSurface } from '@/lib/growth/regiaoPaga1011'
 // KINEO-REGIAO-FILME-199-1011 [fundador 10/11: "1.99 1 filme!"] — com `film199` na resposta (o servidor decidiu: conta
 // elegível com o interruptor 'public', ou a conferência da casa), o botão principal vira o filme avulso de 15 s (preço da fonte única) e o
@@ -46,7 +46,7 @@ export default function PreviewPricingStrip({ surface = 'pricing' }: { surface?:
         const prior: unknown = JSON.parse(localStorage.getItem(PREVIA_RESUME_STORAGE_KEY) ?? 'null')
         if (previaResumeValid(prior, now) && voiceModeFields(prior.voice_mode).voice_mode &&
             mesmaPreviaParaRetomar(prior, data)) {
-          saved = { ...prior, t: now }
+          saved = { ...prior, ...previaVoiceFields(prior), t: now }
         }
       } catch { /* rascunho velho inválido: guarda a prévia atual */ }
     }
@@ -63,7 +63,8 @@ export default function PreviewPricingStrip({ surface = 'pricing' }: { surface?:
     const saved = saveResume()
     if (!film || film.qa || !saved) return
     try {
-      sessionStorage.setItem(CARD_ENTRY_DRAFT_KEY, serializeCardEntryDraft({ prompt: previaResumeScript(saved), quality: 'cinematic_ai', duration: film.seconds, mode: 'cinematic_ai', engine: 'seedance', at: Date.now(), voiceMode: saved.voice_mode, scriptMode: saved.voice_mode ? 'verbatim' : undefined }))
+      const { voice_mode, preview_style } = previaVoiceFields(saved, film.seconds)
+      sessionStorage.setItem(CARD_ENTRY_DRAFT_KEY, serializeCardEntryDraft({ prompt: previaResumeScript(saved), quality: 'cinematic_ai', duration: film.seconds, mode: 'cinematic_ai', engine: 'seedance', at: Date.now(), voiceMode: voice_mode, previewStyle: preview_style, scriptMode: voice_mode ? 'verbatim' : undefined }))
       if (typeof film.balance === 'number' && film.balance >= 0) sessionStorage.setItem(WALL_V1_PACK_BALANCE_KEY, String(film.balance))
     } catch { /* sem armazenamento: o aviso da prévia no painel leva ao mesmo roteiro */ }
   }

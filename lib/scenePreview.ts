@@ -15,6 +15,7 @@
 /** Interruptor em código (env da Vercel nos dá 403). Nasce ligado por ordem do fundador (03/10). */
 import { filmVoiceEnabled, voiceModeFields, type FilmVoiceMode } from '@/lib/cinematic/filmVoice2511'
 import type { FilmLook } from '@/lib/cinematic/filmLook2511'
+import { characterVoiceAvailable, previewStyleFromIdea } from '@/lib/cinematic/characterVoiceAvailable'
 
 export const PREVIA_CENAS_PUBLIC = true
 
@@ -322,13 +323,21 @@ export function mesmaPreviaParaRetomar(saved: PreviaResume, current: { previewId
 }
 
 export function previaResumeScript(r: PreviaResume): string {
-  const { voice_mode } = voiceModeFields(r.voice_mode)
-  return voice_mode === 'characters' && r.script_mode === 'verbatim' && r.idea.trim() ? r.idea : r.script
+  return voiceModeFields(r.voice_mode).voice_mode && r.script_mode === 'verbatim' && r.idea.trim() ? r.idea : r.script
+}
+
+export function previaVoiceFields(r: PreviaResume, seconds = PREVIA_TARGET_SECONDS) {
+  const voice = voiceModeFields(r.voice_mode)
+  if (!voice.voice_mode) return {}
+  const idea = r.preview_idea ?? r.idea
+  const style = previewStyleFromIdea(idea)
+  const available = characterVoiceAvailable(seconds, r.language, idea + '\n' + previaResumeScript(r), r.look)
+  return { ...voiceModeFields(available ? voice.voice_mode : 'narrator'), ...(style ? { preview_style: style } : {}) }
 }
 
 /** Link do Studio com o roteiro aprovado na prévia e as escolhas do pedido. */
 export function previaResumeStudioHref(r: PreviaResume): string {
-  const { voice_mode } = voiceModeFields(r.voice_mode)
+  const { voice_mode, preview_style } = previaVoiceFields(r)
   const q = new URLSearchParams({
     prompt: previaResumeScript(r).slice(0, 5000),
     engine: PREVIA_ENGINE_STUDIO_KEY,
@@ -338,6 +347,7 @@ export function previaResumeStudioHref(r: PreviaResume): string {
   })
   if (/^[a-z]{2}$/.test(r.language) && r.language !== 'en') q.set('language', r.language)
   if (r.look === 'photoreal' || r.look === 'animated3d' || r.look === 'anime') q.set('look', r.look)
+  if (preview_style) q.set('preview_style', preview_style)
   if (voice_mode) q.set('voice_mode', voice_mode)
   return `/studio?${q.toString()}`
 }

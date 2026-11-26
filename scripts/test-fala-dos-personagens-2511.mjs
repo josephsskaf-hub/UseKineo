@@ -194,7 +194,7 @@ async function suite(change) {
     assert.equal(x.fala2511.marcador.motivo, motivo, `B ${nome}: o motivo`)
     if (nome !== 'recusa no envio') igual(x.envios, [FIX.gemini_input_nota_10], `B ${nome}: o Gemini de hoje (narrado), byte a byte`)
   }
-  assert.ok(rota.includes("...((body as { voice_mode?: unknown }).voice_mode === 'characters' ? { voice_mode: 'characters' } : {})") && /escritorMarcadoDoGenerateScript\(new NextRequest[^\n]*voice_mode: 'characters'/.test(rota), 'B o escritor do servidor recebe o voice_mode (a ideia solta sai em "Nome: fala")')
+  assert.ok(rota.includes("...(faladoPedido2511 ? { voice_mode: 'characters', ...(explicitFilmLook ? { look: explicitFilmLook } : {}) } : {})") && /escritorMarcadoDoGenerateScript\(new NextRequest[^\n]*voice_mode: 'characters'/.test(rota), 'B o escritor do servidor recebe o voice_mode (a ideia solta sai em "Nome: fala")')
   assert.ok(rota.includes(";(response.kling4_trial as Record<string, unknown>).fala_2511 = f2511\n") && rota.includes("name: 'fala_dos_personagens_2511'"), 'B o marcador vai ao claim e a um evento')
   { const i = rota.indexOf(';(response.kling4_trial as Record<string, unknown>).fala_2511 = f2511'), j = rota.lastIndexOf('    if (kling4Trial) {\n', i)
     assert.ok(j > 0 && rota.slice(j, i).includes('response.kling4_trial = {'), 'B o marcador entra no kling4_trial já criado') }
@@ -321,7 +321,7 @@ const mutantes = [
   [MOD, "modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))", "modo !== 'off'"],
   [MOD, "return v === 'characters' ? 'personagens' : 'narrador'", "return v ? 'personagens' : 'narrador'"],
   [MOD, "(body as { voice_mode?: unknown }).voice_mode", "(body as { voz?: unknown }).voz"],
-  [ROUTE, "...((body as { voice_mode?: unknown }).voice_mode === 'characters' ? { voice_mode: 'characters' } : {})", ''],
+  [ROUTE, "...(faladoPedido2511 ? { voice_mode: 'characters', ...(explicitFilmLook ? { look: explicitFilmLook } : {}) } : {})", ''],
   [ROUTE, "motivo: narrationLanguage.language !== 'en' ? 'lingua' : 'sem_gemini' }", "motivo: narrationLanguage.language !== 'en' ? 'lingua' : !verbatim ? 'roteiro_sem_falas' : 'sem_gemini' }"], // voltar a depender do verbatim
   [MOD, "      if (texto.slice(0, inicio).trim()) return { motivo: 'fala_fora_do_formato' }\n", ''],
   [MOD, "        if (qualquerRotulo.test(' ' + fala)) return { motivo: 'falante_fora_do_elenco' }", "        if (false) return { motivo: 'falante_fora_do_elenco' }"],

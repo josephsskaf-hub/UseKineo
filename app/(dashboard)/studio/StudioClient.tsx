@@ -3,6 +3,7 @@
 import type { FilmLook } from '@/lib/cinematic/filmLook2511'
 import FilmVoicePicker from '@/components/studio/FilmVoicePicker'
 import { voiceModeFields, type FilmVoiceMode } from '@/lib/cinematic/filmVoice2511'
+import { characterVoiceAvailable, previewStyle, previewStyleCue } from '@/lib/cinematic/characterVoiceAvailable'
 import FilmStylePicker from '@/components/studio/FilmStylePicker'
 
 import Kling4PaidNotice, { useKling4PaidAvailability } from '@/components/Kling4PaidNotice'
@@ -819,6 +820,8 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [], initia
     const p = CAMERA_PRESETS.find((c) => c.key === preset)
     return p && prompt.trim() ? `${prompt.trim()}\n\n[camera: ${p.prompt}]` : prompt.trim()
   }, [prompt, preset])
+  const restoredStyle = prompt.trim() === searchParams.get('prompt')?.trim() ? previewStyle(searchParams.get('preview_style')) : undefined
+  const voiceAvailable = Boolean(voiceMode) && characterVoiceAvailable(duration, language, finalPrompt + '\n' + previewStyleCue(restoredStyle), filmLook)
 
   // KINEO-STUDIO-ONECLICK-2026-08-17 (degrau 2): o clique AQUI e o
   // consentimento de gasto — o usuario viu motor + custo e apertou Generate.
@@ -1006,7 +1009,8 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [], initia
       sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine, prompt: finalPrompt, language }))
     } catch {}
     const q = new URLSearchParams({ engine, prompt: finalPrompt, duration: String(duration), script_mode: scriptMode, autoanalyze: '1', studio: '1', intent_campaign: campaignRef.current })
-    const { voice_mode } = voiceModeFields(voiceMode)
+    const { voice_mode } = voiceModeFields(voiceMode && (voiceAvailable ? voiceMode : 'narrator'))
+    if (restoredStyle) q.set('preview_style', restoredStyle)
     if (voice_mode) q.set('voice_mode', voice_mode)
     if (filmLook) {
       q.set('look', filmLook)
@@ -1250,7 +1254,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [], initia
                 : chatGptQuickstart === 'idea'
                   ? (t('Paste the idea from ChatGPT here…', 'Pega aquí la idea de ChatGPT…'))
                   : (t('What’s your video about? One idea in — a finished film out: voiced, scored and captioned.', '¿De qué trata tu vídeo? Una idea se convierte en un vídeo con voz, música y subtítulos.'))} />
-            {voiceMode && scriptMode !== 'clip' && <FilmVoicePicker value={voiceMode} onSelect={setVoiceMode} />}
+            {voiceMode && scriptMode !== 'clip' && <FilmVoicePicker value={voiceMode} onSelect={setVoiceMode} available={voiceAvailable} />}
             {filmLook && scriptMode !== 'clip' && <FilmStylePicker look={filmLook} text={finalPrompt} onSelect={next => {
               setFilmLook(next)
               if (next !== filmLook) setFilmLookChanged(true)

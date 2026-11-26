@@ -26,6 +26,7 @@
 // `engine: null`, e quem lê trata nulo como "não mexa no que já está na tela".
 
 import { voiceModeFields, type FilmVoiceMode } from '@/lib/cinematic/filmVoice2511'
+import { previewStyle, type PreviewStyle } from '@/lib/cinematic/characterVoiceAvailable'
 
 export const CARD_ENTRY_DRAFT_KEY = 'kineo_studio_draft_v1'
 export const CARD_ENTRY_DRAFT_TTL_MS = 45 * 60 * 1000
@@ -52,6 +53,7 @@ export interface CardEntryDraft {
   mode: DraftMode | null
   engine: DraftEngine | null
   voice_mode?: FilmVoiceMode
+  preview_style?: PreviewStyle
   script_mode?: 'ai' | 'verbatim'
   /** `at` dentro da janela de TTL. Fora dela o rascunho é lido, mas não arma o disparo. */
   fresh: boolean
@@ -64,6 +66,7 @@ export function serializeCardEntryDraft(input: {
   mode: string
   engine: string
   voiceMode?: FilmVoiceMode
+  previewStyle?: PreviewStyle
   scriptMode?: 'ai' | 'verbatim'
   at: number
 }): string {
@@ -75,6 +78,7 @@ export function serializeCardEntryDraft(input: {
     mode: input.mode,
     engine: input.engine,
     ...voice,
+    ...(voice.voice_mode && input.previewStyle && previewStyle(input.previewStyle) ? { preview_style: input.previewStyle } : {}),
     ...(voice.voice_mode && input.scriptMode ? { script_mode: input.scriptMode } : {}),
     at: input.at,
   })
@@ -116,5 +120,6 @@ export function readCardEntryDraft(raw: string | null, now: number): CardEntryDr
 
   const voice = voiceModeFields(draft.voice_mode)
   const scriptMode = draft.script_mode === 'verbatim' || draft.script_mode === 'ai' ? draft.script_mode : undefined
-  return { prompt, quality, duration, mode, engine, fresh, ...voice, ...(voice.voice_mode && scriptMode ? { script_mode: scriptMode } : {}) }
+  const style = voice.voice_mode && draft.preview_style ? previewStyle(draft.preview_style) : undefined
+  return { prompt, quality, duration, mode, engine, fresh, ...voice, ...(style ? { preview_style: style } : {}), ...(voice.voice_mode && scriptMode ? { script_mode: scriptMode } : {}) }
 }

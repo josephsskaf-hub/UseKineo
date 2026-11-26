@@ -1,5 +1,6 @@
 'use client'
 
+import { characterVoiceAvailable, previewStyle, previewStyleCue, type PreviewStyle } from '@/lib/cinematic/characterVoiceAvailable'
 import { filmVoiceEnabled, voiceModeFields, type FilmVoiceMode } from '@/lib/cinematic/filmVoice2511'
 import FilmVoicePicker from '@/components/studio/FilmVoicePicker'
 import type { FilmLook } from '@/lib/cinematic/filmLook2511'
@@ -2973,6 +2974,26 @@ export default function GenerateClient({
   // KINEO-K4-SUJEITO-0111 — a ideia que a pessoa digitou e o roteiro que o /api/generate-script escreveu a partir DELA. Vai ao servidor
   // (original_idea) só quando o roteiro despachado é exatamente esse: o sujeito obrigatório do Kling 4 sai do pedido, nunca do roteiro.
   const ideiaDoRoteiroRef = useRef<{ ideia: string; roteiro: string; segundos?: number } | null>(null) // KINEO-FILME-GRATIS-COMECA-0211b: + a duração para a qual o escritor mediu o roteiro
+
+  const [restoredPreview, setRestoredPreview] = useState<{ prompt: string; style?: PreviewStyle }>(() => ({ prompt: initialPrompt, style: previewStyle(searchParams.get('preview_style')) }))
+  function resumedStyle(text: string) {
+    return restoredPreview.prompt.trim() === text.trim() ? restoredPreview.style : undefined
+  }
+
+  function voiceAvailableForFilm(seconds: number, text: string): boolean {
+    const original = ideiaDoRoteiroRef.current
+    const styleText = original?.roteiro === text.trim() ? text + '\n' + original.ideia : text
+    return filmVoiceEnabled() && characterVoiceAvailable(seconds, language, styleText + '\n' + previewStyleCue(resumedStyle(text)), filmLook, Boolean(kidsCartoonId))
+  }
+
+  function voiceForFilm(seconds: number, text: string): FilmVoiceMode {
+    return voiceMode === 'characters' && voiceAvailableForFilm(seconds, text) ? 'characters' : 'narrator'
+  }
+
+  function writerVoiceFields(seconds: number, text: string) {
+    const fields = voiceModeFields(voiceForFilm(seconds, text))
+    return fields.voice_mode === 'characters' && filmLook ? { ...fields, look: filmLook } : fields
+  }
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const autoAnalyzeKeyRef = useRef<string | null>(null)
@@ -3731,10 +3752,10 @@ export default function GenerateClient({
       if (resumeConsumidoRef.current !== null && resumeConsumidoRef.current === clean) return // KINEO-SEM-INICIO-AUTOMATICO-0211
       sessionStorage.setItem(
         CARD_ENTRY_DRAFT_KEY,
-        serializeCardEntryDraft({ prompt: clean, quality, duration, mode, engine: aiEngine, voiceMode, scriptMode, at: Date.now() }),
+        serializeCardEntryDraft({ prompt: clean, quality, duration, mode, engine: aiEngine, voiceMode, scriptMode, previewStyle: resumedStyle(clean), at: Date.now() }),
       )
     } catch { /* ignore */ }
-  }, [prompt, quality, duration, mode, aiEngine, voiceMode, scriptMode])
+  }, [prompt, quality, duration, mode, aiEngine, voiceMode, scriptMode, restoredPreview])
   const resumeArmedRef = useRef(false)
   const resumeBlockedReportedRef = useRef(false)
   // KINEO-SEM-INICIO-AUTOMATICO-0211 — a tela restaurou um pedido da pessoa (card_entry ou wall_v1): os defaults por
@@ -3749,6 +3770,7 @@ export default function GenerateClient({
       if (!draft) return
       escolhaRestauradaRef.current = true // KINEO-SEM-INICIO-AUTOMATICO-0211
       setPrompt(draft.prompt)
+      if (draft.preview_style) setRestoredPreview({ prompt: draft.prompt, style: draft.preview_style })
       // Nulo = campo ausente ou invalido no rascunho: nao mexer no que a tela
       // ja tem. Sobrescrever com um padrao seria trocar a escolha da pessoa por
       // um chute — exatamente o defeito que este bloco existe para fechar.
@@ -3838,7 +3860,7 @@ export default function GenerateClient({
       if (!clean) return
       sessionStorage.setItem(
         CARD_ENTRY_DRAFT_KEY,
-        serializeCardEntryDraft({ prompt: clean, quality, duration, mode, engine: aiEngine, voiceMode, scriptMode, at: Date.now() }),
+        serializeCardEntryDraft({ prompt: clean, quality, duration, mode, engine: aiEngine, voiceMode, scriptMode, previewStyle: resumedStyle(clean), at: Date.now() }),
       )
     } catch { /* ignore */ }
   }
@@ -3867,6 +3889,7 @@ export default function GenerateClient({
       escolhaRestauradaRef.current = true // KINEO-SEM-INICIO-AUTOMATICO-0211 — os defaults do plano não atropelam o pedido restaurado
       setResumeAguardandoClique(true) // KINEO-SEM-INICIO-AUTOMATICO-0211 — o mesmo cartão "Start my film" da volta do card_entry
       setPrompt(draft.prompt)
+      if (draft.preview_style) setRestoredPreview({ prompt: draft.prompt, style: draft.preview_style })
       if (draft.quality) setQuality(draft.quality)
       if (draft.duration) setDuration(draft.duration as Duration)
       if (draft.mode) setMode(draft.mode)
@@ -7666,7 +7689,7 @@ export default function GenerateClient({
         try {
           sessionStorage.setItem(
             CARD_ENTRY_DRAFT_KEY,
-            serializeCardEntryDraft({ prompt: clique.prompt, quality, duration, mode, engine: aiEngine, voiceMode, scriptMode, at: Date.now() }),
+            serializeCardEntryDraft({ prompt: clique.prompt, quality, duration, mode, engine: aiEngine, voiceMode, scriptMode, previewStyle: resumedStyle(clique.prompt), at: Date.now() }),
           )
         } catch { /* ignore */ }
         setResumeAguardandoClique(true)
@@ -8321,7 +8344,7 @@ export default function GenerateClient({
           language,
           targetSeconds: alvo.targetSeconds,
           forceAuthoring: true,
-          ...(mode === 'cinematic_ai' ? voiceModeFields(voiceMode) : {}),
+          ...(mode === 'cinematic_ai' ? writerVoiceFields(alvo.targetSeconds, ideia) : {}),
           engine: mode === 'fast' || mode === 'creator' ? 'fast' : quality, // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — writer uses the same speech ruler as the guard
         }),
       })
@@ -8907,7 +8930,7 @@ export default function GenerateClient({
           // pedida e o motor (a régua do Kineo 1 é a voz da persona, ~2,8 pal/s; a hollywood é 2,3). Sem
           // isso ele dimensionava tudo a 2,3 pal/s e 60 s, e o portão do Kineo 1 recusava o roteiro recém-
           // nascido ("narração curta": 38 pessoas em 7 dias, 10 nunca fizeram filme).
-          body: JSON.stringify({ topic: rawSource, language, targetSeconds: duracaoPedida, engine: mode === 'fast' || mode === 'creator' ? 'fast' : quality, ...(mode === 'cinematic_ai' ? voiceModeFields(voiceMode) : {}) }),
+          body: JSON.stringify({ topic: rawSource, language, targetSeconds: duracaoPedida, engine: mode === 'fast' || mode === 'creator' ? 'fast' : quality, ...(mode === 'cinematic_ai' ? writerVoiceFields(duracaoPedida, rawSource) : {}) }),
         })
         if (sgRes.ok) {
           const sgData = await sgRes.json()
@@ -10244,7 +10267,7 @@ export default function GenerateClient({
         const cineBrollScenes = cineUsable ? cinePlan!.scenes.map((s, sceneIdx) => ({ sceneNumber: s.sceneNumber, brollPrompt: s.brollPrompt, shotType: s.shotType, negativePrompt: s.negativePrompt, ...(cineFootage[sceneIdx] ? { userFootageUrl: cineFootage[sceneIdx].url } : {}) })) : undefined
         const cinematicPayload = {
           ...(filmLook ? { look: filmLook } : {}),
-          ...voiceModeFields(voiceMode),
+          ...voiceModeFields(voiceForFilm(duration, trimmed)),
           generationId: cinematicGenerationId,
           prompt: trimmed,
           duration,
@@ -10269,7 +10292,7 @@ export default function GenerateClient({
           brollScenes: cineBrollScenes,
           globalStyle: cineUsable ? cinePlan!.globalStyle : undefined,
           // KINEO-K4-SUJEITO-0111 — a ideia original só acompanha o roteiro que nasceu dela (par exato); qualquer outro texto vai sem ela.
-          ...(ideiaDoRoteiroRef.current && ideiaDoRoteiroRef.current.roteiro === trimmed ? { original_idea: ideiaDoRoteiroRef.current.ideia.slice(0, 600) } : {}),
+          ...(ideiaDoRoteiroRef.current && ideiaDoRoteiroRef.current.roteiro === trimmed ? { original_idea: ideiaDoRoteiroRef.current.ideia.slice(0, 600) } : resumedStyle(trimmed) ? { original_idea: previewStyleCue(resumedStyle(trimmed)) } : {}),
           ...(aiEngine === 'hollywood' && selectedCharacterId ? { characterId: selectedCharacterId } : {}),
           // KINEO-ESTRELA-DO-FILME-2026-09-29 — as fotos da estrela (caminhos + autorização) só num motor com âncora.
           ...(estrelaRef.current && estrelaDisponivelNoMotor(aiEngine) ? { estrela: estrelaRef.current } : {}),
@@ -14064,7 +14087,7 @@ export default function GenerateClient({
   }, [composerEpisodeVideo])
 
   const showScriptPreview = phase === 'script_preview'
-  const showDialoguePlan = filmVoiceEnabled() && mode === 'cinematic_ai' && voiceMode === 'characters'
+  const showDialoguePlan = filmVoiceEnabled() && mode === 'cinematic_ai' && voiceForFilm(duration, prompt) === 'characters'
   const filmPlan = showScriptPreview ? cenasDoPlano(structuredScriptRef.current, showDialoguePlan) : []
   const showFilmPlan = showDialoguePlan ? filmPlan.length > 0 : filmPlan.length > 1
   // Phase 3 — new intermediate phases
@@ -16442,7 +16465,7 @@ export default function GenerateClient({
           {/* feat/ui-polish — Language selector removed: English-only channel.
               `language` state stays 'en' (default) and is still sent to the API. */}
 
-          {filmVoiceEnabled() && <FilmVoicePicker value={voiceMode} onSelect={setVoiceMode} disabled={phase !== 'idle'} />}
+          {filmVoiceEnabled() && <FilmVoicePicker value={voiceMode} onSelect={setVoiceMode} available={voiceAvailableForFilm(duration, prompt)} disabled={phase !== 'idle'} />}
 
           {/* Push #266 — Media & Quality selector removed from Cinematic mode.
               Quality is fixed at 'basic_ai' (the default) — no user choice needed. */}
