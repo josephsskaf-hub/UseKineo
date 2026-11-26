@@ -127,6 +127,8 @@ export function admitirFalantes2511(falas: ReadonlyArray<ReadonlyArray<LinhaDeFa
 // casa = narrado). Sem o aposto na canônica (só o nome), nada muda. Os nomes que vão ao motor e às frases da referência NÃO mudam (só a leitura das falas).
 const escapaPapel = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 /** O núcleo do papel na canônica: a 1ª oração depois do nome, "a/an/the … X" (sem o "named …"), X = a última palavra. Sem isso, null. */
+/** KINEO-FALA-PARA-CLIENTE-2611 — a lista de preposições do escritor (lib/cinematic/escritorDeDialogo2511.ts, nucleoDoPapel2511), copiada: o leitor e o escritor cortam igual. */
+const PREPOSICAO_DO_PAPEL_2611 = /^(?:in|on|of|at|for|de|du|da|del|from|with|without|to|by|under|over|about|after|before|behind|near|inside|outside|on-call)$/i
 export function papelDaFicha2511(f: { nome?: unknown; nucleo?: unknown; canonica?: unknown } | null | undefined): string | null {
   let t = typeof f?.canonica === 'string' ? f.canonica.trim() : ''
   for (const n of [f?.nome, f?.nucleo]) if (typeof n === 'string' && n.trim()) t = t.replace(new RegExp('^' + escapaPapel(n.trim()) + '(?:\\s*[,:—–-]\\s*|\\s+(?:is|was)\\s+)', 'iu'), '')
@@ -135,8 +137,15 @@ export function papelDaFicha2511(f: { nome?: unknown; nucleo?: unknown; canonica
   // ("the captain's wife") o substantivo antes é de OUTRA pessoa: sem papel. Sem isso, "Captain:" saía da boca da Mara.
   const corte = ANTES_DE_OUTRA_PESSOA_2511.exec(inteira)
   if (corte && /^['’]s$/iu.test(corte[0])) return null
-  const oracao = corte ? inteira.slice(0, corte.index).trim() : inteira
-  const m = /^(?:a|an|the)\s+((?:[\p{L}'’-]+\s+){0,3}[\p{L}'’-]+)$/iu.exec(oracao)
+  const antesDoOutro = corte ? inteira.slice(0, corte.index).trim() : inteira
+  // [KINEO-FALA-PARA-CLIENTE-2611 · CEO 26/11, o autor do escritor] o papel com preposição tem o núcleo ANTES dela, como o escritor grava o rótulo
+  // (nucleoDoPapel2511): "a nurse in training" = nurse, "a doctor on call" = doctor, "a chef de cuisine" = chef. A mesma lista de preposições do escritor;
+  // sem isso "Nurse:" (o rótulo do escritor) não casava com "training" e a fala caía para o narrado (ou ia à boca de outro).
+  const ws2611 = antesDoOutro.split(/\s+/u), ip2611 = ws2611.findIndex((w, k) => k > 1 && PREPOSICAO_DO_PAPEL_2611.test(w))
+  const oracao = ip2611 > 0 ? ws2611.slice(0, ip2611).join(' ') : antesDoOutro
+  // [2611] a idade escrita ("a 30-year-old nurse") é palavra do aposto: com a régua única (adulto só por idade) toda ficha de adulto a tem, e sem isto o papel
+  // nunca saía de ficha de adulto (o rótulo do escritor caía para o narrado). O núcleo continua só letras (abaixo).
+  const m = /^(?:a|an|the)\s+((?:[\p{L}\p{N}'’-]+\s+){0,3}[\p{L}'’-]+)$/iu.exec(oracao)
   if (!m) return null
   const nucleo = (m[1].split(/\s+/u).pop() ?? '').toLowerCase()
   return nucleo.length >= 3 && nucleo.length <= 20 && /^\p{L}+$/u.test(nucleo) ? nucleo : null

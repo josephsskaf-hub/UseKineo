@@ -104,7 +104,7 @@ async function suite(change) {
   for (const [canonica, papel] of [['Rosa, a pirate captain, exactly as the author wrote; appearance anchors: 30-40', 'captain'], ['Elias, a lighthouse keeper named Elias', 'keeper'],
     ['Mara, the flight attendant who never sleeps', 'attendant'], ['the owl, a grumpy owl', 'owl'], ['Elias, kept the old lighthouse alone for thirty years', null], ['Rosa', null], ['Rosa, 42, tall', null],
     // [revisora 52b12696, boca errada] o papel de OUTRA pessoa na mesma oração não é o desta
-    ['Mara, the wife of the captain', 'wife'], ['Mara, a friend of the keeper', 'friend'], ["Mara, the captain's wife", null], ['Mara, a nurse with the captain', 'nurse']])
+    ['Mara, the wife of the captain', 'wife'], ['Mara, a friend of the keeper', 'friend'], ["Mara, the captain's wife", null], ['Mara, a nurse with the captain', 'nurse'], ['Mara, a nurse beside the captain', 'nurse'] /* [2611] "beside" só o corte da régua corta (não está na lista do escritor) */])
     assert.equal(f.papelDaFicha2511({ nome: canonica.split(',')[0], canonica }), papel, 'papel: ' + canonica)
   { const nomes = f.nomesDaFala2511([['Rosa', 'Rosa'], ['Elias', 'Elias']], [{ nome: 'Rosa', canonica: 'Rosa, a pirate captain' }, { nome: 'Elias', canonica: 'Elias, a lighthouse keeper' }])
     igual(nomes, [['Rosa', 'Rosa', 'captain'], ['Elias', 'Elias', 'keeper']], 'o papel entra depois do nome')
@@ -295,7 +295,7 @@ const mutantes = [
   [MOD, "if (!p || papeis.filter((x) => x === p).length > 1 || outro(p) ||", "if (!p || outro(p) ||"], // o papel ambíguo entra
   [MOD, "if (!p || papeis.filter((x) => x === p).length > 1 || outro(p) ||", "if (!p || papeis.filter((x) => x === p).length > 1 ||"], // o papel que é o nome do outro entra
   [MOD, ".replace(/\\s+(?:named|called|who|that|which|whose)\\s+.*$/iu, '')", ".replace(/\\s+(?:named|called)\\s+.*$/iu, '')"], // a relativa vira papel
-  [MOD, '  const oracao = corte ? inteira.slice(0, corte.index).trim() : inteira\n', '  const oracao = inteira\n'], // [52b12696] sem o corte: "Captain:" da boca da Mara
+  [MOD, '  const antesDoOutro = corte ? inteira.slice(0, corte.index).trim() : inteira\n', '  const antesDoOutro = inteira\n'], // [52b12696] sem o corte: "Captain:" da boca da Mara
   [MOD, "  if (corte && /^['’]s$/iu.test(corte[0])) return null\n", ''], // [52b12696] "the captain's wife" vira "the captain"
   [ROUTE, 'nomesDaFala2511(refs.map((r) => r.nomes as string[]), fichas2511)', 'refs.map((r) => r.nomes as string[])'], // a rota não lê o papel
   [COMPOSE, "faceless15.fases = faceless15.fases.filter(f => f !== 'f1' && f !== 'f3')", "faceless15.fases = faceless15.fases.filter(f => f !== 'f3')"], // [A] o F1 volta a refazer a legenda pela TTS

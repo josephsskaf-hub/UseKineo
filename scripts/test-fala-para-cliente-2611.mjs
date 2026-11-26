@@ -12,12 +12,12 @@ const MOD = 'lib/cinematic/falaDosPersonagens2511.ts', GATE = 'lib/free15Gate.ts
 const local = (f) => readFileSync(f, 'utf8').replaceAll('\r\n', '\n')
 const js = (codigo) => ts.transpileModule(codigo, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText
 const fatia = (src, ini, fim, rotulo) => { const i = src.indexOf(ini), j = src.indexOf(fim, i); assert.ok(i > 0 && j > i, rotulo + ' (âncora)'); return src.slice(i, j + fim.length) }
-const mundo = (muda = (_r, t) => t) => { const load = createOfflineLoader({ source: (rel, t) => muda(rel, t.replaceAll('\r\n', '\n')), globals: { AbortSignal } }); return { f: load('@/' + MOD), g: load('@/' + GATE) } }
+const mundo = (muda = (_r, t) => t) => { const load = createOfflineLoader({ source: (rel, t) => muda(rel, t.replaceAll('\r\n', '\n')), globals: { AbortSignal } }); return { f: load('@/' + MOD), g: load('@/' + GATE), e: load('@/lib/cinematic/escritorDeDialogo2511.ts') } }
 const MARCA = (modo, extra = {}) => ({ kling4_trial: { motor_do_clipe: 'gemini_omni_flash', fala_2511: { versao: 'fala_dos_personagens_2511_v1', pedida: 'characters', modo, motivo: modo === 'falado' ? null : 'gemini_caiu', ...(modo === 'falado' ? { falas: [[{ ref: 0, nome: 'Maria', texto: 'There is a boat out there in the storm.' }]] } : {}) }, ...extra } })
 const GEMINI = 'google/gemini-omni-flash/v1.2/reference-to-video'
 const ROTEIRO = 'Maria: There is a boat out there in the storm. Thomas: Then we give them light. Maria: They can see us now. Thomas: They always do, when someone watches.'
 
-async function prova({ f, g }, ler) {
+async function prova({ f, g, e }, ler) {
   const src = ler(ROTA)
   // ── (1) os helpers ──
   assert.equal(f.semRotulosDaFala2611(ROTEIRO), 'There is a boat out there in the storm. Then we give them light. They can see us now. They always do, when someone watches.', '1 sai o rótulo de cada fala')
@@ -93,6 +93,12 @@ async function prova({ f, g }, ler) {
   for (const [a, b] of [['Maria, a red-haired woman', 'Thomas, a 65-year-old man'], ['Maria, aged 18 months', 'Thomas, a 65-year-old man'], ['Maria, a 28-year-old woman', 'Thomas, the old keeper']])
     assert.equal(f.admitirFalantes2511(lidas, fichas(a, b), nomes, false), 'falante_menor', '5 sem idade de adulto = narrado: ' + a + ' / ' + b)
   assert.equal(f.admitirFalantes2511(lidas, [null, null], nomes, false), 'falante_menor', '5 sem ficha = narrado (falha fechada)')
+  // (5) quem fala = qual ficha: o núcleo do papel da ficha é o MESMO que o escritor grava no rótulo (corte na 1ª preposição)
+  for (const papel of ['nurse in training', 'doctor on call', 'chef de cuisine', 'guard at the gate', 'lighthouse keeper', 'pirate captain', 'teacher from the village'])
+    assert.equal(f.papelDaFicha2511({ nome: 'Rosa', canonica: 'Rosa, a ' + papel }), e.nucleoDoPapel2511(papel).toLowerCase(), '5 o leitor e o escritor cortam igual: ' + papel)
+  { const fichasR = [{ nome: 'Rosa', nucleo: 'Rosa', canonica: 'Rosa, a 30-year-old nurse in training' }, { nome: 'Elias', nucleo: 'Elias', canonica: 'Elias, a 60-year-old lighthouse keeper' }]
+    const nm = f.nomesDaFala2511([['Rosa'], ['Elias']], fichasR), lr = f.lerFalas2511(['Nurse: The storm is coming.', 'Keeper: Light the lamp.'], nm, 2)
+    igual(lr.falas?.map((p) => p.map((l) => l.nome)), [['Rosa'], ['Elias']], '5 "Nurse:" (o rótulo do escritor) sai da boca da Rosa, "Keeper:" da do Elias') }
 }
 const igual = (a, b, m) => assert.equal(JSON.stringify(a), JSON.stringify(b), m)
 
@@ -100,6 +106,8 @@ await prova(mundo(), local)
 console.log('ok  (1)–(5) no código de agora')
 const MUTANTES = [
   [MOD, '  return t.replace(ROTULO_DA_FALA_2611, (_m, antes: string) => antes)\n', '  return t\n'],
+  [MOD, "  const oracao = ip2611 > 0 ? ws2611.slice(0, ip2611).join(' ') : antesDoOutro\n", '  const oracao = antesDoOutro\n'], // o corte na preposição
+  [MOD, "(?:[\\p{L}\\p{N}'’-]+\\s+){0,3}", "(?:[\\p{L}'’-]+\\s+){0,3}"], // a idade escrita volta a matar o papel
   [MOD, '  return !!f && f.versao === FALA_DOS_PERSONAGENS_2511_VERSAO\n', '  return false\n'],
   [GATE, "  if (d.falado?.() === true) return finish('failed', decision.reason, media, decision.kind === 'fail' && decision.identity === true)\n", ''],
   [ROTA, ".catch(() => ({ ok: false }))).ok) fm2511.motivo = 'fala_moderada'", ".catch(() => ({ ok: true }))).ok) fm2511.motivo = 'fala_moderada'"],
