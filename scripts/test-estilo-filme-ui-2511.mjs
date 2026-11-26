@@ -218,6 +218,7 @@ async function entryProps(file, email, searchParams, error = null, overrides = {
   function Frame() { return null }
   const noop = { __esModule: true, default: () => null }
   const modules = loader({
+    'next/headers': { headers: () => new Headers() },
     '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user: email ? { id: 'synthetic', email } : null }, error }) } }) },
     '@/lib/auth/signedInFounder': { signedInFounder: async () => false },
     '@/lib/engineWall': { getHouseEngineExamples: () => [] },
@@ -261,6 +262,7 @@ const homeBox = await entryProps(CREATE_FILM, internal, homeQuery)
 assert.equal(homeBox.caixaNova, true, 'a home logada abre What do you want to make?')
 const fromHome = mount('box', true, {}, '', homeBox)
 assert.match(fromHome.html(), /What do you want to make\?/)
+await fromHome.settle()
 type(fromHome, ordinary)
 fromHome.click((p, tag) => styleButton(p, tag) && p.children === 'Cartoon', 'Cartoon')
 const homeSend = submit(fromHome).searchParams
@@ -269,6 +271,7 @@ assert.equal(JSON.parse(interceptPost(runEntry(homeSend, internal))).look, 'anim
 for (const [email, override] of [[external, {}], [internal, offFlag]]) {
   const standard = await entryProps(CREATE_FILM, email, homeQuery, null, override)
   const unchanged = mount('box', false, override, ordinary, { ...standard, ideiaInicial: ordinary })
+  await unchanged.settle()
   assert.equal(unchanged.all(styleButton).length, 0)
   assert.equal(submit(unchanged).searchParams.has('look'), false)
 }
