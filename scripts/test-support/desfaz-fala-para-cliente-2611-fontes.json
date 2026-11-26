@@ -1,0 +1,20 @@
+{
+ "version": "fala_para_cliente_2611_v1",
+ "base": "ff210dd99",
+ "scope": {
+  "lib/free15GateServer.ts": {
+   "beforeSha256": "41ab235ab76e9e1e882a7c696001044406c18c54214dac6bf46b7e9c33cd2969",
+   "afterSha256": "2822a0b8a2514f75381c3e1cb7ef785062e37371119bed14a62c99cd0eafdfa3",
+   "hunks": [
+    {
+     "before": "import { CLASSIC_I2V } from '@/lib/classicSceneRetry' // KINEO-ELENCO-TRAVA-0311\n",
+     "after": "import { CLASSIC_I2V } from '@/lib/classicSceneRetry' // KINEO-ELENCO-TRAVA-0311\nimport { montagemFalada2511 } from '@/lib/cinematic/falaDosPersonagens2511' // KINEO-FALA-PARA-CLIENTE-2611 (3) — o filme falado não é reparado\n"
+    },
+    {
+     "before": "    now: Date.now,\n",
+     "after": "    now: Date.now,\n    falado: () => montagemFalada2511((a.claim.response?.kling4_trial ?? null) as Record<string, unknown> | null, a.claim.falModels?.[0]), // KINEO-FALA-PARA-CLIENTE-2611 (3)\n"
+    }
+   ]
+  }
+ }
+}
