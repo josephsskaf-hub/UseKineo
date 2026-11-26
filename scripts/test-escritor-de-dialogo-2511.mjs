@@ -445,6 +445,8 @@ const mutants = [
   [MOD, '  if (UNICO_ANTES.test(trecho', '  if (false && UNICO_ANTES.test(trecho'],
   [MOD, 'slice(0, -papel.split(/\\s+/).length)', 'slice(0)'], // v7: "first mate" não é "the first"
   [MOD, '|wee|cadets?)', '|wee)'],
+  [MOD, 'adultoNoTrechoDaIdeia2511(t) || ADULTO_DE_OFICIO.test(t)', 'ADULTO_DE_OFICIO.test(t)'], // v8: a régua única do trecho
+  [MOD, 'adultoNoTrechoDaIdeia2511(t) || ADULTO_DE_OFICIO.test(t)', 'adultoNoTrechoDaIdeia2511(t)'], // v8: o custo de tirar os ofícios
   [MOD, 'return tituloDoPapel((i > 0 ? ws[i - 1] : ws[ws.length - 1])', 'return tituloDoPapel((ws[ws.length - 1])'], // D1
   [MOD, '|first\\s+lady|first\\s+gentleman)', ')'],
   [MOD, "'nome_inventado', 'falante_fora',", "'nome_inventado', 'sem_adulto', 'falante_fora',"], // v7: V2

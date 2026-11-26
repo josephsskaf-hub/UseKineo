@@ -9,7 +9,7 @@
 import { contaDaCasaExata } from '@/lib/internalAccounts'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import { PRAZO_DA_ROTA_DO_ESCRITOR_MS, FOLGA_DA_ROTA_DO_ESCRITOR_MS } from '@/lib/cinematic/finalResposta' // volta 4 (T3): o maxDuration 60 da rota e a folga de 3 s
-import { figuraNaReferencia2511, textoDizMenor2511, adultoProvado2511 } from '@/lib/cinematic/referenciaUnica2411' // volta 4 (T1/T2): a MESMA régua da admissão (KINEO-FAMOSO-SEM-REFERENCIA-2511, f9850c3b5)
+import { figuraNaReferencia2511, textoDizMenor2511, adultoNoTrechoDaIdeia2511 } from '@/lib/cinematic/referenciaUnica2411' // volta 4 (T1/T2): a MESMA régua da admissão (KINEO-FAMOSO-SEM-REFERENCIA-2511, f9850c3b5)
 import { mentionsRealPerson } from '@/lib/hollywood/realPeople' // volta 4 (T1): a lista de pessoas reais da casa
 
 export const ESCRITOR_DE_DIALOGO_2511_VERSAO = 'escritor_de_dialogo_2511_v1'
@@ -77,7 +77,7 @@ export const FORMATO_DO_DIALOGO_2511 = { type: 'json_schema', json_schema: { nam
 //   1. cada falante sai com um PAPEL copiado da ideia (1 a 3 palavras que estão nela) e o nome só se a ideia o dá. Nome que a ideia não tem = narrado
 //      ('nome_inventado'): o modelo não escolhe nome de gente ("Keanu", "Zuck", "Elsa + Anna" fecham aqui);
 //   2. humano só fala com sinal de adulto DELE, lido no trecho da ideia que é dele (o papel e até 3 palavras antes, parando em pontuação, conector ou
-//      determinante): palavra de adulto da lista fechada da casa (adultoProvado2511) ou da lista curta de ofícios abaixo, ou idade de 18 ou mais escrita;
+//      determinante): palavra de adulto da lista fechada da casa (v8: adultoNoTrechoDaIdeia2511, a régua única do trecho) ou da lista curta de ofícios abaixo, ou idade de 18 ou mais escrita;
 //   3. bicho, criatura, máquina, planta ou objeto (lista fechada NAO_HUMANO) fala sem idade, desde que o trecho dele não diga filhote nem idade de menor;
 //   4. a ideia fora do inglês = narrado ('lingua'); qualquer número solto de 1 a 17 ou "thirteen"…"seventeen" na ideia = narrado ('menor').
 // Por cima, o que a casa já tem: famoso (figura) e menor na ideia e no roteiro que saiu.
@@ -196,7 +196,8 @@ export function quemFala2511(ideia: string, papel: string): QuemFala2511 {
   if (idadeDeMenorNaIdeia2511(trecho) || textoDizMenor2511(trecho)) return 'menor' // idade de 1 a 17 escrita, ou palavra de criança: gente ou bicho
   const semHifen = trecho.replace(/(\p{L})-(?=\p{L})/gu, '$1') // volta 6 (F4): "Iron-Man" não é "man"
   const noSingular = semHifen.replace(/(\p{L}+)$/u, (w) => w.replace(/men$/i, 'man').replace(/ies$/i, 'y').replace(/(?<=[^s])s$/i, '')) // "fishermen", "astronauts"
-  const ehAdulto = (t: string): boolean => adultoProvado2511({ nome: t }) || ADULTO_DE_OFICIO.test(t)
+  // v8 (CEO 26/11): a régua ÚNICA do trecho de ideia (adultoNoTrechoDaIdeia2511, publicada pelo 3bbf48a0), mais os ofícios do escritor
+  const ehAdulto = (t: string): boolean => adultoNoTrechoDaIdeia2511(t) || ADULTO_DE_OFICIO.test(t)
   // volta 6 (CEO 25/11): QUALQUER palavra não humana no papel = não humano ("robot assistant"), a não ser que a última palavra seja papel de gente
   // ("radio operator", "bus driver" são gente); o filhote de bicho e o bicho pequeno FALAM (o dragãozinho e a raposinha são o produto do desenho)
   const ultima = noSingular.split(/\s+/).pop() ?? ''
