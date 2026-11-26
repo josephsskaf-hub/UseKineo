@@ -1,6 +1,6 @@
 // KINEO-DOMINIO-ANTIGO-2611 — guardião (sem rede): as páginas dos 3 anúncios antigos respondem no PRÓPRIO shortsforgeai.com, igual para todo user-agent,
 // e o resto do host antigo segue com o 308 de hoje. Executa a regra pura (lib/seo/dominioAntigo2611.ts) e confere a ligação no middleware.
-//   A. hosts: shortsforgeai.com, www.shortsforgeai.com e shortsforgeai.vercel.app (URLs finais lidas na conta 26/11); www.usekineo.com fora (null = o middleware de hoje);
+//   A. hosts: shortsforgeai.com e www.shortsforgeai.com; shortsforgeai.vercel.app (CEO 26/11: por ora) e www.usekineo.com fora (null = o middleware de hoje);
 //   B. as páginas dos anúncios: "/" e "/pricing" no próprio host; "/ai-shorts/2-clicks" mostra a home; só GET e HEAD;
 //   C. o resto: o 308 (login, studio, admin, robots, sitemap, API de compra); a pré-carga RSC de outra página = 204 no mesmo host;
 //   D. o que a página carrega ao abrir: mídia e fonte da pasta public e as chamadas de API medidas ficam no mesmo host;
@@ -22,11 +22,11 @@ async function suite(change) {
   const d = (host, pathname, method = 'GET', buscaDaPagina = false, doProprioSite) => R.decidirDominioAntigo2611({ host, pathname, method, buscaDaPagina, doProprioSite })
 
   // A. hosts
-  for (const h of ['shortsforgeai.com', 'www.shortsforgeai.com', 'WWW.SHORTSFORGEAI.COM', 'shortsforgeai.vercel.app']) igual(d(h, '/'), { acao: 'segue' }, `A ${h}: host antigo dos anúncios`)
-  for (const h of ['www.usekineo.com', 'usekineo.com', 'localhost', '']) assert.equal(d(h, '/'), null, `A ${h}: fora da regra (o middleware de hoje)`)
+  for (const h of ['shortsforgeai.com', 'www.shortsforgeai.com', 'WWW.SHORTSFORGEAI.COM']) igual(d(h, '/'), { acao: 'segue' }, `A ${h}: host antigo dos anúncios`)
+  for (const h of ['shortsforgeai.vercel.app', 'www.usekineo.com', 'usekineo.com', 'localhost', '']) assert.equal(d(h, '/'), null, `A ${h}: fora da regra (o middleware de hoje)`)
 
   // B. as páginas dos anúncios
-  for (const h of ['shortsforgeai.com', 'www.shortsforgeai.com', 'shortsforgeai.vercel.app']) {
+  for (const h of ['shortsforgeai.com', 'www.shortsforgeai.com']) {
     // as URLs finais lidas na conta em 26/11: /signup (3 reprovados), /start, / e /pricing (vercel.app)
     igual(d(h, '/signup'), { acao: 'reescreve', para: '/' }, 'B "/signup" mostra a home (sem formulário no host antigo)')
     igual(d(h, '/start'), { acao: 'reescreve', para: '/' }, 'B "/start" mostra a home')
@@ -76,7 +76,7 @@ async function suite(change) {
 
 await suite(null)
 const MUT = [
-  ['vercel.app sai da regra (o anúncio do /pricing nele)', LIB, "new Set(['shortsforgeai.com', 'www.shortsforgeai.com', 'shortsforgeai.vercel.app'])", "new Set(['shortsforgeai.com', 'www.shortsforgeai.com'])"],
+  ['vercel.app entra na regra (CEO: fica como está por ora)', LIB, "new Set(['shortsforgeai.com', 'www.shortsforgeai.com'])", "new Set(['shortsforgeai.com', 'www.shortsforgeai.com', 'shortsforgeai.vercel.app'])"],
   ['"/signup" abre o cadastro no host antigo', LIB, "  ['/signup', '/'],", "  ['/signup', '/signup'],"],
   ['"/signup" sai da lista (os 3 reprovados levam o 308)', LIB, "  ['/signup', '/'],", ''],
   ['o clique em "Sign up" volta à home', LIB, "  if (a.doProprioSite === true && ENTRADAS_DE_CADASTRO_2611.has(a.pathname)) return a.buscaDaPagina ? { acao: 'pre_carga_204' } : { acao: 'redireciona' }\n", ''],
@@ -103,4 +103,4 @@ for (const [nome, ...m] of MUT) {
   await assert.rejects(suite(m), (e) => e instanceof assert.AssertionError, 'SOBREVIVEU: ' + nome)
   mortos++
 }
-console.log(`PASS KINEO-DOMINIO-ANTIGO-2611: as páginas dos anúncios ("/", "/pricing"; "/ai-shorts/2-clicks", "/signup" e "/start" = a home) no próprio shortsforgeai.com, www.shortsforgeai.com e shortsforgeai.vercel.app, só GET e HEAD, sem ler user-agent; o resto do host antigo com o 308 de hoje; pré-carga RSC de outra página = 204 no mesmo host; mídia, fonte e as chamadas ao abrir no mesmo host; o webhook e o /api/youtube/* fora da regra; ${mortos}/${MUT.length} mutantes mortos (só AssertionError).`)
+console.log(`PASS KINEO-DOMINIO-ANTIGO-2611: as páginas dos anúncios ("/", "/pricing"; "/ai-shorts/2-clicks", "/signup" e "/start" = a home) no próprio shortsforgeai.com e www.shortsforgeai.com (vercel.app como hoje), só GET e HEAD, sem ler user-agent; o resto do host antigo com o 308 de hoje; pré-carga RSC de outra página = 204 no mesmo host; mídia, fonte e as chamadas ao abrir no mesmo host; o webhook e o /api/youtube/* fora da regra; ${mortos}/${MUT.length} mutantes mortos (só AssertionError).`)

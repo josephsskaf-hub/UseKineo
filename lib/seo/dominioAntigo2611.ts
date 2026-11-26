@@ -8,11 +8,12 @@
 // uma página fora da lista recebe 204 no mesmo host, e o Next então abre a página por navegação normal, que leva o 308. O Next 14 APAGA o cabeçalho RSC e o
 // _rsc antes do middleware (next/dist/server/web/adapter.js, FLIGHT_PARAMETERS), por isso o sinal é o Sec-Fetch-Dest. Todo o resto do host antigo segue com o 308 de hoje.
 // [CEO 26/11 10:36] As URLs FINAIS lidas na conta (coluna "URL final", 26/11 10:38): www.shortsforgeai.com/signup (os 3 reprovados), shortsforgeai.com/start,
-// www.shortsforgeai.com e shortsforgeai.vercel.app/pricing (campanhas removidas). Por isso shortsforgeai.vercel.app ENTRA, e "/signup" e "/start" mostram a home
+// www.shortsforgeai.com e shortsforgeai.vercel.app/pricing (campanhas removidas). [CEO 26/11] shortsforgeai.vercel.app fica FORA por ora (segue como hoje; para incluí-lo, basta pô-lo no Set abaixo:
+// os 6 sitelinks da conta apontam para ele, ver docs/google-ads/INVENTARIO-DOMINIO-ANTIGO-2611.md). "/signup" e "/start" mostram a home
 // (entrar e cadastrar continuam sendo um clique que leva a www.usekineo.com; nenhum cookie de sessão nasce no host antigo). O webhook do Stripe e o
 // /api/youtube/* do vercel.app seguem como hoje: o middleware nem chama a regra nesses caminhos (runsOnLegacyHost).
 // Voltar: HOSTS_DO_DOMINIO_ANTIGO_2611 = new Set() (o middleware volta ao 308 de tudo).
-export const HOSTS_DO_DOMINIO_ANTIGO_2611: ReadonlySet<string> = new Set(['shortsforgeai.com', 'www.shortsforgeai.com', 'shortsforgeai.vercel.app'])
+export const HOSTS_DO_DOMINIO_ANTIGO_2611: ReadonlySet<string> = new Set(['shortsforgeai.com', 'www.shortsforgeai.com'])
 
 /** As páginas de destino dos anúncios, e o que cada uma mostra. "/ai-shorts/2-clicks" é o caminho de EXIBIÇÃO de um dos anúncios; a página não existe
  *  (404 também em www.usekineo.com), então mostra a home, a mesma que o anúncio sempre levou. */
