@@ -65,11 +65,12 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
 
   // KINEO-DOMINIO-ANTIGO-2611 — as páginas dos anúncios antigos (e o que elas carregam ao abrir) respondem NO PRÓPRIO shortsforgeai.com, igual para todo
   // user-agent; o fetch da página (a pré-carga RSC) a outra página recebe 204 no mesmo host; o resto do host antigo segue com o 308 abaixo. Regra: lib/seo/dominioAntigo2611.ts.
-  const dominioAntigo2611 = decidirDominioAntigo2611({
+  const dominioAntigo2611 = runsOnLegacyHost(request.nextUrl.pathname) ? null : decidirDominioAntigo2611({
     host: hostname,
     pathname: request.nextUrl.pathname,
     method: request.method,
     buscaDaPagina: request.headers.get('sec-fetch-dest') === 'empty', // o fetch da página (a pré-carga RSC); o Next 14 apaga o cabeçalho RSC antes do middleware
+    doProprioSite: request.headers.get('sec-fetch-site') === 'same-origin', // o clique em "Sign up" dentro da página segue para www.usekineo.com
   })
   if (dominioAntigo2611?.acao === 'reescreve') {
     const paginaUrl = request.nextUrl.clone()
