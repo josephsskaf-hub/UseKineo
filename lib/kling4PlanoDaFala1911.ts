@@ -134,7 +134,7 @@ export const A2_TETO_DO_JUIZ_MS = 12_000
 export const A2_EVENTO = 'kling4_descritor_forte'
 export const FALHAS_QUE_REESCREVEM: readonly string[] = ['a_ficha', 'c_criatura', 'd_sujeito', 'e_final'] // [ensaio A2 19/11, 2º] + a_ficha (só quando aponta parte dos planos: todos = a ficha é que está errada)
 
-type VereditoMinimo = { status?: string; falhas?: readonly string[]; cenas_reescreveria?: readonly number[]; d_sujeito?: string | null } | null | undefined
+type VereditoMinimo = { cenas_genericas_a2?: readonly number[]; status?: string; falhas?: readonly string[]; cenas_reescreveria?: readonly number[]; d_sujeito?: string | null } | null | undefined
 /** Seções (0-based) a reescrever: só com veredito JUDGED e falha de conteúdo; plano p (1..N) = seção p-1 (no A2 há um plano por seção).
  *  Final que não entrega sem plano apontado = a última seção. Contagem de planos ≠ seções = nada (nunca desloca). */
 export function secoesAReescrever(v: VereditoMinimo, nPlanos: number, nSecoes: number, extra: { planos?: readonly string[]; ultimoSemSujeito?: boolean; sujeitoConcreto?: boolean } = {}): number[] {
@@ -142,6 +142,7 @@ export function secoesAReescrever(v: VereditoMinimo, nPlanos: number, nSecoes: n
   const alvo = new Set<number>()
   if (extra.ultimoSemSujeito) alvo.add(nSecoes - 1) // [ensaio A2 19/11] o último plano sem o sujeito do pedido (o injetor) — conferido no código, não pelo juiz
   if (!v || v.status !== 'JUDGED') return [...alvo]
+  for (const n of v.cenas_genericas_a2 ?? []) if (Number.isInteger(n) && n >= 1 && n <= nPlanos) alvo.add(n - 1)
   const apontados = (v.cenas_reescreveria ?? []).filter((p) => Number.isInteger(p) && p >= 1 && p <= nPlanos)
   // a_ficha em TODO plano = a ficha (o elenco) é que está errada: reescrever a descrição não conserta (1c770cb7: "Daniel … an American woman")
   const falhas = (v.falhas ?? []).filter((f) => FALHAS_QUE_REESCREVEM.includes(f) && !(f === 'd_sujeito' && sujeitoDoJuizEscrito(v, extra.planos)) && !(f === 'a_ficha' && apontados.length >= nSecoes))
@@ -180,6 +181,7 @@ const FALHA_EM_PALAVRAS: Record<string, string> = {
 /** A nota que vai ao descritor na reescrita (só para o modelo; nunca ao cliente). */
 export function notaDaReescrita(v: VereditoMinimo, extra: { sujeito?: string | null; ultimoSemSujeito?: boolean; falaFinal?: string | null; ultimaNoAlvo?: boolean } = {}): string {
   const falhas = (v?.falhas ?? []).filter((f) => FALHAS_QUE_REESCREVEM.includes(f)).map((f) => FALHA_EM_PALAVRAS[f]).filter(Boolean)
+  if (v?.cenas_genericas_a2?.length) falhas.push('a concrete action or location from the narration was replaced with generic scenery; show the specific action and setting from each flagged line')
   if (extra.ultimoSemSujeito) falhas.push('the last shot did not show the central subject of the request')
   // [ensaio A2 19/11] o sujeito que FALTOU vem do injetor (o pedido lido, concreto); o do juiz só sem ele (o juiz lê "mystery", "3 facts")
   const doLeitor = !!String(extra.sujeito ?? '').trim()

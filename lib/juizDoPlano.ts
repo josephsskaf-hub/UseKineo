@@ -64,6 +64,8 @@ export type JuizPlanoEntrada = {
   caminho: JuizPlanoCaminho
   /** true = o ensaio de $0 (dry_run:true), com o texto que IRIA à fal (sem os stills) */
   ensaio?: boolean
+  /** Compare each shot with its own concrete narration, only during the existing A2 review. */
+  conferirCenaA2?: boolean
   engine: string | null
   /** o `prompt` da rota: a ideia solta, ou "[Idea: …]" + roteiro, ou o roteiro colado */
   pedido: string
@@ -185,6 +187,36 @@ export const JUIZ_PLANO_SCHEMA = {
   },
 } as const
 
+const REGRA_CENA_A2 = `For each numbered shot compare its own narration with its own visible action. Flag a substitution only when a specific, drawable action or location explicitly stated in THAT narration is replaced by an unrelated or generic visual. A metaphor, unseen thought, equivalent visual described in another language, or a cutaway compatible with nonvisual narration is not a substitution. Copy the shortest sufficient exact excerpts in the original languages from that narration and that shot's visible action. Report only evidenced substitutions in cenas_genericas_a2; otherwise return an empty array. The global subject appearing in another shot does not settle this question.`
+const JUIZ_A2_SCHEMA = {
+  ...JUIZ_PLANO_SCHEMA,
+  name: 'juiz_plano_a2_cena',
+  schema: {
+    ...JUIZ_PLANO_SCHEMA.schema,
+    required: [...JUIZ_PLANO_SCHEMA.schema.required, 'cenas_genericas_a2'],
+    properties: {
+      ...JUIZ_PLANO_SCHEMA.schema.properties,
+      cenas_genericas_a2: { type: 'array', items: {
+        type: 'object', additionalProperties: false, required: ['plano', 'fala', 'visual'],
+        properties: { plano: { type: 'integer' }, fala: { type: 'string' }, visual: { type: 'string' } },
+      } },
+    },
+  },
+}
+function cenasGenericasA2(entrada: JuizPlanoEntrada, relatos: unknown): number[] {
+  if (!Array.isArray(relatos)) return []
+  const indices = new Set<number>()
+  for (const item of relatos) {
+    if (!Number.isInteger(item?.plano)) continue
+    const cena = entrada.cenas[item.plano - 1]
+    if (!cena) continue
+    const literal = (trecho: unknown, original: string) => typeof trecho === 'string'
+      && trecho.trim().length >= 3 && original.includes(trecho.trim())
+    if (literal(item.fala, cena.fala) && literal(item.visual, limparTextoDoPlano(cena.prompt))) indices.add(item.plano)
+  }
+  return [...indices]
+}
+
 /** As mensagens da chamada (puras; o guardião confere que a chamada leva exatamente estas). */
 export function montarMensagensJuizPlano(entrada: JuizPlanoEntrada) {
   const ped = pedidoParaOJuiz(entrada.pedido)
@@ -199,7 +231,7 @@ export function montarMensagensJuizPlano(entrada: JuizPlanoEntrada) {
     '',
     ...linhas,
   ].filter((l) => l !== null).join('\n')
-  return [{ role: 'system' as const, content: JUIZ_PLANO_SYSTEM }, { role: 'user' as const, content: user }]
+  return [{ role: 'system' as const, content: entrada.conferirCenaA2 ? JUIZ_PLANO_SYSTEM + "\n" + REGRA_CENA_A2 : JUIZ_PLANO_SYSTEM }, { role: 'user' as const, content: user }]
 }
 
 // ── a derivação (código, não o modelo) ──
@@ -207,6 +239,7 @@ export function montarMensagensJuizPlano(entrada: JuizPlanoEntrada) {
 export type JuizPlanoRespostaPlano = { plano: number; a: 'bate' | 'contradiz' | 'sem_ficha'; b: 'sim' | 'nao'; c: 'sim' | 'nao'; citacoes: string[]; descartadas: string[] }
 
 export type JuizPlanoVeredito = {
+  cenas_genericas_a2?: number[]
   versao: string
   modo: 'observe'
   modo_pedido: JuizPlanoModo
@@ -351,6 +384,7 @@ export function vereditoDasRespostas(entrada: JuizPlanoEntrada, modoPedido: Juiz
   return {
     ...v,
     status: 'JUDGED',
+    ...(entrada.conferirCenaA2 ? { cenas_genericas_a2: cenasGenericasA2(entrada, r.cenas_genericas_a2) } : {}),
     reprovado,
     aponta: reprovado,
     nota: Math.max(0, 100 - 25 * lista.length),
@@ -395,6 +429,7 @@ export function combinarLeituras(entrada: JuizPlanoEntrada, modoPedido: JuizPlan
   const reprovado = falhas.some((f) => f !== 'e_final')
   return {
     ...rep,
+    ...(entrada.conferirCenaA2 ? { cenas_genericas_a2: entrada.cenas.map((_, i) => i + 1).filter(n => validas.filter(v => v.cenas_genericas_a2?.includes(n)).length >= minimo) } : {}),
     reprovado,
     aponta: reprovado,
     nota: Math.max(0, 100 - 25 * falhas.length),
@@ -427,7 +462,7 @@ async function perguntar(entrada: JuizPlanoEntrada, modoPedido: JuizPlanoModo, i
       method: 'POST',
       signal: ctrl.signal,
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${opts.apiKey}` },
-      body: JSON.stringify({ model, temperature: 0.3, seed: 11, n: JUIZ_PLANO_LEITURAS, max_tokens: 3000, response_format: { type: 'json_schema', json_schema: JUIZ_PLANO_SCHEMA }, messages: montarMensagensJuizPlano(entrada) }),
+      body: JSON.stringify({ model, temperature: 0.3, seed: 11, n: JUIZ_PLANO_LEITURAS, max_tokens: 3000, response_format: { type: 'json_schema', json_schema: entrada.conferirCenaA2 ? JUIZ_A2_SCHEMA : JUIZ_PLANO_SCHEMA }, messages: montarMensagensJuizPlano(entrada) }),
     })
     if (!res.ok) return { ...base(entrada, modoPedido), motivo: `http_${res.status}`, ms: Date.now() - inicio }
     const data = (await res.json()) as { choices?: Array<{ message?: { content?: string; refusal?: string | null } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }
