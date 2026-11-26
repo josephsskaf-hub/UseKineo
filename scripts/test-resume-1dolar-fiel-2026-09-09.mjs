@@ -33,6 +33,7 @@
 // As verificações amarram cada afirmação à VARIÁVEL/FUNÇÃO que decide, nunca à
 // presença de uma string: um mutante que troque `outOfCredits()` por `false`
 // mantém todo o texto do arquivo (memória `guardiao-contar-texto-nao-prova-condicao`).
+import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semFilmeGratisComeca0211 } from './test-support/desfaz-filme-gratis-comeca-0211.mjs' // KINEO-FILME-GRATIS-COMECA-0211 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]: a camada mais nova (GenerateClient: o clique do filme grátis começa o filme) sai primeiro, pelo recibo exato
 import { semK4NarracaoCabe0111 } from './test-support/desfaz-k4-narracao-cabe-0111.mjs' // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "vai 16"] — a camada mais nova (GenerateClient: selo honesto do filme grátis) sai antes da do sem-início-automático
 import { semSemInicioAutomatico0211 } from './test-support/desfaz-sem-inicio-automatico-0211.mjs' // KINEO-SEM-INICIO-AUTOMATICO-0211 — [TRAVA 8.2 — aval permanente do fundador (proteção do cliente) 02/11]: a camada mais nova (02/11: o resume não dispara mais sozinho) sai primeiro, pelo recibo exato
@@ -73,6 +74,7 @@ function loadModule(rel) {
     compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS },
   }).outputText
   const requireLocal = name => {
+    if (rel === MODULO && name === '@/lib/cinematic/characterVoiceAvailable') return createOfflineLoader()(name)
     if (rel === MODULO && name === '@/lib/cinematic/filmVoice2511') return loadModule('lib/cinematic/filmVoice2511.ts')
     throw new Error('import inesperado: ' + name)
   }

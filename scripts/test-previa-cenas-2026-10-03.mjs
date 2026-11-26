@@ -7,6 +7,7 @@
 //   (5) a rota confere tudo ANTES de qualquer fornecedor, na ordem; recusa com motivo legível em pt/en/es;
 //   (6) a volta depois de pagar leva ao Studio com o roteiro verbatim, sem gerar sozinha;
 //   (7) mutantes.
+import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -23,6 +24,7 @@ function load(src) {
   const js = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText
   const mod = { exports: {} }
   new Function('module', 'exports', 'require', js)(mod, mod.exports, (p) => {
+    if (p === '@/lib/cinematic/characterVoiceAvailable') return createOfflineLoader()(p)
     if (p === '@/lib/cinematic/filmVoice2511') return load(read('lib/cinematic/filmVoice2511.ts'))
     throw new Error('import inesperado: ' + p)
   })

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Offline contract tests: actual policy, route, observer, pixel dispatcher and
 // success-page effect. All Auth/Stripe/fetch/SDK boundaries are injected fakes.
+import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -232,6 +233,7 @@ const page = load('app/checkout/success/page.tsx', {
   // do sucesso a importa em vez de redigitar o literal. O modulo REAL entra no
   // mapa (nao um duble): se ele quebrar, este contrato quebra junto.
   '@/lib/growth/cardEntryResumeDraft': load('lib/growth/cardEntryResumeDraft.ts', {
+    '@/lib/cinematic/characterVoiceAvailable': createOfflineLoader()('@/lib/cinematic/characterVoiceAvailable'),
     '@/lib/cinematic/filmVoice2511': load('lib/cinematic/filmVoice2511.ts'),
   }),
   // KINEO-PAREDE-V1-2026-09-23 — a tela do sucesso passou a importar a volta

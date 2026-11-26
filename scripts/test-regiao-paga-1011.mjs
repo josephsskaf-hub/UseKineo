@@ -8,6 +8,7 @@
 //   (5) nenhum fornecedor, débito ou preço novo antes da parede (a faixa só lê o banco; preço e créditos da tabela);
 //   (6) eventos de medição de servidor, fora do alcance do navegador; o aviso invertido marca os seus eventos;
 //   (7) mutantes: cada regra quebrada derruba pelo menos uma verificação.
+import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import fs from 'node:fs'
 import { scenePreviewTransportMatches } from './test-support/scene-preview-film-look.mjs'
 import path from 'node:path'
@@ -29,6 +30,7 @@ function load(src) {
   const js = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText
   const mod = { exports: {} }
   new Function('module', 'exports', 'require', js)(mod, mod.exports, (p) => {
+    if (p === '@/lib/cinematic/characterVoiceAvailable') return createOfflineLoader()(p)
     if (p === '@/lib/cinematic/filmVoice2511') return load(read('lib/cinematic/filmVoice2511.ts'))
     throw new Error('import inesperado: ' + p)
   })
