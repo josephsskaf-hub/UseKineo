@@ -83,7 +83,7 @@ export const FORMATO_DO_DIALOGO_2511 = { type: 'json_schema', json_schema: { nam
 // Por cima, o que a casa já tem: famoso (figura) e menor na ideia e no roteiro que saiu.
 export type ModoDoCliente2511 = 'off' | 'public'
 /** A chave do CLIENTE, separada da casa. Nasce 'off': o cliente segue narrado até a CEO abrir. */
-export const CLIENTE_FALA_NO_ROTEIRO: ModoDoCliente2511 = 'off'
+export const CLIENTE_FALA_NO_ROTEIRO: ModoDoCliente2511 = 'public' // LIGADA (CEO 26/11 09:40: o dono deu nota 10 ao filme falado; o leitor do filme já aceita o núcleo do papel, 8497b7b54)
 export type ReguaDoDialogo2511 = 'casa' | 'cliente'
 /** Qual régua vale para quem pede. A casa segue com a v4 (a 'internal' de hoje), e só usa a régua do cliente se pedir com dialogue_rule 'client' (o
  *  ensaio da régua positiva). O cliente só tem diálogo com a chave do cliente em 'public', e sempre na régua positiva. null = nada roda. */

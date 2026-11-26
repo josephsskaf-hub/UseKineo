@@ -44,9 +44,9 @@ async function suite(change) {
   // ── 1. a chave e o voice_mode ─────────────────────────────────────────────────────────────────────────────────────────────────────────
   assert.equal(E.QUEM_FALA_NO_ROTEIRO, 'internal', 'a chave nasce em internal')
   // volta 5: a régua por quem pede. A casa EXATA = a v4 ('casa'), ou a do cliente se pedir dialogue_rule 'client'; o cliente só com a chave dele, sempre 'cliente'
-  assert.equal(E.CLIENTE_FALA_NO_ROTEIRO, 'off', 'a chave do cliente nasce off')
+  assert.equal(E.CLIENTE_FALA_NO_ROTEIRO, 'public', 'a chave do cliente LIGADA (CEO 26/11)')
   igual([E.reguaDoDialogo2511(CASA, undefined), E.reguaDoDialogo2511(CASA, 'client'), E.reguaDoDialogo2511(CASA, 'Client'), E.reguaDoDialogo2511(CLIENTE, undefined), E.reguaDoDialogo2511(CLIENTE, 'client'), E.reguaDoDialogo2511(null, 'client'), E.reguaDoDialogo2511('xjosephsskaf@gmail.com', undefined), E.reguaDoDialogo2511('joseph+qa@gmail.com', undefined)],
-    ['casa', 'cliente', 'casa', null, null, null, null, null], 'a casa EXATA; o cliente nada com a chave off')
+    ['casa', 'cliente', 'casa', 'cliente', 'cliente', 'cliente', 'cliente', 'cliente'], 'a casa EXATA (a v4) ou a do cliente quando pede; todo outro e-mail na régua POSITIVA, nunca na da casa')
   igual([E.reguaDoDialogo2511(CLIENTE, undefined, { casa: 'internal', cliente: 'public' }), E.reguaDoDialogo2511(CASA, undefined, { casa: 'internal', cliente: 'public' }), E.reguaDoDialogo2511(CASA, 'client', { casa: 'off', cliente: 'public' }), E.reguaDoDialogo2511(CLIENTE, undefined, { casa: 'internal', cliente: 'off' })],
     ['cliente', 'casa', null, null], 'cliente aberto = sempre a régua positiva; a casa não muda; casa off = nada')
   igual(['characters', 'Characters', 'narrator', undefined, null, true, ' characters', ['characters']].map(E.lerVoiceMode), ['characters', 'narrator', 'narrator', 'narrator', 'narrator', 'narrator', 'narrator', 'narrator'], 'só a string exata liga')
@@ -347,10 +347,10 @@ async function suite(change) {
   const fn = (nome) => rota.slice(rota.indexOf(`function ${nome}(`), rota.indexOf('\n}\n', rota.indexOf(`function ${nome}(`)) + 3)
   const hv = fn('missingElements') + fn('hasViralMarkers')
   const rodar = async (o = {}) => rodar0({ ...o, voice: 'voice' in o ? o.voice : 'characters' })
-  const rodar0 = async ({ email = CASA, voice, language = 'en', alvo = 15, topic = 'A keeper and a radio operator save a ship in a storm.', resposta = JSON.stringify(BOM()), lanca = false, decorrido = 0, regra } = {}) => {
+  const rodar0 = async ({ email = CASA, voice, language = 'en', alvo = 15, topic = 'A keeper and a radio operator save a ship in a storm.', resposta = JSON.stringify(BOM()), lanca = false, decorrido = 0, regra, chavesOff = false } = {}) => {
     const chamadas = [], eventos = []
     const escopo = { body: { voice_mode: voice, engine: 'kling4', dialogue_rule: regra }, filmeCurto: alvo <= 20, language, topic, alvoSegundos: alvo, user: { id: 'u', email },
-      lerVoiceMode: E.lerVoiceMode, DIALOGO_ESCRITO_EVENTO: E.DIALOGO_ESCRITO_EVENTO, ROTEIRO_ESCRITO_EVENTO: E.ROTEIRO_ESCRITO_EVENTO, reguaDoDialogo2511: E.reguaDoDialogo2511, recusadosParaACasa2511: E.recusadosParaACasa2511, escreverDialogo2511: E.escreverDialogo2511,
+      lerVoiceMode: E.lerVoiceMode, DIALOGO_ESCRITO_EVENTO: E.DIALOGO_ESCRITO_EVENTO, ROTEIRO_ESCRITO_EVENTO: E.ROTEIRO_ESCRITO_EVENTO, reguaDoDialogo2511: chavesOff ? (email, pedido) => E.reguaDoDialogo2511(email, pedido, { casa: 'off', cliente: 'off' }) : E.reguaDoDialogo2511, recusadosParaACasa2511: E.recusadosParaACasa2511, escreverDialogo2511: E.escreverDialogo2511,
       prazoDoDialogo2511: E.prazoDoDialogo2511, inicioDaRota: Date.now() - decorrido, regua: { family: 'kling4', voice: 'onyx', wordsPerSecond: 2.4 }, pessoaInventadaNoRoteiro: PI.pessoaInventadaNoRoteiro,
       OPENAI_SCRIPT_TIMEOUT_MS: 35000, openai: { chat: { completions: { create: async (corpo, opts) => { chamadas.push({ corpo, opts }); if (lanca) throw new Error('rede'); return { choices: [{ message: { content: resposta } }] } } } } },
       writeServerEvent: async (e) => { eventos.push(e); return true }, NextResponse: { json: (b) => ({ __resposta: b }) } }
@@ -376,10 +376,14 @@ async function suite(change) {
   { const x = await rodar({ regra: 'client', topic: 'A lighthouse keeper and a radio operator save a ship in a storm.', resposta: RESP_CLIENTE })
     igual([x.chamadas.length, x.chamadas[0]?.corpo?.response_format?.json_schema?.name, x.r?.voiceMode, x.eventos[0]?.metadata?.regua], [1, 'dialogo_do_filme_cliente', 'characters', 'cliente'], 'a casa no ensaio da régua do cliente')
     assert.ok(x.chamadas[0].corpo.messages[0].content.includes('Never invent a name'), 'o pedido do cliente') }
-  { const x = await rodar({ email: CLIENTE, regra: 'client' }); igual([x.r, x.chamadas.length, x.eventos.length], [null, 0, 0], 'o cliente com a chave off: nada, mesmo pedindo client') }
+  { const x = await rodar({ email: CLIENTE, topic: 'A lighthouse keeper and a radio operator save a ship in a storm.', resposta: RESP_CLIENTE })
+    igual([x.chamadas.length, x.chamadas[0]?.corpo?.response_format?.json_schema?.name, x.r?.voiceMode, x.eventos[0]?.metadata?.regua, Object.hasOwn(x.eventos[0]?.metadata ?? {}, 'rejected_text')], [1, 'dialogo_do_filme_cliente', 'characters', 'cliente', false], 'o cliente LIGADO: a régua positiva, sem o texto recusado no rastro') }
+  // as duas chaves desligadas (o mesmo trecho real da rota): ninguém chama o diálogo
+  for (const email of [CASA, CLIENTE, null]) { const x = await rodar({ email, chavesOff: true }); igual([x.r, x.chamadas.length, x.eventos.length], [null, 0, 0], 'chaves off: nada, ' + email) }
+  for (const [nome, opts] of [['cliente', { email: CLIENTE }], ['sem login de casa', { email: null }]]) { const x = await rodar(opts); igual([x.r, x.chamadas.length, x.chamadas[0]?.corpo?.response_format?.json_schema?.name, x.eventos[0]?.metadata?.regua], [null, 1, 'dialogo_do_filme_cliente', 'cliente'], nome + ': a régua do cliente (a resposta no formato da casa cai no narrado)') }
   { const x = await rodar({ regra: 'client', topic: 'Bir çocuk ve annesi parkta konuşuyor ve gülüyor.' }); igual([x.r, x.chamadas.length, x.eventos[0]?.metadata?.motivo], [null, 0, 'lingua'], 'fora do inglês: nem chama') }
   { const x = await rodar({ decorrido: 18000 }); igual([x.r, x.chamadas.length, x.eventos.map((e) => e.name), x.eventos[0]?.metadata?.motivo], [null, 0, ['dialogue_script_written'], 'sem_tempo'], 'sem tempo: nem chama, o narrado de hoje segue') }
-  for (const [nome, opts] of [['cliente', { email: CLIENTE }], ['sem login de casa', { email: null }], ['narrator', { voice: 'narrator' }], ['voice_mode ausente', { voice: undefined }], ['Characters', { voice: 'Characters' }],
+  for (const [nome, opts] of [['narrator', { voice: 'narrator' }], ['voice_mode ausente', { voice: undefined }], ['Characters', { voice: 'Characters' }],
     ['português', { language: 'pt' }], ['35 s', { alvo: 35 }], ['texto com marcadores', { topic: 'HOOK: [Pexels: sea] The sea. MICRO REWARD 1: [Pexels: x] A. ESCALATION: [Pexels: y] B. RHYTHM: [Pexels: z] C. PAYOFF: [Pexels: ship] The ship.' }]]) {
     const x = await rodar(opts); igual([x.r, x.chamadas.length, x.eventos.length], [null, 0, 0], nome + ': nenhuma chamada, segue o caminho de hoje') }
   for (const [nome, opts] of [['fora da régua', { resposta: com((d) => d.shots.pop()) }], ['a chamada falha', { lanca: true }], ['json torto', { resposta: '{' }]]) {
@@ -412,7 +416,7 @@ const mutants = [
   [MOD, '      naSecao += palavras(fala)', '      naSecao = Math.max(naSecao, palavras(fala))'], // o teto por fala, não por seção
   [MOD, " || (!papeis.includes(n) && TITULO.test(n.split(' ')[0]))) return { motivo: 'nome' }", ") return { motivo: 'nome' }"],
   [MOD, "(!papeis.includes(n) && TITULO.test(n.split(' ')[0]))", "(TITULO.test(n.split(' ')[0]))"], // v5: Mom e Dad do papel viram título
-  [MOD, "export const CLIENTE_FALA_NO_ROTEIRO: ModoDoCliente2511 = 'off'", "export const CLIENTE_FALA_NO_ROTEIRO: ModoDoCliente2511 = 'public'"],
+  [MOD, "export const CLIENTE_FALA_NO_ROTEIRO: ModoDoCliente2511 = 'public'", "export const CLIENTE_FALA_NO_ROTEIRO: ModoDoCliente2511 = 'off'"],
   [MOD, "(pedido === 'client' ? 'cliente' : 'casa')", "'casa'"],
   [MOD, '  if (contaDaCasaExata(email)) return', '  if (false) return'],
   [MOD, "  if (regua === 'cliente' && !ideiaEmIngles2511(args.ideia)) return", '  if (false) return'],
