@@ -241,8 +241,9 @@ assert.deepEqual(onResponse(422,{narrationTooShort:true,reason:'narration_too_sh
 assert.deepEqual(onResponse(503,{narrationTooShort:true,reason:'fala_curta_cliente'}),[])
 
 // Exercise the actual preview, both checkout buttons and the return banner, without a checkout.
-async function resumeEditedPreview(originalScript) {
-  const edited = 'Make a hand-drawn anime film about two adult cabinetmakers.'
+async function resumeEditedPreview(originalScript, treatment, expectedStyle, selectedVoice = 'characters') {
+  const edited = 'Make a ' + treatment + ' about two adult cabinetmakers.'
+  const expectedVoice = expectedStyle ? 'narrator' : selectedVoice
   const neutral = 'Mira and Rowan check the brass latch beneath the workshop window.'
   const previewId = '97ec3acf-10fd-45ae-abf4-7737fdfdfd11'
   const projection = { show:true, idea:edited, script:neutral, language:'en', previewId, scenes:[], price:'fixture', films:1, go:'/starter',
@@ -264,7 +265,7 @@ async function resumeEditedPreview(originalScript) {
     return tab
   }
   const preview = await mount('app/(dashboard)/studio/previa/ScenePreviewClient.tsx',
-    {initialIdea:idea, originalScript, from:'generate', voiceMode:'characters'}, {
+    {initialIdea:idea, originalScript, from:'generate', voiceMode:selectedVoice}, {
       'GET /api/scene-preview':{left:2}, 'POST /api/scene-preview':projection, 'POST /api/scene-preview/cta':{},
     })
   preview.type(p=>p.id==='previa-idea', edited, 'edit visual idea')
@@ -272,7 +273,7 @@ async function resumeEditedPreview(originalScript) {
   await preview.settle()
   preview.click(p=>p['data-testid']==='scene-preview-to-film','turn into film')
   const saved = disk.get('kineo:previa:v1')
-  assert.equal(JSON.parse(saved).voice_mode, 'narrator')
+  assert.equal(JSON.parse(saved).voice_mode, expectedVoice)
   for (const testId of ['region-preview-pricing-cta','region-film-199-cta']) {
     disk.set('kineo:previa:v1',saved)
     const pricing = await mount('components/PreviewPricingStrip.tsx', {}, {'GET /api/scene-preview/pricing-strip?surface=pricing':projection})
@@ -280,23 +281,41 @@ async function resumeEditedPreview(originalScript) {
     const banner = await mount('components/ScenePreviewResumeBanner.tsx', {}, {})
     const query = new URL(banner.one((p,t)=>t==='a','resume').props.href,'https://example.invalid').searchParams
     const literal = originalScript ?? neutral
-    assert.equal(query.get('voice_mode'),'narrator')
-    assert.equal(query.get('preview_style'),'anime')
+    assert.equal(query.get('voice_mode'),expectedVoice)
+    assert.equal(query.get('preview_style'),expectedStyle ?? null)
     assert.equal(query.get('prompt'),literal)
     assert.equal(query.get('script_mode'),'verbatim')
     assert.ok(!query.toString().includes('cabinetmakers'))
+    let style = query.get('preview_style') ?? undefined
     if (testId==='region-film-199-cta') {
       const drafts = live('@/lib/growth/cardEntryResumeDraft')
       const restored = drafts.readCardEntryDraft(session.get(drafts.CARD_ENTRY_DRAFT_KEY),Date.now())
-      assert.deepEqual([restored.prompt,restored.voice_mode,restored.preview_style,restored.script_mode],[literal,'narrator','anime','verbatim'])
+      assert.deepEqual([restored.prompt,restored.voice_mode,restored.preview_style,restored.script_mode],[literal,expectedVoice,expectedStyle,'verbatim'])
+      style = restored.preview_style
     }
-    const [,,post] = filmRequests(onFields,'characters',read(film),'cinematic_ai',{trimmed:literal,restoredPreview:{prompt:literal,style:'anime'}})
-    assert.deepEqual([post.prompt,post.original_idea,post.voice_mode],[literal,'anime','narrator'])
+    const source = live('@/lib/cinematic/characterVoiceAvailable')
+    const [,,post] = filmRequests(onFields,selectedVoice,read(film),'cinematic_ai',{trimmed:literal,restoredPreview:{prompt:literal,style}})
+    assert.deepEqual([post.prompt,post.voice_mode],[literal,expectedVoice])
+    const styleText = live('@/lib/cinematic/elencoTrava').textoDoLook(post.prompt, post.original_idea)
+    assert.equal(live('@/lib/cinematic/sceneStyle').deriveStyleAnchor(styleText).look, expectedStyle ?? 'photoreal')
+    assert.equal(source.characterVoiceAvailable(15, 'en', styleText), !expectedStyle)
+    console.log(testId, treatment, selectedVoice, '→', post.voice_mode, originalScript ? 'literal' : 'preview')
   }
 }
-await resumeEditedPreview(undefined)
-await resumeEditedPreview(speakers)
-console.log('Starter e avulso: ideia editada para Anime, roteiro neutro ou literal, narração e estilo preservados até o POST.')
+for (const script of [undefined, speakers]) {
+  await resumeEditedPreview(script, 'film noir', 'noir')
+  await resumeEditedPreview(script, 'hand-drawn anime film', 'anime')
+  await resumeEditedPreview(script, 'photorealistic film', undefined)
+}
+await resumeEditedPreview(undefined, 'film noir', 'noir', 'narrator')
+await resumeEditedPreview(undefined, 'photorealistic film', undefined, 'narrator')
+await resumeEditedPreview(undefined, '3D animated film', 'animated3d')
+await resumeEditedPreview(undefined, 'watercolor illustration', 'illustration')
+for (const value of ['toString', '__proto__', 'photoreal', null, ['noir']]) {
+  assert.equal(live('@/lib/cinematic/characterVoiceAvailable').previewStyle(value), undefined)
+}
+assert.equal(off('@/lib/cinematic/characterVoiceAvailable').previewStyle('noir'), undefined)
+assert.equal(off('@/lib/cinematic/elencoTrava').textoDoLook(idea, 'film noir'), idea)
 
 for (const inputs of [
   {filmLook: 'anime'}, {trimmed: 'An anime film', rawSource: 'An anime film', ideia: 'An anime film'},

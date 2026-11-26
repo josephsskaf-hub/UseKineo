@@ -27,6 +27,7 @@
 // Guardião: scripts/test-elenco-trava-0311.mjs (o caso youbykh com a forma real: 3 cenas, 1 still estourado, troca de identidade).
 import type { FichaDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
 import { DRAWN_LOOK_PATTERNS, semEstiloNegado, deriveStyleAnchor, type StyleAnchor } from '@/lib/cinematic/sceneStyle'
+import { isPreviewStyleCue } from '@/lib/cinematic/characterVoiceAvailable'
 import { CLAUSULA_FICHA } from '@/lib/cinematic/personagemAjuste'
 import { ESTILO_INFANTIL } from '@/lib/cinematic/seresFieis'
 import { epocaDaHistoria, pistasDaEpoca, trocarModernidades, type Epoca } from '@/lib/cinematic/elencoEpoca' // KINEO-EPOCA-NA-FICHA-0311
@@ -60,6 +61,8 @@ export function pedidoDeDesenhoDaIdeia(ideiaOriginal: unknown): string {
  * ideia: o roteiro estruturado em espanhol não citava estilo nenhum e o filme nascia fotorreal. Sem pedido explícito: o roteiro, byte a byte.
  */
 export function textoDoLook(prompt: string, ideiaOriginal: unknown): string {
+  // On checkout resume the entire original_idea can be a single normalized visual cue.
+  if (isPreviewStyleCue(ideiaOriginal)) return `${prompt}\n${ideiaOriginal}`
   const pedido = pedidoDeDesenhoDaIdeia(ideiaOriginal)
   if (!pedido) return prompt
   // pedido explícito que a régua do look não conhece ("estilo animado"): vai junto a forma que ela conhece (o desenho padrão da casa)
