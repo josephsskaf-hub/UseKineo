@@ -29,6 +29,7 @@ import { submitKling4TrialVideo, orchestrateKling4Trial, buildKling4TrialInput, 
 import { reserveKling4Trial, recordKling4TrialFilm } from '@/lib/kling4TrialBudget'
 import { roteiroFaladoNoPortao2511 } from '@/lib/cinematic/roteiroFalado2511' // KINEO-FALA-DOS-PERSONAGENS-2511 — o piso próprio do falado nos portões de tamanho
 import { FALA_DOS_PERSONAGENS_2511, FALA_DOS_PERSONAGENS_2511_VERSAO, falaDosPersonagensLigada, vozPedida2511, lerFalas2511, vozDaFicha2511, geminiFaladoDoKling4, admitirFalantes2511, nomesDaFala2511, type MarcadorDaFala2511 } from '@/lib/cinematic/falaDosPersonagens2511' // KINEO-FALA-DOS-PERSONAGENS-2511 — o modo "personagens falam" (só a casa)
+import { ensaioDaFala2611 } from '@/lib/cinematic/falaDosPersonagens2511' // KINEO-FALA-NO-ENSAIO-2611 — o dry_run da casa prevê o falado
 import { motorDoFilmeGratis2511 } from '@/lib/cinematic/chaveDoMotor2511' // KINEO-TOMADA-DO-MOTOR-2511 — o motor do filme grátis sem deploy
 import { gravarSeloDoFilmeGratis2511 } from '@/lib/kling4TrialBudget' // KINEO-GEMINI-NA-ESTEIRA-2511 [revisora 25/11, conserto 1]
 import { medirFalaDoKling4Trial as medirFalaK4Crua } from '@/lib/kling4TrialScript' // KINEO-K4-SEMPRE-0511 [TRAVA 8.2 — fundador 05/11 "vai"]
@@ -7939,9 +7940,21 @@ async function manipularPost(req: NextRequest) {
           ms: { espera_do_descritor: esperaMs, descritor: usosDoDescritorA2.map((u) => u.ms), ...r.ms },
           custo: { descritor, juiz_usd: Math.round(juizUsd * 1e6) / 1e6, total_usd: Math.round((descritor.usd + juizUsd) * 1e6) / 1e6, nome_proprio: 'gpt-4o-mini sem usage devolvido (estimado < US$ 0,0003 por chamada)', sujeito_do_eco: 'gpt-4o-mini, uma leitura por montagem, sem usage devolvido' } }
       })().catch((e) => ({ erro: String(e instanceof Error ? e.message : e).slice(0, 160) })) : null
+      // KINEO-FALA-NO-ENSAIO-2611 [CEO 26/11] — com voice_mode 'characters', o ensaio diz se o filme sairia FALADO (o bloco da fala mora no envio, depois daqui):
+      // as mesmas peças do envio sobre o elenco já calculado; a chave do motor lida como no envio (tentarGemini2511). Sem o pedido falado: nenhuma chave nova na resposta.
+      const fala2611 = typeof ensaioDaFala2611 === 'function' && vozPedida2511(body) === 'personagens' ? await (async () => {
+        try {
+          const motor = typeof motorDoFilmeGratis2511 === 'function' ? await motorDoFilmeGratis2511(cinematicAdmin) : null
+          const gemini = motor !== 'kling4' && motor !== 'reserva' && (motor === 'gemini' || geminiNaEsteiraLigado(GEMINI_NA_ESTEIRA_2511, user.email))
+          return { ...ensaioDaFala2611({ pedida: true, ligada: falaDosPersonagensLigada(FALA_DOS_PERSONAGENS_2511, user.email), ingles: narrationLanguage.language === 'en', gemini,
+            estilizado: isStylizedLook(styleAnchor) || desenhoInfantil.ativo, falasDosPlanos: scenes.map((sc) => sc.voiceover ?? ''), elenco: personagemElenco.elenco, mencionaPessoaReal: mentionsRealPerson }),
+            motor_da_chave: motor, casting: personagemElenco.casting }
+        } catch (e) { return { versao: 'fala_no_ensaio_2611_v1', veredito: 'FAIL' as const, modo: 'narrado' as const, motivo: 'erro', erro: String(e instanceof Error ? e.message : e).slice(0, 160) } }
+      })() : null
       const refunded = await releaseBirthClaim('dry_run_no_charge')
       return NextResponse.json({
         dry_run: true,
+        ...(fala2611 ? { fala_2511: fala2611 } : {}), // KINEO-FALA-NO-ENSAIO-2611 — veredito PRÓPRIO do falado (o `verdict` abaixo continua sendo a régua do narrado)
         ...(a2Ensaio1911 ? { a2_ensaio: a2Ensaio1911 } : {}),
         // KINEO-CAMERA-POR-SECAO-2511 [CEO 25/11] o carimbo do ensaio: a chave da câmera, se a política do pedido foi marcada e quantas chamadas por seção ao descritor
         // levaram a regra (0 com a chave ligada = a regra NÃO foi lida). Só no ensaio do filme grátis (k4_gratis_ensaio), só a conta do dry_run.

@@ -11,6 +11,7 @@
 import { contaDaCasaExata } from '@/lib/internalAccounts'
 // [CEO 25/11] o piso do filme FALADO (12 palavras), lido pelos dois portões de tamanho; mora no módulo sem import para o escritor do servidor ler sem a régua
 export { PALAVRAS_MIN_NO_FILME_FALADO_2511, falasDoRoteiroSemElenco2511, roteiroFaladoNoPortao2511 } from '@/lib/cinematic/roteiroFalado2511'
+import { PALAVRAS_MIN_NO_FILME_FALADO_2511 } from '@/lib/cinematic/roteiroFalado2511' // KINEO-FALA-NO-ENSAIO-2611 — o piso do falado, também no ensaio
 import { ANTES_DE_OUTRA_PESSOA_2511 } from '@/lib/cinematic/referenciaUnica2411' // [revisora 52b12696, boca errada] o mesmo corte da régua
 import { falanteConhecido2511, falanteAdulto2511 } from '@/lib/cinematic/reguaDaPessoaNaFala2511' // [revisora 392f0a52, T1 e T2] quem fala
 
@@ -241,4 +242,45 @@ export function montagemFalada2511(marker: unknown, falModel: unknown): boolean 
   const f = m?.fala_2511 as Partial<MarcadorDaFala2511> | undefined
   return !!m && !!f && f.versao === FALA_DOS_PERSONAGENS_2511_VERSAO && f.modo === 'falado' && Array.isArray(f.falas) && f.falas.some((l) => Array.isArray(l) && l.length > 0) &&
     m.motor_do_clipe === 'gemini_omni_flash' && !m.gemini_queda && falModel === 'google/gemini-omni-flash/v1.2/reference-to-video'
+}
+
+// KINEO-FALA-NO-ENSAIO-2611 [CEO 26/11] — o dry_run da casa devolvia só a régua do NARRADO (que conta os rótulos "Nome:") e não dizia se o filme sairia falado:
+// o bloco da fala mora no envio, depois do dry_run. Esta PREVISÃO usa as MESMAS peças do envio (lerFalas2511, nomesDaFala2511, admitirFalantes2511,
+// duracoesDaFala2511, a lista de pessoas reais), sobre o elenco que o dry_run já calculou. A folha, a referência e o pedido ao Gemini só existem no envio:
+// PASS aqui = o que depende do texto e das fichas está certo; não prova a folha nem o Gemini. Nada gasta, nada muda no envio.
+export const FALA_NO_ENSAIO_2611_VERSAO = 'fala_no_ensaio_2611_v1'
+export type MotivoDoEnsaioDaFala2611 = MotivoNarrado2511 | 'nao_pedido' | 'chave_desligada' | 'sem_elenco' | 'palavras_fora' | 'duracao'
+export type EnsaioDaFala2611 = {
+  versao: string; veredito: 'PASS' | 'FAIL'; modo: 'falado' | 'narrado'; motivo: MotivoDoEnsaioDaFala2611 | null
+  falantes: string[]; falas: LinhaDeFala2511[][] | null; segundos_dos_planos: number[] | null; palavras: number; faixa: [number, number]; aviso: string
+}
+type FichaDoEnsaio2611 = { nome?: unknown; nucleo?: unknown; canonica?: unknown; tipo?: unknown; protagonista?: unknown }
+export function ensaioDaFala2611(a: {
+  pedida: boolean; ligada: boolean; ingles: boolean; gemini: boolean; estilizado: boolean
+  falasDosPlanos: ReadonlyArray<string>; elenco: ReadonlyArray<FichaDoEnsaio2611>; mencionaPessoaReal: (texto: string) => boolean
+}): EnsaioDaFala2611 {
+  const faixa: [number, number] = [PALAVRAS_MIN_NO_FILME_FALADO_2511, PALAVRAS_NO_FILME_2511]
+  const aviso = 'previsão pelo texto e pelas fichas: a folha, a referência e o pedido ao Gemini só existem no envio'
+  const humanos = [...a.elenco].filter((f) => f && f.tipo === 'humano' && typeof f.nome === 'string' && f.nome.trim())
+    .sort((x, y) => Number(y.protagonista === true) - Number(x.protagonista === true)).slice(0, 2)
+  const falantes = humanos.map((f) => String(f.nome))
+  const base = { versao: FALA_NO_ENSAIO_2611_VERSAO, falantes, falas: null, segundos_dos_planos: null, palavras: 0, faixa, aviso }
+  const nao = (motivo: MotivoDoEnsaioDaFala2611, extra: Partial<EnsaioDaFala2611> = {}): EnsaioDaFala2611 => ({ ...base, ...extra, veredito: 'FAIL', modo: 'narrado', motivo })
+  if (!a.pedida) return nao('nao_pedido')
+  if (!a.ligada) return nao('chave_desligada')
+  if (!a.ingles) return nao('lingua')
+  if (!a.gemini) return nao('sem_gemini')
+  if (!humanos.length) return nao('sem_elenco')
+  const nomes = humanos.map((f) => [...new Set([f.nome, f.nucleo].filter((n): n is string => typeof n === 'string' && !!n.trim()).map((n) => n.trim()))])
+  const lidas = lerFalas2511(a.falasDosPlanos, nomesDaFala2511(nomes, humanos), a.falasDosPlanos.length)
+  if ('motivo' in lidas) return nao(lidas.motivo)
+  const falas = lidas.falas
+  const n = falas.flat().reduce((s, l) => s + palavras(l.texto).length, 0)
+  if (a.mencionaPessoaReal(falas.flat().map((l) => l.texto).join(' '))) return nao('fala_com_pessoa_real', { falas, palavras: n })
+  const quem = admitirFalantes2511(falas, humanos, nomes, a.estilizado)
+  if (quem) return nao(quem, { falas, palavras: n })
+  if (n < faixa[0] || n > faixa[1]) return nao('palavras_fora', { falas, palavras: n })
+  const segundos = duracoesDaFala2511(falas, 15)
+  if (!segundos) return nao('duracao', { falas, palavras: n, segundos_dos_planos: segundos })
+  return { ...base, falas, palavras: n, segundos_dos_planos: segundos, veredito: 'PASS', modo: 'falado', motivo: null }
 }
