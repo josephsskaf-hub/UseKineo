@@ -12,12 +12,12 @@ const MOD = 'lib/cinematic/falaDosPersonagens2511.ts', GATE = 'lib/free15Gate.ts
 const local = (f) => readFileSync(f, 'utf8').replaceAll('\r\n', '\n')
 const js = (codigo) => ts.transpileModule(codigo, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText
 const fatia = (src, ini, fim, rotulo) => { const i = src.indexOf(ini), j = src.indexOf(fim, i); assert.ok(i > 0 && j > i, rotulo + ' (âncora)'); return src.slice(i, j + fim.length) }
-const mundo = (muda = (_r, t) => t) => { const load = createOfflineLoader({ source: (rel, t) => muda(rel, t.replaceAll('\r\n', '\n')), globals: { AbortSignal } }); return { f: load('@/' + MOD), g: load('@/' + GATE), e: load('@/lib/cinematic/escritorDeDialogo2511.ts') } }
+const mundo = (muda = (_r, t) => t) => { const load = createOfflineLoader({ source: (rel, t) => muda(rel, t.replaceAll('\r\n', '\n')), globals: { AbortSignal } }); return { f: load('@/' + MOD), g: load('@/' + GATE), e: load('@/lib/cinematic/escritorDeDialogo2511.ts'), r: load('@/lib/cinematic/roteiroFalado2511.ts'), i: load('@/lib/meta95/ideiaNoEscritor.ts') } }
 const MARCA = (modo, extra = {}) => ({ kling4_trial: { motor_do_clipe: 'gemini_omni_flash', fala_2511: { versao: 'fala_dos_personagens_2511_v1', pedida: 'characters', modo, motivo: modo === 'falado' ? null : 'gemini_caiu', ...(modo === 'falado' ? { falas: [[{ ref: 0, nome: 'Maria', texto: 'There is a boat out there in the storm.' }]] } : {}) }, ...extra } })
 const GEMINI = 'google/gemini-omni-flash/v1.2/reference-to-video'
 const ROTEIRO = 'Maria: There is a boat out there in the storm. Thomas: Then we give them light. Maria: They can see us now. Thomas: They always do, when someone watches.'
 
-async function prova({ f, g, e }, ler) {
+async function prova({ f, g, e, r, i }, ler) {
   const src = ler(ROTA)
   // ── (1) os helpers ──
   assert.equal(f.semRotulosDaFala2611(ROTEIRO), 'There is a boat out there in the storm. Then we give them light. They can see us now. They always do, when someone watches.', '1 sai o rótulo de cada fala')
@@ -99,6 +99,21 @@ async function prova({ f, g, e }, ler) {
   { const fichasR = [{ nome: 'Rosa', nucleo: 'Rosa', canonica: 'Rosa, a 30-year-old nurse in training' }, { nome: 'Elias', nucleo: 'Elias', canonica: 'Elias, a 60-year-old lighthouse keeper' }]
     const nm = f.nomesDaFala2511([['Rosa'], ['Elias']], fichasR), lr = f.lerFalas2511(['Nurse: The storm is coming.', 'Keeper: Light the lamp.'], nm, 2)
     igual(lr.falas?.map((p) => p.map((l) => l.nome)), [['Rosa'], ['Elias']], '5 "Nurse:" (o rótulo do escritor) sai da boca da Rosa, "Keeper:" da do Elias') }
+
+  // ── (6) decisão A [CEO 26/11]: o CLIENTE só fala com 29 palavras ditas ou mais (teto 45); abaixo, o 422 do narrado antes de despachar; a casa fica em 12 ──
+  assert.equal(r.PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611, i.pisoDoPortao({ engine: 'seedance', seconds: 15, language: 'en' }), '6 o piso do cliente é o piso do narrado do grátis de 15 s')
+  const secoes = (n) => { const ws = Array.from({ length: n }, (_, k) => 'word' + k); const a = ws.slice(0, Math.ceil(n / 2)), b = ws.slice(Math.ceil(n / 2)); return ['Maria: ' + a.join(' ') + '.', 'Thomas: ' + b.join(' ') + '.'] }
+  const portaoFala = (n, piso) => r.roteiroFaladoNoPortao2511({ voiceMode: 'characters', ligada: true, ingles: true, secoes: secoes(n), ...(piso ? { piso } : {}) })
+  for (const [n, casa, cli] of [[12, true, false], [25, true, false], [28, true, false], [29, true, true], [45, true, true], [46, false, false]]) {
+    assert.equal(portaoFala(n), casa, `6 casa (piso 12), ${n} palavras`); assert.equal(portaoFala(n, r.PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611), cli, `6 cliente (piso 29), ${n} palavras`) }
+  const trechoPiso = fatia(src, '    const faladoNoPortao2511 = ', '      }, { status: 422 })\n    }\n', 'rota: o portão do falado e o 422 do cliente')
+  const naRota = (email, n, voz = 'characters') => new Function('roteiroFaladoNoPortao2511', 'falasDoRoteiroSemElenco2511', 'PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611', 'faladoPedido2511', 'body', 'parsedScript', 'contaDaCasaExata2511', 'user', 'NextResponse',
+    js('return (() => {\n' + trechoPiso + '\nreturn { segue: faladoNoPortao2511 } })()'))(r.roteiroFaladoNoPortao2511, r.falasDoRoteiroSemElenco2511, r.PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611, voz === 'characters', { voice_mode: voz },
+    { segments: secoes(n).map((v) => ({ voiceover: v })) }, (x) => x === 'casa@example.org', { email }, { json: (b, o) => ({ b, status: o?.status }) })
+  for (const n of [12, 20, 28]) { const x = naRota('cliente@example.org', n); assert.equal(x.status, 422, '6 cliente com ' + n + ' palavras ditas = 422 antes de despachar'); assert.equal(x.b.reason, 'fala_curta_cliente'); assert.equal(x.b.missingWords, 29 - n); assert.equal(x.b.narrationTooShort, true) }
+  for (const n of [29, 40]) assert.equal(naRota('cliente@example.org', n).segue, true, '6 cliente com ' + n + ' palavras = o falado segue')
+  for (const n of [12, 25]) assert.equal(naRota('casa@example.org', n).segue, true, '6 a casa com ' + n + ' palavras = o falado segue (piso 12)')
+  assert.equal(naRota('cliente@example.org', 20, 'narrator').status, undefined, '6 sem voice_mode characters: nada novo (o narrado de sempre decide)')
 }
 const igual = (a, b, m) => assert.equal(JSON.stringify(a), JSON.stringify(b), m)
 
@@ -106,6 +121,10 @@ await prova(mundo(), local)
 console.log('ok  (1)–(5) no código de agora')
 const MUTANTES = [
   [MOD, '  return t.replace(ROTULO_DA_FALA_2611, (_m, antes: string) => antes)\n', '  return t\n'],
+  ['lib/cinematic/roteiroFalado2511.ts', "f.palavras >= (typeof a.piso === 'number' ? a.piso : PALAVRAS_MIN_NO_FILME_FALADO_2511)", 'f.palavras >= PALAVRAS_MIN_NO_FILME_FALADO_2511'], // o piso do cliente ignorado
+  ['lib/cinematic/roteiroFalado2511.ts', 'export const PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611 = 29\n', 'export const PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611 = 24\n'], // o piso do cliente abaixo do narrado
+  [ROTA, "      if (falas2611 && falas2611.palavras < PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611) return NextResponse.json({", "      if (false) return NextResponse.json({"], // o 422 do cliente some
+  [ROTA, ", ...(typeof PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611 === 'number' && !contaDaCasaExata2511(user.email) ? { piso: PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611 } : {}) })", ' })'], // a rota não passa o piso do cliente
   [MOD, "  const oracao = ip2611 > 0 ? ws2611.slice(0, ip2611).join(' ') : antesDoOutro\n", '  const oracao = antesDoOutro\n'], // o corte na preposição
   [MOD, "(?:[\\p{L}\\p{N}'’-]+\\s+){0,3}", "(?:[\\p{L}'’-]+\\s+){0,3}"], // a idade escrita volta a matar o papel
   [MOD, '  return !!f && f.versao === FALA_DOS_PERSONAGENS_2511_VERSAO\n', '  return false\n'],

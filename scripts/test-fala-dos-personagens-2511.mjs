@@ -310,7 +310,7 @@ const mutantes = [
   [PISO, '  if (!linhas || nomes.size > 2) return null', '  if (!linhas) return null'],
   [PISO, "  if (a.voiceMode !== 'characters' || a.ligada !== true || a.ingles !== true) return false", "  if (a.ligada !== true || a.ingles !== true) return false"],
   [PISO, "  if (a.voiceMode !== 'characters' || a.ligada !== true || a.ingles !== true) return false", "  if (a.voiceMode !== 'characters' || a.ingles !== true) return false"],
-  [PISO, '&& f.palavras >= PALAVRAS_MIN_NO_FILME_FALADO_2511 &&', '&&'],
+  [PISO, "&& f.palavras >= (typeof a.piso === 'number' ? a.piso : PALAVRAS_MIN_NO_FILME_FALADO_2511) &&", '&&'], // [2611] o piso some (o da casa e o do cliente)
   [IDEIA, '  if (palavras < piso && !faladoNoPiso) return nao(\'curto\')', '  if (palavras < piso) return nao(\'curto\')'],
   [IDEIA, '  const faladoNoPiso = args.falado === true && ', '  const faladoNoPiso = '],
   [IDEIA, 'return !!f && f.palavras >= PALAVRAS_MIN_NO_FILME_FALADO_2511 })()', 'return !!f })()'],

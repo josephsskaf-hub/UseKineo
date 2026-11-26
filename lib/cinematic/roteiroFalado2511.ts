@@ -6,6 +6,10 @@
 /** O piso do filme FALADO: 12 palavras ditas no filme (3 a 4 falas de 3 a 6 palavras); o teto é o do leitor (45). */
 export const PALAVRAS_MIN_NO_FILME_FALADO_2511 = 12
 export const PALAVRAS_MAX_NO_FILME_FALADO_2511 = 45
+/** KINEO-FALA-PARA-CLIENTE-2611 [CEO 26/11, decisão A: "sem erros"] o piso do CLIENTE: 29 palavras ditas, o piso do narrado do filme grátis de 15 s em inglês
+ *  (pisoDoPortao). Assim a queda para o narrado nunca sai curta (fala e depois música = filme ruim já pago). Abaixo disso, o 422 do narrado, antes de
+ *  despachar. A casa fica em 12. O teto é o mesmo (45). */
+export const PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611 = 29
 /** Rótulos que nunca são falante (estrutura, direção, meta). */
 const NAO_E_FALANTE = /^(?:pexels|camera|music|scene|shot|caption|captions|sfx|note|notes|title|hook|payoff|narrator|narration|voice|voiceover|visual|visuals|footage|transition|text|cut|fade|micro reward(?:\s+\d+)?|escalation|rhythm)$/iu
 const ROTULO_RE = /(^|[.!?…"”'’]\s*|\n\s*)(\p{Lu}[\p{L}'’.-]*(?:\s+\p{Lu}[\p{L}'’.-]*){0,2})\s*:/gu
@@ -39,8 +43,8 @@ export function falasDoRoteiroSemElenco2511(secoes: ReadonlyArray<string>): { pa
 
 /** O portão de tamanho deixa o roteiro FALADO passar com o piso próprio: o corpo pediu voice_mode 'characters', a chave da fala está ligada para a conta, a
  *  narração é em inglês e as falas estão no formato, com 12 a 45 palavras. Qualquer outra coisa = false (o portão de sempre, byte a byte). */
-export function roteiroFaladoNoPortao2511(a: { voiceMode: unknown; ligada: boolean; ingles: boolean; secoes: ReadonlyArray<string> }): boolean {
+export function roteiroFaladoNoPortao2511(a: { voiceMode: unknown; ligada: boolean; ingles: boolean; secoes: ReadonlyArray<string>; piso?: number /* KINEO-FALA-PARA-CLIENTE-2611: o do cliente; sem = 12 */ }): boolean {
   if (a.voiceMode !== 'characters' || a.ligada !== true || a.ingles !== true) return false
   const f = falasDoRoteiroSemElenco2511(a.secoes)
-  return !!f && f.palavras >= PALAVRAS_MIN_NO_FILME_FALADO_2511 && f.palavras <= PALAVRAS_MAX_NO_FILME_FALADO_2511
+  return !!f && f.palavras >= (typeof a.piso === 'number' ? a.piso : PALAVRAS_MIN_NO_FILME_FALADO_2511) && f.palavras <= PALAVRAS_MAX_NO_FILME_FALADO_2511
 }

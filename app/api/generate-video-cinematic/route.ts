@@ -28,7 +28,7 @@ import { KLING4_TRIAL_LIVE, kling4TrialEligible } from '@/lib/kling4TrialPolicy'
 import { KLING4_TRIAL_MAX_SECONDS, KLING4_TRIAL_MAX_SECONDS_ENSAIO, kling4TrialTetoDaFala, kling4TrialClipSeconds, kling4TrialClipCostUsd } from '@/lib/kling4TrialPolicy' // KINEO-K4-GRATIS-20S-1711
 import { submitKling4TrialVideo, orchestrateKling4Trial, buildKling4TrialInput, kling4TrialSceneDurations, kling4TrialClipTotal /* KINEO-K4-GRATIS-20S-1711 */, approvedKling4TrialStills, KLING4_DURACAO_PELA_VOZ, duracaoPelaVozLigada, type Kling4TrialResult } from '@/lib/kling4Trial' // KINEO-K4-DURACAO-PELA-VOZ-1311: + interruptor
 import { reserveKling4Trial, recordKling4TrialFilm } from '@/lib/kling4TrialBudget'
-import { roteiroFaladoNoPortao2511 } from '@/lib/cinematic/roteiroFalado2511' // KINEO-FALA-DOS-PERSONAGENS-2511 — o piso próprio do falado nos portões de tamanho
+import { roteiroFaladoNoPortao2511, falasDoRoteiroSemElenco2511, PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611 } from '@/lib/cinematic/roteiroFalado2511' // KINEO-FALA-DOS-PERSONAGENS-2511 — o piso próprio do falado nos portões de tamanho
 import { FALA_DOS_PERSONAGENS_2511, FALA_DOS_PERSONAGENS_2511_VERSAO, falaDosPersonagensLigada, vozPedida2511, lerFalas2511, vozDaFicha2511, geminiFaladoDoKling4, admitirFalantes2511, nomesDaFala2511, type MarcadorDaFala2511 } from '@/lib/cinematic/falaDosPersonagens2511' // KINEO-FALA-DOS-PERSONAGENS-2511 — o modo "personagens falam" (só a casa)
 import { ensaioDaFala2611, descricoesDasMarcas2611 } from '@/lib/cinematic/falaDosPersonagens2511' // KINEO-FALA-NO-ENSAIO-2611 — o dry_run da casa prevê o falado
 import { motorDoFilmeGratis2511 } from '@/lib/cinematic/chaveDoMotor2511' // KINEO-TOMADA-DO-MOTOR-2511 — o motor do filme grátis sem deploy
@@ -3684,7 +3684,16 @@ async function manipularPost(req: NextRequest) {
     // é ele produzir o tamanho certo, não recusar o pedido da pessoa.
     // KINEO-FALA-DOS-PERSONAGENS-2511 [CEO 25/11] o roteiro FALADO no formato (12 a 45 palavras ditas) não passa pela cobertura do filme narrado (nem pelo resgate e
     // pela duração que segue o roteiro): a voz é do motor e o tempo dos planos sai das palavras. Fora disso, o bloco de sempre.
-    const faladoNoPortao2511 = typeof roteiroFaladoNoPortao2511 === 'function' && typeof faladoPedido2511 !== 'undefined' && faladoPedido2511 === true && roteiroFaladoNoPortao2511({ voiceMode: (body as { voice_mode?: unknown }).voice_mode, ligada: true, ingles: true, secoes: parsedScript.segments.map((s) => s.voiceover) })
+    const faladoNoPortao2511 = typeof roteiroFaladoNoPortao2511 === 'function' && typeof faladoPedido2511 !== 'undefined' && faladoPedido2511 === true && roteiroFaladoNoPortao2511({ voiceMode: (body as { voice_mode?: unknown }).voice_mode, ligada: true, ingles: true, secoes: parsedScript.segments.map((s) => s.voiceover), ...(typeof PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611 === 'number' && !contaDaCasaExata2511(user.email) ? { piso: PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611 } : {}) })
+    // KINEO-FALA-PARA-CLIENTE-2611 [CEO 26/11, decisão A] o CLIENTE com o roteiro FALADO no formato e menos de 29 palavras ditas = o 422 do narrado, ANTES de despachar
+    // (a régua do narrado mediria os rótulos "Nome:" como palavras e deixaria passar um falado que, na queda, sai curto). A casa segue no piso de 12.
+    if (typeof falasDoRoteiroSemElenco2511 === 'function' && typeof faladoPedido2511 !== 'undefined' && faladoPedido2511 === true && !faladoNoPortao2511 && !contaDaCasaExata2511(user.email)) {
+      const falas2611 = falasDoRoteiroSemElenco2511(parsedScript.segments.map((s) => s.voiceover))
+      if (falas2611 && falas2611.palavras < PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611) return NextResponse.json({
+        error: `Your dialogue has ${falas2611.palavras} spoken words; a 15-second talking film needs at least ${PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611}. Add a line or two so the characters fill the film.`,
+        narrationTooShort: true, reason: 'fala_curta_cliente', missingWords: PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611 - falas2611.palavras, suggestedDuration: 0,
+      }, { status: 422 })
+    }
     if (verbatim && parsedScript.narration && !paidKling4 && !faladoNoPortao2511) {
       let fit = narrationFitAt(parsedScript.narration, duration, narrationRate)
       // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 — a duração curta que o MOTOR oferece (15 s; 30 s na
