@@ -13,7 +13,7 @@
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { renderPage } from './preview-ux-complete.mjs'
+import { renderPage, setCurrentFilter } from './preview-ux-complete.mjs'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
@@ -54,11 +54,15 @@ const PROVENANCE = {
   'perfume-splash.webp': '21f6d198-fa61-40fb-8c99-9aeb2c4eb1e8', // KINEO-HOME-REMODELA-2010
 }
 
-// Sequência do menu do topo (data-nav-item, desktop + celular) medida na origin/main de 14/10 antes desta mudança.
-// KINEO-JUNTA-TRENDING-3110 — reancorado 30/10 (fundador: "juntar sim"): o Trending virou o topo do Made with Kineo e saiu do menu.
-// KINEO-MENU-4-MAIS-1211 [CEO 12/11, opção C — escolha final do fundador] — no topo do computador Made with Kineo entra no "More" (more:menu) depois dos 4 produtos; Pricing vai para a direita (continua antes do Log in).
-const NAV_ITEMS = [/* KINEO-FILMS-DIRETO-1311 — Films virou um link só; Examples saiu do menu (308 para /made-with-kineo) */ 'video', 'business', 'more:cartoon', 'more:recreate', 'more:made-with-kineo', 'more:mcp', 'pricing', 'login', 'video', 'business', 'more:made-with-kineo', 'more:cartoon', 'more:recreate', 'more:mcp', 'pricing', 'login'] // KINEO-GALERIA-HOME-2710 — reancorado 27/10 (fundador: "Made with Kineo" no topo e no celular, depois dos itens de filme/anúncio; o "AI UGC Ads" é stub no render) · KINEO-MENU-RECREATE-1211 — reancorado 12/11 (fundador: "Recreate" no topo, logo depois de Cartoons, no computador e no celular)
-// (lista anterior, 20/10:) // KINEO-HOME-REMODELA-2010 — reancorado 20/10 (fundador 20/10: "Imagens feitas pelo Kineo. Eu quero mais 10 fotos feitas pelo Kineo. 10 fotos boas que lembrem de ads." + "more tools a gente vai cancelar"): o "More tools" (topo e celular) saiu; entraram "AI Cartoon Videos" e "Claude & ChatGPT" (o "AI UGC Ads" é componente — stub no render)
+// Menu focado aprovado para desktop e celular. A lista é independente do menu do produto.
+const NAV_ITEMS = [
+  'video',
+  'more:cartoon',
+  'more:recreate',
+  'more:made-with-kineo',
+  'more:mcp',
+  'pricing',
+]
 
 // Frases dos 3 blocos removidos (como aparecem no render).
 const GONE_TEXT = [
@@ -141,8 +145,14 @@ function homeRenderProblems(html, signedIn) {
   const more = html.indexOf('class="home-more-tools"') >= 0 ? html.indexOf('class="home-more-tools"') : html.indexOf('<div id="samples">') // reancorado KINEO-HOME-MOSAICO-2910 — fundador 29/10 "sem separações": a galeria entra na vitrine contínua (components/home/HomeMosaic.tsx), ainda antes da prova
   if (more < 0 || more > html.indexOf('class="home-proof"')) p.push('More tools sumiu ou desceu para depois da prova')
   const nav = html.match(/<nav aria-label="Main">[\s\S]*?<\/nav>/)?.[0] ?? ''
-  const items = [...nav.matchAll(/data-nav-item="([^"]+)"/g)].map((m) => m[1])
-  if (!signedIn && JSON.stringify(items) !== JSON.stringify(NAV_ITEMS)) p.push(`menu do topo mudou: ${JSON.stringify(items)}`)
+  const mobileStart = nav.indexOf('id="mobile-nav-menu"')
+  const expected = signedIn ? NAV_ITEMS : [...NAV_ITEMS, 'login']
+  for (const [surface, markup] of [['desktop', nav.slice(0, mobileStart)], ['celular', nav.slice(mobileStart)]]) {
+    const items = [...markup.matchAll(/data-nav-item="([^"]+)"/g)].map(m => m[1])
+    if (mobileStart < 0 || JSON.stringify(items) !== JSON.stringify(expected)) {
+      p.push(`menu do topo mudou (${surface}): ${JSON.stringify(items)}`)
+    }
+  }
   if (!signedIn) {
     if ((nav.match(/data-auth-modal="login"/g) || []).length < 2) p.push('menu sem Log in com data-auth-modal')
     if ((nav.match(/data-auth-modal="signup"/g) || []).length < 2) p.push('menu sem Start free com data-auth-modal')
@@ -180,9 +190,23 @@ let sp = sourceProblems(LAND); checa(`(1) fonte: 3 blocos fora, galeria dentro d
 let cp = componentProblems(COMP); checa(`(3) componente: só a pasta /home-images/, sem URL externa (${cp.join('; ') || 'ok'})`, cp.length === 0)
 let fp = fileProblems(LIST, fsRead, fsList, fsSize); checa(`(2)(3) arquivos: ${LIST.length} imagens locais, WebP ≤ 150 KB, dimensões batem, procedência da casa (${fp.join('; ') || 'ok'})`, fp.length === 0)
 
+// O renderer genérico oculta filhos de cliente. Expor o data-nav-item recebido
+// pelo filho UGC torna observável a decisão real da home de montá-lo em cada menu.
+function renderHome(props, change = source => source) {
+  setCurrentFilter((source, file) => {
+    if (file !== 'app/KineoLanding.tsx') return source
+    return change(source).replace("import NavUgcAdsLink from '@/components/NavUgcAdsLink'",
+      "const NavUgcAdsLink = props => <span data-nav-item={props['data-nav-item']} />")
+  })
+  try {
+    return renderPage('app/KineoLanding.tsx', false, {}, props)
+  } finally {
+    setCurrentFilter(source => source)
+  }
+}
 const HTML = {}
 for (const signedIn of [false, true]) for (const clipsFirst of [false, true]) {
-  const html = renderPage('app/KineoLanding.tsx', false, {}, { initialUser: signedIn ? { id: 'fixture' } : null, clipsFirst })
+  const html = renderHome({ initialUser: signedIn ? { id: 'fixture' } : null, clipsFirst })
   HTML[`${signedIn}/${clipsFirst}`] = html
   const rp = homeRenderProblems(html, signedIn)
   checa(`(1)(4)(5) render da home signedIn=${signedIn} clipsFirst=${clipsFirst}: blocos fora, More tools antes da prova, menu igual, login em modal (${rp.join('; ') || 'ok'})`, rp.length === 0)
@@ -201,7 +225,27 @@ mut('M3b seção de empresas volta (render)', homeRenderProblems(H + '<section c
 mut('M4 imagem de fora da pasta permitida', galleryRenderProblems(GHTML.replace('src="/home-images/apple.webp"', 'src="https://example.com/x.webp"')))
 mut('M5 galeria com 19 imagens', fileProblems(LIST.slice(0, 19), fsRead, () => LIST.slice(0, 19).map((i) => i.file), fsSize)) // KINEO-HOME-REMODELA-2010
 mut('M6 arquivo acima de 150 KB', fileProblems(LIST, fsRead, fsList, (f) => (f === 'apple.webp' ? 200 * 1024 : fsSize(f))))
-mut('M7 item do menu do topo some', homeRenderProblems(H.replace('data-nav-item="pricing"', 'data-nav-item="x"'), false))
+for (const [label, component] of [['Product Ads', 'Link href={createEntryHref(\'ads\''], ['UGC Ads', 'NavUgcAdsLink ']]) {
+  const gate = `!FOCUSED_PRODUCT_NAV_2511 && <${component}`
+  const mutant = renderHome({}, source => source.replaceAll(gate, `true && <${component}`))
+  const problems = homeRenderProblems(mutant, false)
+  for (const surface of ['desktop', 'celular']) {
+    checa(`(M7) ${label} volta ao menu ${surface}`, problems.some(p => p.startsWith(`menu do topo mudou (${surface})`)))
+  }
+}
+// A remoção ou troca de ordem em apenas um menu tem de reprovar exatamente aquele menu.
+const mobileStart = H.indexOf('id="mobile-nav-menu"')
+for (const [surface, start, end] of [['desktop', 0, mobileStart], ['celular', mobileStart, H.length]]) {
+  const markup = H.slice(start, end)
+  for (const [label, changed] of [
+    ['retirar Pricing', markup.replace('data-nav-item="pricing"', '')],
+    ['trocar Cartoon e Recreate', markup.replace(/data-nav-item="more:(cartoon|recreate)"/g, (_, item) =>
+      item === 'cartoon' ? 'data-nav-item="more:recreate"' : 'data-nav-item="more:cartoon"')],
+  ]) {
+    const problems = homeRenderProblems(H.slice(0, start) + changed + H.slice(end), false)
+    checa(`(M7) ${surface}: ${label}`, problems.length === 1 && problems[0].startsWith(`menu do topo mudou (${surface})`))
+  }
+}
 mut('M8 Log in perde o modal', homeRenderProblems(H.split('data-auth-modal="login"').join(''), false))
 mut('M9 foto da galeria leva a outro lugar', galleryRenderProblems(GHTML.split('href="/images"').join('href="/pricing"')))
 mut('M10 imagem sem procedência da casa', fileProblems([...LIST.slice(0, 13), { file: 'cliente.webp', w: 640, h: 1146, alt: 'customer upload photo' }], fsRead, fsList, fsSize))

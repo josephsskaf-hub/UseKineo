@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // KINEO-WATCH-HOME-1311 — guardião offline da Etapa 1 (fundador/CEO, 13/11).
 // Executa os renderizadores TSX reais em um mundo sem rede, banco, efeitos ou credenciais.
-// A home anterior vem do commit de partida, não de HTML refeito pelo teste.
+// A referência SSR vem da árvore aprovada do pacote 7, congelada antes deste guardião.
 // Filhos fora da área tocada recebem stubs explícitos; Citation*, FAQ e Footer são reais.
 import fs from 'node:fs'
 import path from 'node:path'
@@ -10,7 +10,6 @@ import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
-import { comVarreduraHome1911 } from './varredura-1911-trocas.mjs'
 
 const rootArg = process.argv.indexOf('--root')
 const ROOT = rootArg >= 0 ? path.resolve(process.argv[rootArg + 1]) : path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -18,7 +17,8 @@ const require = createRequire(path.join(ROOT, 'package.json'))
 const React = require('react')
 const { renderToStaticMarkup } = require('react-dom/server')
 const ts = require('typescript')
-const BASE = '7b71edb2d9e9'
+const CITATION_EXPORT_BASE = '7b71edb2d9e9'
+const HOME_BASE = '2ec5a1a0b779a756c504655f54229619d428c649'
 const LANDING = 'app/KineoLanding.tsx'
 const HOME = 'app/page.tsx'
 const PREVIEW = 'app/watch-preview/page.tsx'
@@ -26,85 +26,16 @@ const lf = (s) => String(s).replace(/\r\n/g, '\n')
 const read = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
 const exists = (rel) => fs.existsSync(path.join(ROOT, rel))
 const compiled = new Map()
-// KINEO-HOME-SEM-FAIXA-RECREATE-1411 [dono 14/11 04:38, vendo a faixa "Recreate" no meio da home: "não gostei disso daí"] — a home de referência é a da BASE
-// menos a faixa do meio, que o dono mandou tirar. As duas trocas têm de acontecer exatamente uma vez; todo o resto da home segue comparado byte a byte.
-const semFaixaDoMeio = (s) => {
-  const importa = "import HomeRecreateStrip from '@/components/home/HomeRecreateStrip'\n"
-  const monta = ' afterTop={<HomeRecreateStrip signedIn={isSignedIn} />}'
-  if (s.split(importa).length !== 2 || s.split(monta).length !== 2) throw new Error('BASE: a faixa Recreate do meio não está lá exatamente uma vez; reancore de propósito')
-  return s.replace(importa, '').replace(monta, '')
-}
-// Reproduz somente a mudança aprovada do menu na referência congelada.
-const menuDeConfiguracoes = source => {
-  const gallery = '<Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}>{MADE_WITH_KINEO_LABEL}</Link>'
-  const before = /<PublicNavDropdown item="more:menu" label="More">\s*<span className="nd-menu nd-more">([\s\S]*?)<\/span>\s*<\/PublicNavDropdown>/
-  if (!source.match(before)?.[1].includes(gallery)) throw Error('Galeria histórica diferente da esperada')
-  return source.replace(before, gallery)
-    .replace("import PublicNavDropdown from '@/components/PublicNavDropdown'", "import SiteSettingsMenu from '@/components/SiteSettingsMenu'")
-    .replaceAll('<InterfaceLanguageSelect emMenu />', '')
-    .replace('<div className="nav-right">', '<div className="nav-right"><SiteSettingsMenu signedIn={isSignedIn} />')
-}
-// Limpeza aprovada da home de 19/11. Aplica só os recortes previstos à fonte
-// histórica. O HTML de todo o restante continua comparado byte a byte.
-function homeLimpa(source) {
-  const cuts = [
-    [/^\.klp \.(?:snote|final|taaft-badge|pricing-more|fchips)\b[^\n]*\n/gm, 19, 'CSS das seções retiradas'],
-    [/^ +<div className="snote">[^\n]*\n/gm, 1, 'oferta repetida'],
-    [/^          <div className="pricing-more"[^\n]*\n(?:^ {12}[^\n]*\n)+^          <\/div>\n/gm, 1, 'quatro links repetidos'],
-    [/^      <section>\n        <div className="wrap">\n          <div className="final">[\s\S]*?(?=^      \{\/\* KINEO-PAGINA-IGUAL-0411)/gm, 1, 'encerramento e selos antes do rodapé'],
-  ]
-  for (const [pattern, count, label] of cuts) {
-    assert.equal([...source.matchAll(pattern)].length, count, `BASE: ${label}`)
-    source = source.replace(pattern, '')
+// A árvore de referência não recebe mutações. Congelar também os filhos e constantes
+// faz uma alteração compartilhada entre as duas rotas aparecer na comparação.
+const baselineSources = new Map()
+function baselineSource(rel) {
+  if (!baselineSources.has(rel)) {
+    const contents = execFileSync('git', ['show', `${HOME_BASE}:${rel}`], { cwd: ROOT, encoding: 'utf8' })
+    baselineSources.set(rel, lf(contents))
   }
-  assert.equal(source.split('<Footer showStats={false} />').length, 2, 'BASE: um rodapé')
-  return source.replace('<Footer showStats={false} />', '<Footer showStats={false} homeCompact />')
+  return baselineSources.get(rel)
 }
-const historicalLanding = lf(execFileSync('git', ['show', `${BASE}:${LANDING}`], { cwd: ROOT, encoding: 'utf8' }))
-// Decisão do fundador de 19/11 às 19:38. Só o link do desktop muda de lugar.
-function pricingNoMenu(source) {
-  const pricing = '<Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>'
-  const connector = '            <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM} className="nav-connector">{MENU_CONNECTOR_LABEL}</Link>{/* KINEO-HOME-REMODELA-2010 */}\n'
-  const oldStyleMarker = 'KINEO-MENU-4-MAIS-1211 [CEO 12/11, tarefa 4 do fundador "design mais bonito"; opção C da imagem div1-t4-decisao-ABC.png — a escolha final é do fundador]'
-  const moves = [
-    [`.klp .nav-pricing{margin-right:6px} /* ${oldStyleMarker} */\n`, ''],
-    [`          <Link className="nav-login nav-pricing"${pricing.slice(5)}{/* ${oldStyleMarker} */}\n`, ''],
-    [connector, `${connector}            ${pricing}{/* KINEO-PRICING-NO-MENU-1911 */}\n`],
-  ]
-  for (const [from, to] of moves) {
-    assert.equal(source.split(from).length, 2, `BASE: recorte único de Pricing no menu — ${from.trim()}`)
-    source = source.replace(from, () => to)
-  }
-  return source
-}
-// Reanchor only the frozen server reference: moved predicates execute from their real server module.
-// Production imports remain checked as written; no fallback exports are injected into the runtime.
-function frozenServerImports(source) {
-  const ast = ts.createSourceFile('historical.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
-  const edits = []
-  for (const [publicModule, privateModule] of [
-    ['@/lib/engineLaunch', '@/lib/engineLaunchAccess'],
-    ['@/lib/clips/clipLaunch', '@/lib/clips/clipLaunchAccess'],
-  ]) {
-    const privateFile = privateModule.slice(2) + '.ts'
-    const privateAst = ts.createSourceFile(privateFile, read(privateFile), ts.ScriptTarget.Latest, true)
-    const names = new Set(privateAst.statements.filter(ts.isFunctionDeclaration).map(n => n.name?.text))
-    for (const item of ast.statements) {
-      if (!ts.isImportDeclaration(item) || item.moduleSpecifier.text !== publicModule) continue
-      const bindings = item.importClause?.namedBindings
-      if (!bindings || !ts.isNamedImports(bindings)) continue
-      const moved = bindings.elements.filter(n => names.has(n.propertyName?.text ?? n.name.text))
-      if (!moved.length) continue
-      const keep = bindings.elements.filter(n => !moved.includes(n))
-      const emit = (items, module) => items.length ? "import { " + items.map(n => n.getText(ast)).join(', ') + " } from '" + module + "'\n" : ''
-      edits.push({ start: item.getStart(ast), end: item.end, text: emit(keep, publicModule) + emit(moved, privateModule) })
-    }
-  }
-  assert.ok(edits.length > 0, 'BASE: moved private server imports found')
-  for (const edit of edits.sort((a,b) => b.start-a.start)) source = source.slice(0,edit.start) + edit.text + source.slice(edit.end)
-  return source
-}
-const priorLanding = frozenServerImports(pricingNoMenu(comVarreduraHome1911(homeLimpa(menuDeConfiguracoes(semFaixaDoMeio(historicalLanding))))))
 
 const decode = (s) => s.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>')
 const textOnly = (s) => decode(s.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, '').replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim()
@@ -139,7 +70,7 @@ function world({ overrides = {}, user = null, flag, baseline = false } = {}) {
   const cache = new Map()
   const clicks = new Map(), events = []
   const source = (rel) => {
-    let s = baseline && rel === LANDING ? priorLanding : read(rel)
+    let s = baseline ? baselineSource(rel) : read(rel)
     if (Object.hasOwn(overrides, rel)) s = typeof overrides[rel] === 'function' ? overrides[rel](s) : overrides[rel]
     if (flag !== undefined && /export\s+const\s+WATCH_HOME_ENABLED\s*(?::\s*boolean)?\s*=/.test(s)) s = s.replace(/(export\s+const\s+WATCH_HOME_ENABLED\s*(?::\s*boolean)?\s*=\s*)(true|false)/, `$1${flag}`)
     return s
@@ -256,6 +187,9 @@ assert.equal(topIds.length, 6, 'a ordem aprovada tem seis clipes no topo')
 const baseGuest = await world({ baseline: true }).render(LANDING)
 const baseAuth = await world({ baseline: true, user: fixtureUser }).render(LANDING, { initialUser: fixtureUser, initialEmail: fixtureUser.email })
 
+const baseGuestPage = await world({ baseline: true, flag: false }).render(HOME, {})
+const baseAuthPage = await world({ baseline: true, flag: false, user: fixtureUser }).render(HOME, {})
+
 // Review-only exports use exactly the SSR harness above, without hydration/network.
 if (process.argv.includes('--export-only')) {
   const out=path.join(ROOT,'docs/watch-etapa1-1311/fixtures')
@@ -265,7 +199,7 @@ if (process.argv.includes('--export-only')) {
   fs.writeFileSync(path.join(out,'logged-after.html'),shell('Home logada depois',await world({user:fixtureUser}).render(LANDING,{watchVisitor:true,initialUser:fixtureUser,initialEmail:fixtureUser.email})))
   const citation='components/seo/TrafficCitation2310.tsx'
   for(const side of ['before','after']){
-    const overrides=side==='before'?{[citation]:execFileSync('git',['show',`${BASE}:${citation}`],{cwd:ROOT,encoding:'utf8'})}:{}
+    const overrides=side==='before'?{[citation]:execFileSync('git',['show',`${CITATION_EXPORT_BASE}:${citation}`],{cwd:ROOT,encoding:'utf8'})}:{}
     const component=world({overrides}).load(citation)
     fs.writeFileSync(path.join(out,'citation-'+side+'.html'),shell('Tabelas citáveis '+side,renderToStaticMarkup(React.createElement(component.CitationDetails,{page:'home'}))))
   }
@@ -290,12 +224,8 @@ async function problems(overrides = {}) {
   const implicitOff = await W.render(LANDING)
   const guest = await W.render(LANDING, { watchVisitor: true })
   const auth = await W.render(LANDING, { watchVisitor: true, initialUser: fixtureUser, initialEmail: fixtureUser.email })
-  // KINEO-MENU-CONTA-CASA-2411 — com o menu em 'internal' a home ganha só o bloco de CSS inerte do menu (exatamente uma vez); o resto é o HTML anterior.
-  const MENU_CSS = '@media(max-width:560px){\n.klp .nav-cta:has([data-unified-account-trigger]){display:flex}\n.klp .nav-cta:has([data-unified-account-trigger]) .nav-dashboard{display:none}\n}\n'
-  const menuOn = !read('lib/ui/unifiedAccountMenu.ts').includes("ACCOUNT_MENU_RELEASE = 'off'")
-  const visitorView = (h) => menuOn ? (h.split(MENU_CSS).length === 2 ? h.replace(MENU_CSS, '') : null) : h
-  check(visitorView(off) === baseGuest && implicitOff === off, 'paridade visitante: flag OFF devolve HTML anterior')
-  check(visitorView(auth) === baseAuth && !isWatch(auth), 'paridade logado: WATCH nunca substitui home autenticada')
+  check(off === baseGuest && implicitOff === off, 'paridade visitante: flag OFF devolve HTML anterior')
+  check(auth === baseAuth && !isWatch(auth), 'paridade logado: WATCH nunca substitui home autenticada')
   check(isWatch(guest) && !isWatch(off), 'ramo WATCH: somente visitante com flag')
   check(W.load(RELEASE).WATCH_HOME_ENABLED === false, 'lançamento: flag pública nasce desligada')
 
@@ -391,6 +321,8 @@ async function problems(overrides = {}) {
   const pageAuthOn = await world({ overrides, flag: true, user: fixtureUser }).render(HOME, {})
   check(!isWatch(pageOff) && isWatch(pageOn), 'SSR home: flag controla visitante')
   check(pageAuthOff === pageAuthOn && !isWatch(pageAuthOn), 'SSR home: flag não altera conta autenticada')
+  check(pageOff === baseGuestPage, 'SSR visitante: OFF preserva a home aprovada inteira')
+  check(pageAuthOff === baseAuthPage && pageAuthOn === baseAuthPage, 'SSR logado: home aprovada inteira com flag ON e OFF')
   const PreviewWorld = world({ overrides })
   const preview = await PreviewWorld.render(PREVIEW, {})
   const previewAuth = await world({ overrides, user: fixtureUser }).render(PREVIEW, {})
@@ -420,6 +352,8 @@ assert.deepEqual(baseErrors, [], 'árvore real precisa passar antes dos mutantes
 const mutations = [
   ['CSS do menu de conta acompanha o interruptor', () => replacement(LANDING, '${ACCOUNT_MENU_MAY_RENDER ? `@media', '${false ? `@media'), 'paridade visitante: flag OFF devolve HTML anterior'],
   ['geração interna recebe cliente público',()=>replacement('lib/home/watchEntry.ts',"SEU_VIDEO_RELEASE === 'public' && ",''),'política interna/off usa catálogo público sem convite de signup: selfie-confete'],
+  ['SSR visitante recebe WATCH com chave OFF', () => replacement(HOME, 'watchVisitor={WATCH_HOME_ENABLED && !user}', 'watchVisitor={!user}'), 'SSR visitante: OFF preserva a home aprovada inteira'],
+  ['SSR logado perde a faixa com chave ON', () => replacement(HOME, '(!WATCH_HOME_ENABLED || Boolean(user))', '(!WATCH_HOME_ENABLED)'), 'SSR logado: home aprovada inteira com flag ON e OFF'],
   ['WATCH alcança logado', () => replacement(LANDING, '{watchVisitor && !isSignedIn ? <WatchVisitorHome', '{watchVisitor ? <WatchVisitorHome'), 'paridade logado: WATCH nunca substitui home autenticada'],
   ['limpeza avança além dos recortes aprovados', () => replacement(LANDING, 'From idea to posted Short in 3 steps.', 'Make a Short'), 'paridade visitante: flag OFF devolve HTML anterior'],
   ['comparativo perde o formato monetário aprovado', () => replacement(LANDING, "{formatCheckoutMoney('usd', TIER_PRICES.starter.usd)}", '{usdPrice(TIER_PRICES.starter.usd)}'), 'paridade visitante: flag OFF devolve HTML anterior'],
