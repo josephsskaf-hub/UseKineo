@@ -160,9 +160,28 @@ const MENOR_FORMAS_2511 = new RegExp(SEM_LETRA_ANTES + 'of\\s+' + MAIS_NOVO_2511
   '|(?:^|,)\\s*(?:1[0-7]|[0-9])\\s*(?=[,.;]|$)' +
   '|' + SEM_LETRA_ANTES + MENOS_DE_18 + '\\s*(?:anni|anno|lat|lata|yaşında|yasinda|saal|jaar)' + SEM_LETRA_DEPOIS +
   '|' + SEM_LETRA_ANTES + '(?:ladki|ladka|ladkiyan|ladke|çocuk\\p{L}*|cocuk\\p{L}*|bambin\\p{L}*|ragazzin\\p{L}*|fanciull\\p{L}*|dziewczyn\\p{L}*|chłop(?:iec|ca|cy)|chlop(?:iec|ca|cy)|dzieck\\p{L}*|dzieci|meisje|jongetje|kindje)' + SEM_LETRA_DEPOIS, 'iu')
+// [VOLTA 3 da revisora 52b12696, V5] as formas que ainda entravam: "just turned 16", "barely 16", "only twelve", "could pass for 14", o número por extenso entre
+// vírgulas ("Ana, a woman, sixteen"), o número entre travessões ("— 15 —"), e os sinais de escola/criança "school uniform" e "braces".
+const POR_EXTENSO_MENOR_2511 = '(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen)'
+const MENOR_FORMAS_V5_2511 = new RegExp(SEM_LETRA_ANTES + '(?:turned|turning|turns|barely|only|just|almost|nearly|not\\s+yet|still)\\s+' + MENOS_DE_18 + SEM_LETRA_DEPOIS +
+  '|' + SEM_LETRA_ANTES + 'pass(?:es|ed)?\\s+(?:for|as)\\s+(?:a\\s+)?' + MENOS_DE_18 + SEM_LETRA_DEPOIS +
+  '|(?:^|,)\\s*' + POR_EXTENSO_MENOR_2511 + '\\s*(?=[,.;]|$)' +
+  '|[—–]\\s*(?:1[0-7]|[0-9]|' + POR_EXTENSO_MENOR_2511 + ')\\s*[—–]' +
+  '|' + SEM_LETRA_ANTES + '(?:school\\s+uniform\\p{L}*|braces|retainer|school\\s*bag|lunchbox|pigtails|pacifier|stroller|diaper\\p{L}*|onesie)' + SEM_LETRA_DEPOIS, 'iu')
 export function textoDizMenor2511(texto: unknown): boolean {
   const t = typeof texto === 'string' ? texto : ''
-  return MENOR_PALAVRA_2511.test(t) || MENOR_ALEMAO_2511.test(t) || MENOR_IDADE_2511.test(t) || MENOR_FORMAS_2511.test(t)
+  return MENOR_PALAVRA_2511.test(t) || MENOR_ALEMAO_2511.test(t) || MENOR_IDADE_2511.test(t) || MENOR_FORMAS_2511.test(t) || MENOR_FORMAS_V5_2511.test(t)
+}
+/** [V5] texto em escrita que não é latina (cirílico, árabe, devanágari, CJK…): a lista não a conhece, então barra (falha fechada). */
+export function escritaNaoLatina2511(texto: unknown): boolean {
+  return /(?=\p{L})(?!\p{Script=Latin})/u.test(typeof texto === 'string' ? texto : '')
+}
+/** [V5] na FICHA, qualquer número de 1 a 17 fora da âncora do leitor do elenco e fora de medida (size, kg, cm, %, hora) barra. */
+const NUMERO_DE_MENOR_NA_FICHA_2511 = /(?<![\p{L}\p{N}.,:$£€#-])(?<!(?:ft|feet|foot|inch|inches|in|size|no|number|#)\s*)(?:1[0-7]|[1-9])(?![\p{N}%]|[.,:]\d|\s*(?:-|–|to)\s*\d|\s*(?:am|pm|a\.m|p\.m|kg|g|cm|mm|m|km|in|inch(?:es)?|ft|feet|foot|lbs?|oz|st|nd|rd|th|°|percent|%)(?![\p{L}]))/iu
+function numeroDeMenorNaFicha2511(canonica: unknown): boolean {
+  const c = typeof canonica === 'string' ? canonica : ''
+  const semAncora = c.replace(/appearance anchors?\s*:\s*[^;\n]*/giu, ' ').replace(/(?<![\p{L}])size\s+\d+(?:\s*(?:-|–|to)\s*\d+)?/giu, ' ')
+  return NUMERO_DE_MENOR_NA_FICHA_2511.test(semAncora)
 }
 /** O que é DO personagem (nome, núcleo, canônica), junto. */
 const textoDoPersonagem2511 = (c: { nome?: unknown; nucleo?: unknown; canonica?: unknown }): string =>
@@ -195,11 +214,12 @@ export function adultoProvado2511(c: { nome?: unknown; nucleo?: unknown; canonic
   // [CEO 25/11, B · V6] chamada só com `nome` (sem núcleo nem canônica) é um TRECHO de ideia, não uma ficha: o escritor de diálogo (be7130ba8) a faz assim
   // ("Two fishermen argue…", "A 40-year-old mechanic…"). Lê pela régua do trecho até o escritor chamar adultoNoTrechoDaIdeia2511 direto. Ficha sempre tem canônica.
   if (c.nucleo === undefined && c.canonica === undefined && typeof c.nome === 'string') return adultoNoTrechoDaIdeia2511(c.nome)
-  if ([c.nome, c.nucleo].some((n) => typeof n === 'string' && SO_ADULTO_NO_NOME_2511.test(n.trim()) && new RegExp(ADULTO_PALAVRA_2511.source + '$', 'iu').test(n.trim()))) return true
+  // [VOLTA 3 da revisora 52b12696, V5 · CEO: "adulto só por IDADE"] na FICHA o sinal de adulto é só de idade: a 1ª âncora do leitor do elenco (faixa com o 1º número
+  // ≥ 18, "adult", "middle-aged", "elderly") ou a idade ≥ 18 escrita na 1ª oração. A palavra ("man", "woman", "lady", "the little man of the house", o nome
+  // "Lady") deixou de bastar. Custo aceito pela CEO: ~5 de 20 fichas reais de adulto ficam sem a referência de duas pessoas.
   const ancora = typeof c.canonica === 'string' ? ANCORA_ADULTA_2511.exec(c.canonica) : null
   if (ancora && PRIMEIRA_ANCORA_ADULTA_2511.test(ancora[1].trim())) return true
-  const oracao = primeiraOracao2511(c)
-  return ADULTO_IDADE_PROPRIA_2511.test(oracao) || ADULTO_PALAVRA_2511.test(oracao)
+  return ADULTO_IDADE_PROPRIA_2511.test(primeiraOracao2511(c))
 }
 /** [mantido para a leitura do guardião antigo] o personagem diz menor? */
 /** [CEO 25/11, B · V6] a leitura do TRECHO de uma ideia (o escritor de diálogo, antes de o elenco existir): adulto por palavra de adulto da lista fechada em
@@ -211,7 +231,8 @@ export function adultoNoTrechoDaIdeia2511(trecho: unknown): boolean {
   return !!t.trim() && (ADULTO_PALAVRA_2511.test(t) || ADULTO_PALAVRA_2511.test(singular) || ADULTO_IDADE_PROPRIA_2511.test(t)) && !textoDizMenor2511(t)
 }
 export function pareceMenor2511(c: { nome?: unknown; nucleo?: unknown; canonica?: unknown }): boolean {
-  return textoDizMenor2511(textoDoPersonagem2511(c))
+  const t = textoDoPersonagem2511(c)
+  return textoDizMenor2511(t) || escritaNaoLatina2511(t) || numeroDeMenorNaFicha2511(c.canonica) // [V5] + escrita não latina e número solto de 1 a 17 na ficha
 }
 /** [VOLTA da revisora, V2] personagens de marca pelo nome CIVIL ou de herói que a lista de obras da casa (elencoEFigurino2411 NOMES_DE_OBRA) não tem.
  *  Só nome completo ou nome que não é nome comum ("Anna", "Ken", "Mario", "Elsa" sozinhos ficam de fora: a lista de obras os pega com o texto da obra). */
@@ -244,7 +265,7 @@ export function admitirDuasPessoasDoCliente2511(snapshot: FilmQualitySnapshot | 
   if (filme.estilizado !== false) return { motivo: 'duas_estilizado' } // na dúvida (campo ausente ou torto), estilizado
   const textoDoFilme = typeof filme.textoDoFilme === 'string' ? filme.textoDoFilme : ''
   if (!snapshot.characters.every((c) => adultoProvado2511(c))) return { motivo: 'duas_menor' } // 5: sem o sinal de adulto = barra
-  if (snapshot.characters.some((c) => textoDizMenor2511(textoDoPersonagem2511(c))) || textoDizMenor2511(textoDoFilme)) return { motivo: 'duas_menor' } // 5: a segunda trava, em todo texto lido
+  if (snapshot.characters.some((c) => pareceMenor2511(c)) || textoDizMenor2511(textoDoFilme) || escritaNaoLatina2511(textoDoFilme)) return { motivo: 'duas_menor' } // 5: a segunda trava, em todo texto lido · [V5] + número solto na ficha e escrita não latina
   if (snapshot.characters.some((c) => figuraNaReferencia2511(c, textoDoFilme)) || mentionsRealPerson(textoDoFilme)) return { motivo: 'duas_figura_conhecida' } // 6
   const r = referenciaUnicaDoFilme(snapshot)
   if (!r || r.origem === 'imagem_chave' || r.tipo !== 'humano') return { motivo: 'duas_sem_folha' }

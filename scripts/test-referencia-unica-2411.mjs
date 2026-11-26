@@ -556,6 +556,7 @@ async function suiteHumano2411({ api, f, route }) {
     // KINEO-DUAS-PESSOAS-CLIENTE-2511 [CEO 25/11 noite] a chave das duas pessoas PUBLICADA em 'internal' (a régua deu volta): duas folhas = 'mais_de_uma_folha',
     // o pedido de hoje. A régua MONTADA em 'public_humano' (logo abaixo dos casos) dá os motivos dela: 'duas_sem_folha' e 'duas_estilizado'.
     ['protagonista pela imagem-chave + outra pessoa COM folha', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [folha('the woman')], approvedStills: [{ url: 'https://example.org/offline/k.png', characterNames: [lead.nome] }] }, {}, 'mais_de_uma_folha'],
+    ['duas pessoas COM folha (caed3456; a chave das duas em internal = o de ontem)', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [...s0.characterReferences, folha('the woman')] }, {}, 'mais_de_uma_folha'],
     ['duas pessoas COM folha num filme 3D', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [...s0.characterReferences, folha('the woman')] }, { look: 'animated3d' }, 'mais_de_uma_folha'],
     // [revisora 24/11 · CEO, c06af33d] a forma provada tinha UMA pessoa no elenco da folha: duas pessoas no elenco, mesmo com uma só folha https, não liga
     ['duas pessoas, só uma com folha (c06af33d, "dynamic duo")', { ...s0, characters: [lead, outro('the woman', 'humano', false)] }, {}, 'mais_de_um_humano'],
@@ -601,8 +602,7 @@ async function suiteHumano2411({ api, f, route }) {
   // 3. o que ainda liga para cliente: pessoa + bicho SEM folha (o bicho não tem referência a trocar), filme noir (fotorreal em preto e branco); o coadjuvante
   // só citado no texto (fora do elenco, como em Le Prince, Slocum e Cooper) = o elenco de UMA pessoa
   for (const [nome, snap, opts] of [['pessoa + bicho sem folha', { ...s0, characters: [lead, outro('the dog', 'animal', false)] }, {}], ['noir', s0, { look: 'noir' }], ['fotorreal, coadjuvante só no texto', s0, {}],
-    ['protagonista pela imagem-chave, sem outra folha', { ...s0, characterReferences: [], approvedStills: [{ url: 'https://example.org/offline/k.png', characterNames: [lead.nome] }] }, {}],
-    ['duas pessoas COM folha (caed3456, c06af33d) — KINEO-DUAS-PESSOAS-CLIENTE-2511', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [...s0.characterReferences, folha('the woman')] }, {}]]) {
+    ['protagonista pela imagem-chave, sem outra folha', { ...s0, characterReferences: [], approvedStills: [{ url: 'https://example.org/offline/k.png', characterNames: [lead.nome] }] }, {}]]) {
     // [CEO 25/11 noite] o caso das duas pessoas liga com a régua MONTADA; o estado publicado ('internal') é conferido logo depois deste laço
     const t = admitir(route, nome.startsWith('duas pessoas') ? comDuasMontada : f, { email: cliente, snapshot: snap, ...opts })
     assert.ok(t.referenciaUnica && !('referenciaUnicaRecusa' in t), 'cliente + ' + nome + ' liga')

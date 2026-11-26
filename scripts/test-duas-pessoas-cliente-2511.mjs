@@ -93,8 +93,11 @@ async function suite(change) {
     assert.equal(motivo(retrato([ELIAS, { ...MARA, canonica }])), 'duas_menor', 'sem sinal de adulto barra: ' + canonica)
   }
   assert.equal(motivo(retrato([{ ...ELIAS, canonica: 'Elias, kept the old lighthouse alone' }, MARA])), 'duas_menor', 'o protagonista sem sinal de adulto também barra')
-  const ADULTOS = ['Mara, a 30-year-old radio operator', 'Mara, 18 years old', 'appearance anchors: 20-30', 'Mara, uma mulher de 40 anos', 'Mara, a woman who worked the radio for five years',
-    'Mara, a young woman with short dark hair', 'Mara, the radio officer', 'Mara, in her 30-35s', 'Mara, in her late thirties', 'Mara, aged 45', 'Mara, a médica do porto', 'Mara, a woman who is a cowboy fan with a kidney stone']
+  const ADULTOS = ['Mara, a 30-year-old radio operator', 'Mara, 18 years old', 'appearance anchors: 20-30', 'Mara, uma mulher de 40 anos', 'Mara, a 30-year-old pilot, 5 ft 6, flies at 10 am',
+    'Mara, in her 30-35s', 'Mara, in her late thirties', 'Mara, aged 45', 'Mara, appearance anchors: 40-50, gray, 2 rings']
+  // [VOLTA 3, V5 · CEO] a palavra de adulto sozinha deixou de bastar na ficha (só IDADE): estes, que entravam pela palavra, agora barram (o custo aceito)
+  for (const canonica of ['Mara, a woman who worked the radio for five years', 'Mara, a young woman with short dark hair', 'Mara, the radio officer', 'Mara, a médica do porto', 'Mara, a woman of few words'])
+    assert.equal(motivo(retrato([ELIAS, { ...MARA, canonica }])), 'duas_menor', 'V5 só a palavra de adulto = barra: ' + canonica)
   for (const canonica of ADULTOS) {
     assert.equal(f.adultoProvado2511({ nome: 'Mara', nucleo: 'Mara', canonica }), true, 'adulto: ' + canonica)
     assert.ok('referencia' in adm(CLIENTE, retrato([ELIAS, { ...MARA, canonica }])), 'adulto liga: ' + canonica)
@@ -112,12 +115,23 @@ async function suite(change) {
   assert.equal(f.adultoProvado2511({ nome: 'Mara', nucleo: 'Mara', canonica: 'Mara, tiny, carried by a woman' }), false, 'B a FICHA segue a régua V3 (nome + canônica)')
   assert.equal(f.adultoProvado2511({ nome: 'Mara', canonica: 'Mara, tiny, carried by a woman' }), false, 'B ficha sem núcleo também segue a V3')
   assert.equal(f.adultoProvado2511({ nome: 'Two fishermen', nucleo: 'Two fishermen' }), false, 'B nome e núcleo sem ficha (o falante sem ficha da fala) = sem sinal = barra')
+  // [VOLTA 3 da revisora 52b12696, V5] os 12 casos dela que ainda entravam, e o R2 (a idade de adulto DEPOIS da 1ª oração é de outra pessoa)
+  for (const canonica of ['Leo, the little man of the house, missing two front teeth', 'Bea, a little lady in pigtails and a tutu', 'Mia, a woman at heart, tiny and wrapped in a blanket',
+    'Ana, a woman who just turned 16', 'Kit, a lady barely 16', 'Joy, a woman who could pass for 14', 'Ana, a woman, sixteen', 'Tess, a woman — 15 — with a backpack',
+    'Sam, a young man still in braces and a school uniform', 'Olga, a woman, девочка с косичками', 'Olga, a 30-year-old woman, девочка с косичками', 'Lia, small and gap-toothed, carried by a 30-year-old woman', 'Lia, freckled and shy, 30-year-old crew nearby', 'Mia, holding the hand of a 30-year-old man', 'Leo, beside his 40-year-old father', 'Rui, a 25-year-old man, 12 and shy']) {
+    for (const c of [canonica, canonica.replace(/^[^,]+/, 'Mara')]) assert.equal(motivo(retrato([ELIAS, { ...MARA, canonica: c }])), 'duas_menor', 'V5 ' + c) }
+  assert.equal(motivo(retrato([ELIAS, { ...MARA, nome: 'Lady', nucleo: 'Lady', canonica: 'Lady, freckled and gap-toothed, in a yellow raincoat' }], [{ nome: 'Elias', url: FOLHA_E }, { nome: 'Lady', url: FOLHA_M }])), 'duas_menor', 'V5 o NOME "Lady" não é sinal de adulto')
+  assert.equal(motivo(retrato(), { estilizado: false, textoDoFilme: 'Elias takes his little sister Mia, only twelve, to the pier.' }), 'duas_menor', 'V5 "only twelve" no roteiro')
+  for (const roteiro of ['Mara just turned 16 and waves at the boat.', 'Mara, barely 16, waves at the boat.', 'Mara could pass for 14 at the pier.', 'Mara — 15 — waves at the boat.', 'Mara, sixteen, waves at the boat.', 'Mara, in braces and a school uniform, waves at the boat.', 'Mara plans her sweet sixteen party at the pier.', 'Mara, 16, waves at the boat.', 'A man of 17 waves at the boat.', 'Mara looks about 15 and waves.', 'Mara, 15 anni, waves.', 'Mara, 12 lat, waves.', 'Mara, 14 yaşında, waves.', 'Mara and her ladki wave.', 'Mara and the çocuk wave.'])
+    assert.equal(motivo(retrato(), { estilizado: false, textoDoFilme: roteiro }), 'duas_menor', 'V5 no roteiro: ' + roteiro)
+  assert.equal(motivo(retrato(), { estilizado: false, textoDoFilme: 'Элиас и Мара смотрят на море.' }), 'duas_menor', 'V5 roteiro em escrita não latina')
+  assert.ok('referencia' in adm(CLIENTE, retrato([ELIAS, { ...MARA, canonica: 'Mara, a 30-year-old pilot, 5 ft 6, flies at 10 am' }])), 'V5 medida e hora não são idade')
   // [V4] as formas de idade que a 2ª trava não lia
   for (const canonica of ['Theo, a young man of 17', 'Ana, 16, a woman of few words', 'Rina, a woman who looks about 15', 'Elle, a woman of seventeen with braids', 'Bea, a lady at her sweet sixteen party',
     'Lia, a woman, 16, quiet', 'Pia, a woman, ek choti ladki', 'Ece, a woman, bir çocuk', 'Lu, a woman, 15 lat', 'Ayse, a woman, 14 yaşında', 'Sara, a woman, 12 saal ki', 'Ola, a woman, dziewczynka']) {
     for (const c of [canonica, canonica.replace(/^[^,]+/, 'Mara')]) assert.equal(motivo(retrato([ELIAS, { ...MARA, canonica: c }])), 'duas_menor', 'V4 ' + c) }
   // o que continua entrando: o adulto que é DELE
-  for (const [nome, canonica] of [['the woman', 'long hair, a green coat'], ['Mara', 'Mara, a woman of few words'], ['Mara', 'Mara, a mother of two, red coat'], ['Mara', 'Mara is a 35-year-old pilot'],
+  for (const [nome, canonica] of [['Mara', 'Mara is a 35-year-old pilot'],
     ['Mara', 'Mara, in her early forties, beside her husband'], ['Mara', 'the keeper, appearance anchors: adult, short hair']]) {
     assert.ok('referencia' in adm(CLIENTE, retrato([ELIAS, { ...MARA, nome, nucleo: nome, canonica }], [{ nome: 'Elias', url: FOLHA_E }, { nome, url: FOLHA_M }])), 'V3 adulto dele entra: ' + nome + ' / ' + canonica) }
   // a segunda trava: palavra ou idade de menor, mesmo COM sinal de adulto, em nome, núcleo, canônica, roteiro ou pedido
@@ -180,12 +194,25 @@ const mutants = [
   // N3 [revisora] o FECHAMENTO: sem o adulto provado, a palavra desconhecida passa
   [feature, "  if (!snapshot.characters.every((c) => adultoProvado2511(c))) return { motivo: 'duas_menor' } // 5: sem o sinal de adulto = barra\n", ''],
   [feature, "if (!snapshot.characters.every((c) => adultoProvado2511(c)))", "if (!snapshot.characters.some((c) => adultoProvado2511(c)))"],
-  [feature, "  return ADULTO_IDADE_PROPRIA_2511.test(oracao) || ADULTO_PALAVRA_2511.test(oracao)\n", "  return true\n"],
+  [feature, "  return ADULTO_IDADE_PROPRIA_2511.test(primeiraOracao2511(c))\n", "  return true\n"],
+  // VOLTA 3 (V5)
+  [feature, "  return ADULTO_IDADE_PROPRIA_2511.test(primeiraOracao2511(c))\n", "  return ADULTO_IDADE_PROPRIA_2511.test(primeiraOracao2511(c)) || ADULTO_PALAVRA_2511.test(primeiraOracao2511(c))\n"], // a palavra de adulto volta a bastar
+  [feature, "  const oracao = (t.split(/[,;.\\n]/u)[0] ?? '')", "  const oracao = (t ?? '')"], // R2: a 1ª oração vira a canônica inteira
+  [feature, " || MENOR_FORMAS_2511.test(t) || MENOR_FORMAS_V5_2511.test(t)", " || MENOR_FORMAS_2511.test(t)"],
+  [feature, "(?:turned|turning|turns|barely|only|just|almost|nearly|not\\\\s+yet|still)", "(?:turning)"],
+  [feature, "  '|' + SEM_LETRA_ANTES + 'pass(?:es|ed)?\\\\s+(?:for|as)\\\\s+(?:a\\\\s+)?' + MENOS_DE_18 + SEM_LETRA_DEPOIS +\n", ""],
+  [feature, "  '|(?:^|,)\\\\s*' + POR_EXTENSO_MENOR_2511 + '\\\\s*(?=[,.;]|$)' +\n", ""],
+  [feature, "  '|[—–]\\\\s*(?:1[0-7]|[0-9]|' + POR_EXTENSO_MENOR_2511 + ')\\\\s*[—–]' +\n", ""],
+  [feature, "(?:school\\\\s+uniform\\\\p{L}*|braces|", "(?:"],
+  [feature, "  return textoDizMenor2511(t) || escritaNaoLatina2511(t) || numeroDeMenorNaFicha2511(c.canonica)", "  return textoDizMenor2511(t) || numeroDeMenorNaFicha2511(c.canonica)"],
+  [feature, "  return textoDizMenor2511(t) || escritaNaoLatina2511(t) || numeroDeMenorNaFicha2511(c.canonica)", "  return textoDizMenor2511(t) || escritaNaoLatina2511(t)"],
+  [feature, " || textoDizMenor2511(textoDoFilme) || escritaNaoLatina2511(textoDoFilme)) return", " || textoDizMenor2511(textoDoFilme)) return"],
+  [feature, "  const semAncora = c.replace(/appearance anchors?\\s*:\\s*[^;\\n]*/giu, ' ')", "  const semAncora = c"],
+  [feature, "|\\s*(?:am|pm|a\\.m|p\\.m|kg|g|cm|mm|m|km|in|inch(?:es)?|ft|feet|foot|lbs?|oz|st|nd|rd|th|°|percent|%)(?![\\p{L}]))", ")"],
   // VOLTA 2 (V3 e V4)
   [feature, "  return corte ? oracao.slice(0, corte.index) : oracao\n", "  return oracao\n"], // a palavra de adulto de quem está ao lado volta a valer
   [feature, "  if (ancora && PRIMEIRA_ANCORA_ADULTA_2511.test(ancora[1].trim())) return true\n", "  if (/(?:1[89]|[2-9][0-9])\\s*-\\s*[0-9]{2}/.test(String(c.canonica))) return true\n"], // faixa solta vira adulto
   [feature, ".replace(IDADE_EM_DECADA_2511, ' aged 30 ')", ""], // "in her 30s" decepado pelo corte
-  [feature, "  if ([c.nome, c.nucleo].some((n) => typeof n === 'string' && SO_ADULTO_NO_NOME_2511.test(n.trim())", "  if (false && [c.nome, c.nucleo].some((n) => typeof n === 'string' && SO_ADULTO_NO_NOME_2511.test(n.trim())"], // o núcleo \"the woman\"
   [feature, " || MENOR_IDADE_2511.test(t) || MENOR_FORMAS_2511.test(t)", " || MENOR_IDADE_2511.test(t)"],
   [feature, "const MENOR_FORMAS_2511 = new RegExp(SEM_LETRA_ANTES + 'of\\\\s+' + MAIS_NOVO_2511 + SEM_LETRA_DEPOIS +", "const MENOR_FORMAS_2511 = new RegExp('(?!)' +"],
   [feature, "(?:sweet\\\\s+sixteen|", "(?:"],
@@ -193,14 +220,14 @@ const mutants = [
   [feature, "(?:anni|anno|lat|lata|yaşında|yasinda|saal|jaar)", "(?:jaar)"],
   [feature, "(?:ladki|ladka|ladkiyan|ladke|çocuk\\\\p{L}*|", "(?:"],
   // (equivalente: idade de 10 a 17 escrita como sinal de adulto também é sinal de MENOR, e a segunda trava barra; a faixa fica como 1ª trava)
-  [feature, "  if (snapshot.characters.some((c) => textoDizMenor2511(textoDoPersonagem2511(c))) || textoDizMenor2511(textoDoFilme)) return { motivo: 'duas_menor' }", "  if (snapshot.characters.some((c) => textoDizMenor2511(textoDoPersonagem2511(c)))) return { motivo: 'duas_menor' }"],
-  [feature, "  if (snapshot.characters.some((c) => textoDizMenor2511(textoDoPersonagem2511(c))) || textoDizMenor2511(textoDoFilme)) return { motivo: 'duas_menor' }", "  if (textoDizMenor2511(textoDoFilme)) return { motivo: 'duas_menor' }"],
+  [feature, "  if (snapshot.characters.some((c) => pareceMenor2511(c)) || textoDizMenor2511(textoDoFilme) || escritaNaoLatina2511(textoDoFilme)) return { motivo: 'duas_menor' }", "  if (snapshot.characters.some((c) => pareceMenor2511(c))) return { motivo: 'duas_menor' }"],
+  [feature, "  if (snapshot.characters.some((c) => pareceMenor2511(c)) || textoDizMenor2511(textoDoFilme) || escritaNaoLatina2511(textoDoFilme)) return { motivo: 'duas_menor' }", "  if (textoDizMenor2511(textoDoFilme) || escritaNaoLatina2511(textoDoFilme)) return { motivo: 'duas_menor' }"],
   [feature, "  [c.nome, c.nucleo, c.canonica].filter(", "  [c.canonica].filter("],
   [feature, "|teen\\\\p{L}*|", "|teen|"],
   [feature, "'crian\\\\p{L}*|menin\\\\p{L}*|garot\\\\p{L}*|", "'criança|menino|garota|"],
   [feature, "'(?:[\\\\s-]*(?:years?|yrs?)[\\\\s-]*(?:old|of\\\\s+age)|", "'(?:[\\\\s-]*(?:years?|yrs?)|"],
   [feature, "const MENOS_DE_18 = '(?:1[0-7]|[0-9]|' + POUCOS + ')'", "const MENOS_DE_18 = '(?:1[0-7]|[0-9])'"],
-  [feature, "  return MENOR_PALAVRA_2511.test(t) || MENOR_ALEMAO_2511.test(t) || MENOR_IDADE_2511.test(t) || MENOR_FORMAS_2511.test(t)\n", "  return MENOR_PALAVRA_2511.test(t) || MENOR_IDADE_2511.test(t) || MENOR_FORMAS_2511.test(t)\n"], // sem o alemão (âncora da volta 2)
+  [feature, "  return MENOR_PALAVRA_2511.test(t) || MENOR_ALEMAO_2511.test(t) || MENOR_IDADE_2511.test(t) ||", "  return MENOR_PALAVRA_2511.test(t) || MENOR_IDADE_2511.test(t) ||"], // sem o alemão (âncora da volta 3)
   [feature, "const MENOR_ALEMAO_2511 = /(?<![\\p{L}\\p{N}])(?:Kind|", "const MENOR_ALEMAO_2511 = /(?<![\\p{L}\\p{N}])(?:kind|"],
   // V2
   [feature, "  if (snapshot.characters.some((c) => figuraNaReferencia2511(c, textoDoFilme)) || mentionsRealPerson(textoDoFilme)) return { motivo: 'duas_figura_conhecida' } // 6\n", ''],
