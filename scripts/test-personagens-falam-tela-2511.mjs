@@ -16,7 +16,7 @@ const speakers = 'HOOK: [Pexels: blue door]\nÍris: Who is there?\nRui: It is me
 const gateSource = (src, enabled) => src.replace(/(FILM_VOICE_RELEASE: 'off' \| 'on' = )'(?:off|on)'/, (_, prefix) => prefix + (enabled ? "'on'" : "'off'"))
 const active = { [release]: gateSource(read(release), true) }
 const rollback = { [release]: gateSource(read(release), false) }
-assert.match(read(release), /FILM_VOICE_RELEASE:.*= 'off'/, 'o commit permanece OFF')
+assert.match(read(release), /FILM_VOICE_RELEASE:.*= 'on'/, 'a chave abre para o cliente')
 
 function fromBase(file) {
   return execFileSync('git', ['show', '43a94f1b0:' + file], { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 })

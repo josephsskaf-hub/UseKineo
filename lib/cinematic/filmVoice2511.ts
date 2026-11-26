@@ -1,6 +1,6 @@
 export type FilmVoiceMode = 'narrator' | 'characters'
 
-export const FILM_VOICE_RELEASE: 'off' | 'on' = 'off'
+export const FILM_VOICE_RELEASE: 'off' | 'on' = 'on'
 
 export function filmVoiceMode(value: unknown): FilmVoiceMode | undefined {
   return value === 'narrator' || value === 'characters' ? value : undefined
