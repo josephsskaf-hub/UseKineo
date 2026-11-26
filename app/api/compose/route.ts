@@ -103,6 +103,7 @@ import { kling4TrialEngineFromClaim, kling4TrialClipSecondsFromClaim } from '@/l
 import { recordKling4TrialFilm } from '@/lib/kling4TrialBudget'
 import { gravarSeloDoFilmeGratis2511 } from '@/lib/kling4TrialBudget' // KINEO-GEMINI-NA-ESTEIRA-2511 [revisora 25/11, conserto 1]
 import { montagemFalada2511, conferirFala2511, type LinhaDeFala2511 } from '@/lib/cinematic/falaDosPersonagens2511' // KINEO-FALA-DOS-PERSONAGENS-2511
+import { semRotulosDaFala2611, falaPedidaNoClaim2611 } from '@/lib/cinematic/falaDosPersonagens2511' // KINEO-FALA-PARA-CLIENTE-2611 (1) e (4)
 import { gravarConferenciaDaFala2511 } from '@/lib/cinematic/claim' // KINEO-FALA-DOS-PERSONAGENS-2511
 import { vozAssinadaDoClaim } from '@/lib/vozDoFilmeCurto' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29
 import { collectSceneNarrations, verifyObservedSpeech } from '@/lib/cinematic/speechContract'
@@ -840,6 +841,12 @@ export async function POST(req: NextRequest) {
       )
     }
     cinematicBirthClaim = cinematicClaimLoad.claim
+    // KINEO-FALA-PARA-CLIENTE-2611 [CEO 26/11] (4) o filme que vai sair FALADO (o claim pediu, o Gemini entregou sem queda, um clipe só) não gera nem guarda o TTS
+    // da narração, que não toca: sem custo à toa e sem o 502 do upload. (1) O filme pedido falado que sai NARRADO lê a narração sem os rótulos "Nome:".
+    // Sem a fala pedida no claim, nada muda (byte a byte).
+    const falaPedida2611 = typeof falaPedidaNoClaim2611 === 'function' && falaPedidaNoClaim2611(cinematicBirthClaim?.response)
+    const faladoPrevisto2611 = falaPedida2611 && typeof montagemFalada2511 === 'function' && montagemFalada2511((cinematicBirthClaim?.response?.kling4_trial ?? null) as Record<string, unknown> | null, cinematicBirthClaim?.falModels?.[0]) && clipUrls.filter((u) => typeof u === 'string' && u.trim()).length === 1
+    if (falaPedida2611 && !faladoPrevisto2611 && typeof semRotulosDaFala2611 === 'function') voiceoverScript = semRotulosDaFala2611(voiceoverScript) || voiceoverScript
     const trialEngine = kling4TrialEngineFromClaim(cinematicBirthClaim?.response)
     if (trialEngine !== null) {
       aspectRequested = '9:16'
@@ -3152,7 +3159,7 @@ export async function POST(req: NextRequest) {
       tempo.inicio('voz') // KINEO-FILME-RAPIDO-1710 · tempo
       const inicioTts = Date.now() // KINEO-PLANO-B-OPENAI-2026-09-28 — o plano B de voz só entra em falha rápida
       try {
-        if (!cachedVoiceover && (!audioBuffer || audioBuffer.length === 0)) {
+        if (!cachedVoiceover && (!audioBuffer || audioBuffer.length === 0) && !(typeof faladoPrevisto2611 !== 'undefined' && faladoPrevisto2611)) { // KINEO-FALA-PARA-CLIENTE-2611 (4)
           audioBuffer = await generateTTS(scaledScript, explicitSpeed ?? 1.0, vertical, narrationTier, language)
         }
         if (!cachedVoiceover) {
@@ -3191,7 +3198,7 @@ export async function POST(req: NextRequest) {
         ttsFallbackUsed = true
       }
 
-      if (!cachedVoiceover && (!audioBuffer || audioBuffer.length === 0)) {
+      if (!cachedVoiceover && (!audioBuffer || audioBuffer.length === 0) && !(typeof faladoPrevisto2611 !== 'undefined' && faladoPrevisto2611)) { // KINEO-FALA-PARA-CLIENTE-2611 (4)
         console.error('[compose] TTS produced an empty buffer — refusing to upload.')
         return rejectBeforeProviderSubmission(
           NextResponse.json(
@@ -3369,7 +3376,7 @@ export async function POST(req: NextRequest) {
             })
         : Promise.resolve(undefined)
 
-      const uploadPromise: Promise<{ url: string } | { uploadError: unknown }> = (avatarMode || hasUserVoice)
+      const uploadPromise: Promise<{ url: string } | { uploadError: unknown }> = typeof faladoPrevisto2611 !== 'undefined' && faladoPrevisto2611 && !audioBuffer ? Promise.resolve({ url: '' }) : (avatarMode || hasUserVoice) // KINEO-FALA-PARA-CLIENTE-2611 (4) nada a guardar
         ? Promise.resolve({ url: externalVoiceUrl })
         : uploadVoiceoverToSupabase(user.id, audioBuffer as Buffer)
             .then((url) => {
@@ -3541,6 +3548,11 @@ export async function POST(req: NextRequest) {
     // claim, ou com a queda para o Kling 4 = nada disto roda (o filme narrado de hoje).
     const marcadorDaFala2511 = (cinematicBirthClaim?.response?.kling4_trial ?? null) as Record<string, unknown> | null
     const falaMontada2511 = typeof montagemFalada2511 === 'function' && montagemFalada2511(marcadorDaFala2511, cinematicBirthClaim?.falModels?.[0]) && composeClipUrls.filter((u) => typeof u === 'string' && u.trim()).length === 1
+    if (typeof faladoPrevisto2611 !== 'undefined' && faladoPrevisto2611 && !falaMontada2511 && !voiceoverUrl) { // KINEO-FALA-PARA-CLIENTE-2611 (4) sem TTS e sem a fala do motor = nada a tocar
+      return rejectBeforeProviderSubmission(NextResponse.json(cinematicUpstreamDebited && cinematicBirthClaim?.creditCost === creditCostForDuration(quality, true, duration)
+        ? { error: 'Voiceover generation failed. No film was assembled; see the credit details below. Your script is kept.', code: 'cinematic_voice_unavailable' }
+        : { error: 'Voiceover generation failed. Please try again.' }, { status: 502 }))
+    }
     let palavrasDoMotor2511: WhisperWord[] | null = null
     const falasDoMotor2511 = falaMontada2511 ? ((marcadorDaFala2511?.fala_2511 as { falas?: LinhaDeFala2511[][] } | undefined)?.falas ?? []) : []
     if (falaMontada2511) {

@@ -34,6 +34,7 @@ export type MotivoNarrado2511 =
   | 'lingua' | 'sem_gemini' | 'sem_referencia' | 'roteiro_sem_falas' | 'fala_fora_do_formato' | 'falante_fora_do_elenco' | 'fala_longa'
   | 'planos_desencontrados' | 'falante_fora_do_plano' | 'plano_sem_cauda' | 'fala_com_pessoa_real' | 'gemini_recusou_no_envio' | 'gemini_caiu'
   | 'falante_conhecido' /* [T1] quem fala é figura conhecida, pessoa real, personagem de obra ou de marca */ | 'falante_menor' /* [T2] filme fotorreal: quem fala não é adulto provado */
+  | 'fala_moderada' /* KINEO-FALA-PARA-CLIENTE-2611 (2) as falas não passaram na moderação (ou a moderação não respondeu): narrado */
 export type LinhaDeFala2511 = { ref: 0 | 1; nome: string; texto: string }
 /** O marcador que viaja no claim (kling4_trial.fala_2511) e que o compose lê. */
 export type MarcadorDaFala2511 = { versao: string; pedida: 'characters'; modo: 'falado' | 'narrado'; motivo: MotivoNarrado2511 | null; falas?: LinhaDeFala2511[][] }
@@ -309,4 +310,26 @@ export function descricoesDasMarcas2611(marcas: ReadonlyArray<string | null | un
     }
   }
   return fora
+}
+
+// KINEO-FALA-PARA-CLIENTE-2611 [CEO 26/11, a lista 'public' da revisora 52b12696] — o que o servidor precisa para abrir a fala ao cliente.
+// (1) A QUEDA PARA O NARRADO: quando o filme pedido falado sai narrado (o Gemini cai ou recusa, a admissão manda narrar), a narração e a legenda não leem o
+//     rótulo "Nome:" em voz alta. O rótulo só existe no texto do roteiro falado; a fala de cada um fica, sem o nome na frente.
+const ROTULO_DA_FALA_2611 = /(^|[.!?…]["'”’)\]]*\s+|\n\s*)(\p{Lu}[\p{L}'’-]*(?:\s+\p{Lu}[\p{L}'’-]*){0,2})\s*:\s+(?=\S)/gu
+export function semRotulosDaFala2611(texto: string): string {
+  const t = typeof texto === 'string' ? texto : ''
+  return t.replace(ROTULO_DA_FALA_2611, (_m, antes: string) => antes)
+}
+/** O claim (resposta assinada) diz que a fala foi PEDIDA neste filme (o marcador fala_2511 do Kling 4 grátis existe, falado ou com o motivo da queda)? */
+export function falaPedidaNoClaim2611(resposta: unknown): boolean {
+  const r = resposta && typeof resposta === 'object' ? (resposta as Record<string, unknown>) : null
+  const k = r?.kling4_trial && typeof r.kling4_trial === 'object' ? (r.kling4_trial as Record<string, unknown>) : null
+  const f = k?.fala_2511 && typeof k.fala_2511 === 'object' ? (k.fala_2511 as Record<string, unknown>) : null
+  return !!f && f.versao === FALA_DOS_PERSONAGENS_2511_VERSAO
+}
+/** O claim diz que o envio foi o pedido FALADO (antes do motor responder: 'falado'; a montagem ainda confere o motor e a queda). */
+export function falaEnviadaNoClaim2611(resposta: unknown): boolean {
+  if (!falaPedidaNoClaim2611(resposta)) return false
+  const f = ((resposta as Record<string, unknown>).kling4_trial as Record<string, unknown>).fala_2511 as Record<string, unknown>
+  return f.modo === 'falado'
 }

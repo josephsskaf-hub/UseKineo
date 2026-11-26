@@ -28,6 +28,7 @@ import { collectSceneNarrations, type SceneSpeechEngine } from '@/lib/cinematic/
 import { depoisDaResposta, podeAdiarParaDepoisDaResposta } from '@/lib/posResposta'
 import { chaveDaCenaAquecida, executarAquecimento, idDoAquecimento, reservarAquecimento, type PedidoDeAquecimento } from '@/lib/audioNoClique'
 import { transcreverNaEscritaDoRoteiro } from '@/lib/whisperNaEscrita' // [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] KINEO-META95-ESCRITA-2010 — Whisper com o idioma que a escrita do roteiro diz (linha própria)
+import { semRotulosDaFala2611, falaPedidaNoClaim2611, falaEnviadaNoClaim2611 } from '@/lib/cinematic/falaDosPersonagens2511' // KINEO-FALA-PARA-CLIENTE-2611 (1) e (4)
 
 const HOLLYWOOD_FAMILY = new Set(['cinematic_hollywood', 'cinematic_h3', 'cinematic_h3max', 'cinematic_omni', 'cinematic_s25'])
 
@@ -94,7 +95,10 @@ export async function agendarAudioNoClique(a: {
     const r = a.response
     // ≡ compose: rawVoiceover = body.voiceover_script; voiceoverScript = strip → salvage.
     const rawVoiceover = typeof r.voiceover_script === 'string' ? r.voiceover_script : ''
-    const voiceoverScript = stripScriptMarkers(rawVoiceover) || (rawVoiceover.trim() ? salvageScriptNarration(rawVoiceover) : '')
+    const narracaoBruta = stripScriptMarkers(rawVoiceover) || (rawVoiceover.trim() ? salvageScriptNarration(rawVoiceover) : '')
+    // KINEO-FALA-PARA-CLIENTE-2611 ≡ compose: o filme pedido falado narra SEM os rótulos "Nome:" (1); o enviado falado não aquece a voz que não toca (4)
+    const falaPedida2611 = falaPedidaNoClaim2611(r), falaEnviada2611 = falaPedida2611 && falaEnviadaNoClaim2611(r)
+    const voiceoverScript = falaPedida2611 ? semRotulosDaFala2611(narracaoBruta) || narracaoBruta : narracaoBruta
     if (!voiceoverScript) return false
     // ≡ compose: o claim assinado (narration_voice) vence o corpo antes de vertical/speed nascerem; senão o corpo do
     // cliente, que manda vertical = o mesmo `vertical` deste despacho e speed = response.speed.
@@ -117,7 +121,7 @@ export async function agendarAudioNoClique(a: {
     if (!hollywood) {
       // ≡ compose: o texto só é falado como está com speed explícito ou roteiro verbatim no claim; fora disso o compose
       // reescreve o texto antes do TTS e a chave não é derivável daqui.
-      if (explicitSpeed != null || r.verbatim === true) {
+      if ((explicitSpeed != null || r.verbatim === true) && !falaEnviada2611) { // KINEO-FALA-PARA-CLIENTE-2611 (4)
         voz = vozClassicaAquecivel({ script: voiceoverScript, speed: explicitSpeed ?? 1.0, vertical, language, quality: a.quality, log: `gen=${a.generationId.slice(0, 8)}` })
       }
     } else {

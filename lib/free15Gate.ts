@@ -162,6 +162,8 @@ export interface Free15GateDeps {
   pollStill?(scene: CenaRefazivel, requestId: string, refaz0311?: RefazCena0311): Promise<{ status: 'pending' | 'done' | 'failed'; url?: string | null }> // KINEO-GRATIS-REFAZ-CENA-0311 — o MESMO prompt do envio
   /** KINEO-GRATIS-REFAZ-CENA-0311 — o 1º filme grátis de conta de país rico (sem esta função: nunca refaz por teto novo). */
   primeiroFilmeGratis0311?(): Promise<boolean>
+  /** KINEO-FALA-PARA-CLIENTE-2611 (3) — o filme é FALADO (a fala é do motor): nenhum reparo (nem a legenda proporcional, nem a cena refeita muda); sem esta função = o de sempre. */
+  falado?(): boolean
   /** KINEO-GRATIS-REFAZ-IMAGEM-0311 — UM POST do still FLUX da cena i2v SEM folha (o gerador do 1º quadro da rota) com a correção do relato; null = não se aplica (t2v, com folha, sem chave). */
   submitStillSemFolha0311?(scene: CenaRefazivel, refaz0311: RefazCena0311): Promise<string | null>
   /** KINEO-GRATIS-REFAZ-IMAGEM-0311 — só leitura do still FLUX (sem URL https ou barrado pelo filtro de segurança = 'failed'). */
@@ -251,6 +253,9 @@ export async function advanceFree15Gate(d: Free15GateDeps, original: GateMedia):
   let refazAqui0311 = false
   if (refaz0311) { try { refazAqui0311 = await d.primeiroFilmeGratis0311!() === true } catch { refazAqui0311 = false } }
   if (state.attempted || decision.kind === 'fail' && !refazAqui0311) return finish('failed', decision.reason, media, decision.identity === true) // KINEO-ELENCO-TRAVA-0311 — refeita e o personagem ainda troca: falha marcada, nunca "passou"
+  // KINEO-FALA-PARA-CLIENTE-2611 (3) [CEO 26/11] no filme FALADO o reparo apagaria a fala: a legenda proporcional trocaria a do motor, e a cena refeita entraria muda
+  // (volume 0) e com outro vídeo na janela de quem fala. Sai como sai o reparo já tentado: a falha marcada, sem gastar.
+  if (d.falado?.() === true) return finish('failed', decision.reason, media, decision.kind === 'fail' && decision.identity === true)
   // Persist attempted=true BEFORE spending. Two polls cannot buy two attempts.
   if (decision.kind === 'caption') {
     const repaired = repairGateCaptions(state.source, state.captionElements)

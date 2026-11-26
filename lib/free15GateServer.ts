@@ -13,6 +13,7 @@ import { FREE15_GATE_EVENT, FREE15_GATE_FAILED_EVENT, FREE15_GATE_VERSION, advan
 import { cenaSemReferencia, referenciaDaCenaNoClaim } from '@/lib/cinematic/elencoTrava' // KINEO-ELENCO-TRAVA-0311 — a cena sem referência e a folha da cena, lidas do claim assinado
 import { postarStillComFolha, lerStillComFolha } from '@/lib/cinematic/personagemAjusteServer' // KINEO-ELENCO-TRAVA-0311 — o MESMO edit, formato e moderação do still com folha da rota
 import { CLASSIC_I2V } from '@/lib/classicSceneRetry' // KINEO-ELENCO-TRAVA-0311
+import { montagemFalada2511 } from '@/lib/cinematic/falaDosPersonagens2511' // KINEO-FALA-PARA-CLIENTE-2611 (3) — o filme falado não é reparado
 import { kling4TrialEngineFromClaim } from '@/lib/kling4TrialClaim' // KINEO-GRATIS-REFAZ-CENA-0311 — o marcador do 1º filme grátis (nasce com 0 filmes e 0 débitos)
 import { filmeGratisPermitido } from '@/lib/freeFilmPolicy' // KINEO-GRATIS-REFAZ-CENA-0311 — a lista de países do filme grátis (sem lista nova)
 import { corrigirPrompt0311, TETO_PROMPT_STILL_0311, type RefazCena0311 } from '@/lib/free15RefazCena0311' // KINEO-GRATIS-REFAZ-CENA-0311
@@ -108,6 +109,7 @@ export async function runFree15Gate(a: Context & { claim: CinematicClaim; media:
   let checked = false
   const outcome = await advanceFree15Gate({
     now: Date.now,
+    falado: () => montagemFalada2511((a.claim.response?.kling4_trial ?? null) as Record<string, unknown> | null, a.claim.falModels?.[0]), // KINEO-FALA-PARA-CLIENTE-2611 (3)
     read: async () => {
       const { data, error } = await a.db.from('events').select('metadata').eq('id', gateId(a)).eq('user_id', a.userId).eq('name', FREE15_GATE_EVENT).maybeSingle()
       if (error) throw new Error('gate_read_unavailable')

@@ -8721,6 +8721,9 @@ async function manipularPost(req: NextRequest) {
         if ('motivo' in lidas) fm2511.motivo = lidas.motivo
         else if (mentionsRealPerson(lidas.falas.flat().map((l) => l.texto).join(' '))) fm2511.motivo = 'fala_com_pessoa_real'
         else if (falantes2511) fm2511.motivo = falantes2511
+        // KINEO-FALA-PARA-CLIENTE-2611 (2) [CEO 26/11] as falas escritas passam pelo MESMO crivo do roteiro (omni-moderation, superfície 'script', grátis) ANTES do pedido
+        // falado: reprovada ou sem resposta da moderação = o filme sai narrado (o de hoje), nunca o motor dizendo a fala reprovada com rosto e voz.
+        else if (typeof moderateContent === 'function' && !(await moderateContent({ surface: 'script', stage: 'input', userId: user.id, text: lidas.falas.flat().map((l) => l.texto).join('\n'), meta: { route: 'generate-video-cinematic', check: 'fala_dos_personagens_2611', generation_id: generationId } }).catch(() => ({ ok: false }))).ok) fm2511.motivo = 'fala_moderada'
         else {
           const vozes = fichas2511.map((f) => vozDaFicha2511(f, estilizado2511))
           const g = geminiFaladoDoKling4(wire.input, [nome2511(ru?.nomes?.[0]), nome2511(ru?.segundo?.nomes?.[0])], lidas.falas, vozes)
