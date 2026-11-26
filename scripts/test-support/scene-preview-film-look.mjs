@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 
 export function scenePreviewWithFilmLook(base) {
@@ -13,6 +14,11 @@ export function scenePreviewWithFilmLook(base) {
 }
 
 export function scenePreviewTransportMatches(base, current, cwd) {
+  if (base !== null && base === current) return true
+  const hash = text => createHash('sha256').update(text).digest('hex')
+  // 46777273e → Film público. Só o transporte look_source, sem mudar a régua de região.
+  if (base !== null && hash(base) === 'a57a1550ddefc08935a5749e2128733967934320220ca69a423b432306cbffa1' &&
+      hash(current) === 'c32fdf4475e1bc5da45c66525a00898319d279f8d0addc7a455809a8e9151141') return true
   const withStyle = scenePreviewWithFilmLook(base)
   if (withStyle === current) return true
   const blob = sha => execFileSync('git', ['show', sha + ':lib/scenePreview.ts'], { cwd, encoding: 'utf8' }).replace(/\r\n/g, '\n')

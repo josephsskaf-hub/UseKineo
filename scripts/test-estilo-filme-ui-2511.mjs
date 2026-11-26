@@ -100,9 +100,10 @@ const textField = (p, tag) => tag === 'textarea' && (p['aria-label'] === 'Your i
 const generate = (p, tag) => tag === 'button' && /^studio-(simple|moldura)-generate$/.test(p['data-testid'] ?? '')
 const type = (tab, text) => tab.type(textField, text, 'Your idea')
 const submit = tab => {
+  const before = tab.log.pushes.length
   tab.click(generate, 'Generate')
-  assert.equal(tab.log.pushes.length, 1, 'o clique navega uma vez')
-  return new URL(tab.log.pushes[0], 'https://example.invalid')
+  assert.equal(tab.log.pushes.length, before + 1, 'o clique navega uma vez')
+  return new URL(tab.log.pushes[before], 'https://example.invalid')
 }
 const styleEvents = tab => tab.log.events.filter(([name]) => name === 'studio_film_style_submitted').map(([, props]) => JSON.parse(JSON.stringify(props)))
 

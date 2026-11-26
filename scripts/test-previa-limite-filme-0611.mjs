@@ -8,14 +8,15 @@ checa('só no lado a pedido, sem prévia na tela, com limite', t.includes('aPedi
 checa('os 3 limites abrem o botão', ['daily_limit', 'total_limit', 'global_limit'].every((r) => t.includes("j?.reason === '" + r + "'")))
 checa('falha de roteiro não abre o botão', !t.includes("j?.reason === 'script_failed'"))
 checa('o botão só vive no clique', t.includes('data-testid="scene-preview-limit-claim"') && /onClick=\{\(\) => \{ void pedirFilme\(\) \}\}/.test(t) && !/useEffect\([^\n]*pedirFilme/.test(t))
-const volta = t.match(/: (voltaParaCaixa\(idea, filmLook, voiceModeFields\(voiceMode\)\.voice_mode\))\s*\n\s*window\.location\.assign\(fallback \?\? '\/studio'\)/)?.[1]
+const volta = t.match(/: (voltaParaCaixa\(idea, filmLook, voiceModeFields\(voiceMode\)\.voice_mode, publicLookEntry\))\s*\n\s*window\.location\.assign\(fallback \?\? '\/studio'\)/)?.[1]
 const load = createOfflineLoader()
 const { voltaParaCaixa } = load('@/lib/growth/ideiaDaPagina')
 const { voiceModeFields } = load('@/lib/cinematic/filmVoice2511')
-const destino = volta && new Function('voltaParaCaixa', 'voiceModeFields', 'voiceMode', 'idea', 'filmLook', 'return (' + volta + ") ?? '/studio'")
-const link = (idea, filmLook) => new URL(destino(voltaParaCaixa, voiceModeFields, undefined, idea, filmLook), 'https://example.invalid')
+const destino = volta && new Function('voltaParaCaixa', 'voiceModeFields', 'voiceMode', 'idea', 'filmLook', 'publicLookEntry', 'return (' + volta + ") ?? '/studio'")
+const link = (idea, filmLook, publicLookEntry = false) => new URL(destino(voltaParaCaixa, voiceModeFields, undefined, idea, filmLook, publicLookEntry), 'https://example.invalid')
 checa('volta à caixa com a ideia, sem gerar', Boolean(destino) && link('A storm & a ship').href === 'https://example.invalid/studio?ideia=A+storm+%26+a+ship' && link('').pathname === '/studio')
 checa('retomada preserva o estilo que a pessoa escolheu, sem disparar', Boolean(destino) && link('A storm', 'anime').search === '?ideia=A+storm&look=anime')
+checa('volta do editor público conserva a origem do estilo sem disparar', Boolean(destino) && link('A storm', 'anime', true).search === '?ideia=A+storm&look=anime&look_source=create_film')
 checa('medição separa esta porta', t.includes("surface: preview ? 'preview' : 'preview_limit'"))
 checa('quem tem prévia segue pelo caminho de antes', t.includes('window.location.assign(previaResumeStudioHref(filmDraft(preview)))') && t.includes('idea: originalScript || preview.idea || idea, script: preview.script'))
 if (falhas) { console.error(falhas + ' falha(s)'); process.exit(1) }

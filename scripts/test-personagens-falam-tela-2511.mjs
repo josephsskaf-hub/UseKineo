@@ -108,7 +108,7 @@ function filmRequests(fields, voiceMode, source = read(film), mode = 'cinematic_
   assert.equal(writer.length, 2, 'writer normal e recuperação de 422')
   assert.equal(generator.length, 1)
   const context = {
-    fetch: record, fetchResilienteSemDinheiro: record, voiceModeFields: fields, voiceMode, mode, filmLook: undefined,
+    fetch: record, fetchResilienteSemDinheiro: record, voiceModeFields: fields, voiceMode, mode, filmLook: undefined, publicLookEntry: false,
     quality: 'cinematic_ai', cinematicGenerationId: 'sample-voice-2511', trimmed: idea, duration: 15, language: 'en',
     aspectRequested: '9:16', scriptMode: 'ai', analysis: null, aiEngine: 'seedance', cineBrollScenes: undefined,
     cineUsable: false, ideiaDoRoteiroRef: { current: null }, estrelaRef: { current: null }, kidsCartoonId: null,
