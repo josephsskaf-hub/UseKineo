@@ -11,7 +11,9 @@ import Link from 'next/link'
 import { useEffect, useState, type ReactNode } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import { createClient } from '@/lib/supabase/client'
-import { ugcCtaHref } from '@/lib/seo/paginasUgc2010'
+import { createEntryHref } from '@/lib/create/entry'
+import { FOCUSED_PRODUCT_NAV_2511 } from '@/lib/ui/workspaceNavigation'
+import { PAGINAS_UGC_CAMPAIGN, ugcCtaHref } from '@/lib/seo/paginasUgc2010'
 import { useAdsEligibility } from '@/components/ads/useAdsEligibility' // KINEO-ADS-SIMPLES-2810
 import { adsDoorSaysFree } from '@/lib/ads/eligibilityPure' // KINEO-ADS-SIMPLES-2810
 import { homeCardAdsCta } from '@/lib/ui/homeThreeCards' // KINEO-ADS-SIMPLES-2810 — "Make a UGC ad" nas 16 línguas
@@ -28,7 +30,9 @@ export default function UgcCtaLink({ campaign, placement, className, children }:
     } catch { /* idem */ }
     return () => { alive = false }
   }, [])
-  const href = ugcCtaHref(campaign, signedIn)
+  const href = FOCUSED_PRODUCT_NAV_2511 && campaign === PAGINAS_UGC_CAMPAIGN.pillar
+    ? createEntryHref('film', '/studio?utm_source=seo&utm_medium=ugc_pages&utm_campaign=' + encodeURIComponent(campaign), signedIn)
+    : ugcCtaHref(campaign, signedIn)
   const elegibilidade = useAdsEligibility(signedIn) // KINEO-ADS-SIMPLES-2810
   const language = useInterfaceLanguage() // KINEO-ADS-SIMPLES-2810
   const honest = signedIn && elegibilidade !== null && !adsDoorSaysFree(signedIn, elegibilidade.state) // KINEO-ADS-SIMPLES-2810 — só troca o texto quando o servidor respondeu "não é grátis para você"

@@ -65,7 +65,7 @@ const UGC_SCENES: HomeCardPlaylist = [{
   objectFit: 'cover',
 }]
 
-export default function HomeCardCycleMedia({ card, language, playlist, featuredPlaylist }: { card: HomeCycleCardId; language: string; playlist?: HomeCardPlaylist; featuredPlaylist?: HomeCardPlaylist }) { // KINEO-CARDS-TRAILER-0411 — playlist opcional: sem ela, as listas de sempre
+export default function HomeCardCycleMedia({ card, language, playlist, featuredPlaylist, firstPaintPoster }: { firstPaintPoster?: string; card: HomeCycleCardId; language: string; playlist?: HomeCardPlaylist; featuredPlaylist?: HomeCardPlaylist }) { // KINEO-CARDS-TRAILER-0411 — playlist opcional: sem ela, as listas de sempre
   const root = useRef<HTMLSpanElement>(null)
   const clips = playlist ?? homeCardClips(card, language) // KINEO-CARDS-TRAILER-0411
   const showWall = !!playlist && card === 'product_ads'
@@ -94,7 +94,7 @@ export default function HomeCardCycleMedia({ card, language, playlist, featuredP
       <picture>
         {desktopClips ? <source media={DESKTOP_MEDIA} srcSet={desktopClips[0].poster} /> : null}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="k3c-cycle-poster" src={first.poster} alt="" style={{
+        <img className="k3c-cycle-poster" src={firstPaintPoster ?? first.poster} alt="" style={{
           '--home-clip-position': first.objectPosition,
           '--home-clip-mobile-position': first.mobileObjectPosition ?? first.objectPosition,
           '--home-clip-fit': first.objectFit ?? 'cover',

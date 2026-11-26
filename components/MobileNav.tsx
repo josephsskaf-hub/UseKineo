@@ -4,7 +4,7 @@ import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import { useAccountMenuScope } from '@/components/AccountMenuScope'
 import Link from 'next/link'
 import { NOMES_DE_PRODUTO } from '@/lib/ui/nomesDeProduto'
-import { MORE_NAV, MORE_TOOLS_NAV, CARTOON_NAV, RECREATE_NAV, WORKSPACE_NAV, navItemIdFor, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
+import { MORE_NAV, MORE_TOOLS_NAV, CARTOON_NAV, RECREATE_NAV, WORKSPACE_NAV, FOCUSED_PRODUCT_NAV_2511, FOCUSED_WORKSPACE_NAV, navItemIdFor, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
 import { createEntryForLegacyHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — par do Sidebar
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { CLIPS_PUBLIC } from '@/lib/clips/clipLaunch'
@@ -150,6 +150,16 @@ const NAV_ITEMS: { href: string; icon: JSX.Element; label: string; exact: boolea
     label: 'Pricing',
     exact: false,
   },
+  { ...CARTOON_NAV, icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M9 10v.5M15 10v.5M8.5 14.5c1 1.5 2.2 2.2 3.5 2.2s2.5-.7 3.5-2.2" />
+    </svg>, exact: false },
+  { ...RECREATE_NAV, icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="3.5" width="13" height="19" rx="2.5" />
+      <circle cx="9.5" cy="10" r="2.3" />
+      <path d="M6 16.5c.8-1.7 2-2.5 3.5-2.5s2.7.8 3.5 2.5" />
+      <path d="M19 8.5a4 4 0 0 1 0 7M19 15.5l-1.5-.2M19 15.5l.3-1.5" />
+    </svg>, exact: false },
 ]
 
 // Same destinations as the desktop sidebar; no checkout or generation side effects.
@@ -202,9 +212,10 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
   }, [unifiedMenu])
 
   // KINEO-DUAS-PORTAS-2026-10-13 — barra = 2 portas (Make a film · Product ads) + Library + Pricing + More (5 slots).
-  const primary = NAV_ITEMS.filter((item) => ['/studio', '/ads/new', '/library', '/pricing'].includes(item.href))
+  const primaryHrefs = FOCUSED_PRODUCT_NAV_2511 ? FOCUSED_WORKSPACE_NAV.map(item => item.href) : ['/studio', '/ads/new', '/library', '/pricing']
+  const primary = NAV_ITEMS.filter((item) => primaryHrefs.includes(item.href))
   const groups = [
-    { label: 'More', links: MORE_LINKS.filter((item) => isLoggedIn || !item.signedIn) },
+    { label: 'More', links: MORE_LINKS.filter((item) => (isLoggedIn || !item.signedIn) && (!FOCUSED_PRODUCT_NAV_2511 || !primaryHrefs.includes(item.href))) },
   ]
   const primaryLink = (href: string) => {
     const item = primary.find((entry) => entry.href === href)!
@@ -270,10 +281,7 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
         }
       }}>
       <div className="kineo-mobile-row">
-        {primaryLink('/studio')}
-        {primaryLink('/ads/new')}
-        {primaryLink('/library')}
-        {primaryLink('/pricing')}
+        {primaryHrefs.map(primaryLink)}
         {disclosure(groups[0])}
       </div>
       {/* Static CSS, never user input. Preserve raw-text selectors in SSR. */}

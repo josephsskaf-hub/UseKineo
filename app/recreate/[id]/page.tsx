@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: { absolute: 'Recreate | Kineo' }, rob
 export default async function Page({ params, searchParams = {} }: { params: { id: string }; searchParams?: Record<string, string | string[] | undefined> }) {
   if (RECREATE_FLOW_ENABLED) {
     const { default: RecreateFlowPage } = await import('../RecreateFlowPage')
-    return RecreateFlowPage({ id: params.id, searchParams, basePath: '/recreate' })
+    return RecreateFlowPage({ id: params.id, searchParams, basePath: '/recreate', showcase: true })
   }
   const { user } = await recreateSession()
   const format = recreateFormat(params.id)

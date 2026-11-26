@@ -78,9 +78,14 @@ function checks(o = {}) {
   // (2b) App: lateral e "More" do celular.
   const nav = loader({}, o)('lib/ui/workspaceNavigation')
   ok(nav.RECREATE_NAV?.href === '/recreate' && nav.RECREATE_NAV.label === 'Recreate', 'app: RECREATE_NAV → /recreate')
-  for (const clipsOn of [true, false]) {
-    const items = nav.sidebarNavItems(clipsOn).map(i => i.href)
-    ok(items.includes('/recreate') && items.indexOf('/recreate') === items.indexOf('/kids-cartoon') + 1, `lateral (clips ${clipsOn}): Recreate logo depois do Cartoon`)
+  const navPath = 'lib/ui/workspaceNavigation.ts'
+  const legacySource = src(navPath).replace('const FOCUSED_PRODUCT_NAV_2511 = true', 'const FOCUSED_PRODUCT_NAV_2511 = false')
+  const legacyNav = loader({}, { ...o, [navPath]: legacySource })('lib/ui/workspaceNavigation')
+  for (const menu of [nav, legacyNav]) {
+    for (const clipsOn of [true, false]) {
+      const items = menu.sidebarNavItems(clipsOn).map(i => i.href)
+      ok(items.includes('/recreate') && items.indexOf('/recreate') === items.indexOf('/kids-cartoon') + 1, `lateral (foco ${menu.FOCUSED_PRODUCT_NAV_2511}, clips ${clipsOn}): Recreate logo depois do Cartoon`)
+    }
   }
   ok(/RECREATE_NAV\.href/.test(src('components/MobileNav.tsx')) && src('components/MobileNav.tsx').indexOf('RECREATE_NAV.href') > src('components/MobileNav.tsx').indexOf('CARTOON_NAV.href'), 'More do celular do app: Recreate depois do Cartoon')
   ok(/sidebarNavItems\(/.test(src('components/Sidebar.tsx')), 'lateral do app desenha sidebarNavItems (onde o Recreate entrou)')
@@ -147,6 +152,7 @@ const mutants = {
   'preço no cartão': { 'app/recreate/RecreateCatalogPublic.tsx': read('app/recreate/RecreateCatalogPublic.tsx').replace('Recreate ↗</span>', 'Recreate ↗ 40 credits</span>') },
   'texto de 10 px': { 'app/recreate/RecreateCatalogPublic.tsx': read('app/recreate/RecreateCatalogPublic.tsx').replace('font-size:15px', 'font-size:10px') },
   'vídeo toca sozinho': { 'app/recreate/RecreateCatalogPublic.tsx': read('app/recreate/RecreateCatalogPublic.tsx').replace('muted loop playsInline', 'muted loop autoPlay playsInline') },
+  'lateral focada sem Recreate': { 'lib/ui/workspaceNavigation.ts': read('lib/ui/workspaceNavigation.ts').replace('WORKSPACE_NAV[0], CARTOON_NAV, RECREATE_NAV,', 'WORKSPACE_NAV[0], CARTOON_NAV,') },
   'lateral sem Recreate': { 'lib/ui/workspaceNavigation.ts': read('lib/ui/workspaceNavigation.ts').replace('CARTOON_NAV, RECREATE_NAV, ...last', 'CARTOON_NAV, ...last') },
   'fluxo novo desligado (cartão volta ao cadastro antes do molde)': { 'lib/recreate/flowRelease.ts': read('lib/recreate/flowRelease.ts').replace('RECREATE_FLOW_ENABLED = true', 'RECREATE_FLOW_ENABLED = false') }, // KINEO-M12-LIGA-1411
   'visitante volta a ir direto ao cadastro': { 'app/recreate/page.tsx': read('app/recreate/page.tsx').replace('<RecreateCatalogPublic items={publicRecreateCatalog()} />', "redirect('/signup?')") },

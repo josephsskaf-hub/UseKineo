@@ -8,7 +8,7 @@ import { hrefDaCaixa, ideiaDaPagina } from '@/lib/growth/ideiaDaPagina' // KINEO
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { trackEvent } from '@/lib/analytics'
 import { HOME_CARD_EVENT, homeCardClickMetadata, homeCardHref, type HomeCardId } from '@/lib/ui/homeThreeCards'
-import { WOLF_CARTOON_PREVIEW, MARS_FILM_PREVIEW } from '@/lib/ui/homeFocusedShowcase2511'
+import { WOLF_CARTOON_PREVIEW, MARS_FIRST_PAINT_POSTER } from '@/lib/ui/homeFocusedShowcase2511'
 import { homeKidsCardHref } from '@/lib/ui/homeKidsCard'
 import { createEntryForLegacyHref, createEntryForSignupHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"]
 import { MADE_WITH_KINEO_HREF } from '@/lib/homeGaleria'
@@ -66,7 +66,7 @@ const PORTAS: ReadonlyArray<{ card: HomeCardId; rotulo: string; img: string }> =
 ]
 
 export default function HomePortasCelular({ signedIn, entradaNova = false, focusedShowcase = false }: { signedIn: boolean; entradaNova?: boolean; focusedShowcase?: boolean }) {
-  const portas = focusedShowcase ? [PORTAS[0], { card: 'films', rotulo: 'Film', img: MARS_FILM_PREVIEW.poster } as const] : PORTAS
+  const portas = focusedShowcase ? [PORTAS[0], { card: 'films', rotulo: 'Film', img: MARS_FIRST_PAINT_POSTER } as const] : PORTAS
   const cartoonPosters = focusedShowcase ? [WOLF_CARTOON_PREVIEW.poster, '/kids-cartoon/leo.webp'] : ['/kids-cartoon/leo.webp']
   const ideia = ideiaDaPagina(usePathname()) // KINEO-CAIXA-COM-IDEIA-0611
   // KINEO-ENTRADAS-TELA-NOVA-1011 — só na home (entradaNova): a porta Film e a caixa abrem a aba Film para quem está LOGADO; o visitante segue no destino de hoje (KINEO-ENTRADAS-SO-LOGADO-1011).

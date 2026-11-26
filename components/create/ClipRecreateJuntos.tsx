@@ -59,7 +59,7 @@ export default function ClipRecreateJuntos({ measurementActor = null, recreate }
     const midia = padrao ? rc.midia(padrao) : null
     // Efeito ou tendência do Clips com um modelo aberto: o painel volta ao Clips primeiro (as mesmas travas do Recreate). Recusou = o clique não passa.
     const voltaAoClipe = (event: SyntheticEvent) => { if (rc.selecionado && !rc.soltar(JUNTOS_VOLTA)) { event.preventDefault(); event.stopPropagation() } }
-    return <main className={`recreate rc-current-flow create-shell create-clip ct-juntos${modelo ? ' ct-juntos-modelo' : ''}`} data-create-shell="clip" data-clip-recreate-juntos={modelo ? 'recreate' : 'clip'}>
+    return <main className={`recreate rc-current-flow create-shell create-clip ct-juntos${modelo ? ' ct-juntos-modelo' : ''}`} data-create-shell="clip" data-recreate-showcase={recreate.polished || undefined} data-clip-recreate-juntos={modelo ? 'recreate' : 'clip'}>
       <header className="rc-nav ct-nav"><Link href="/" className="rc-brand" onClick={rc.sair}><KineoBrandIcon size={28} /><span>Kineo</span></Link><CreateTabs active="clip" showRecreate={false} showClip /><CreateNavConta /></header>
       {clip.estilos}{/* os estilos e a telemetria do Clips ficam montados nos dois painéis (sem eles, a grade de efeitos perde o CSS quando um modelo está aberto) */}
       {rc.aviso}

@@ -115,6 +115,7 @@ export function attachHomeCardPlayback(root: HTMLElement, clips: readonly HomeCa
       const index = assigned[slot]
       if (index === null) return
       failed.add(index)
+      if (slot === active) video.removeAttribute('data-on')
       if (slot === pending) { pending = null; advance() }
       // A bad hidden preview is skipped; a bad current preview leaves the SSR poster visible.
     }

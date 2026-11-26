@@ -15,14 +15,17 @@ import SeuVideoRecreateClient from '../recreate-preview/SeuVideoRecreateClient'
 import ClipRecreateJuntos, { type RecreateProps } from '@/components/create/ClipRecreateJuntos' // KINEO-CLIP-RECREATE-JUNTOS-1511
 import { clipRecreateJuntosVisivel, clipWorkspaceVisible } from '@/lib/create/clipRecreateJuntos' // KINEO-CLIP-RECREATE-JUNTOS-1511
 
+const RECREATE_SHOWCASE_2511 = true
+
 type Query = Record<string, string | string[] | undefined>
 
 /** Preview and regular routes share the flow only after owner approval.
  * Generation, private assets and approved templates retain their gates. */
-export default async function RecreateFlowPage({ id, searchParams = {}, basePath }: {
-  id?: string; searchParams?: Query; basePath: RecreateFlowBasePath
+export default async function RecreateFlowPage({ id, searchParams = {}, basePath, showcase = false }: {
+  id?: string; searchParams?: Query; basePath: RecreateFlowBasePath; showcase?: boolean
 }) {
   const { user } = await recreateSession()
+  const polished = showcase && RECREATE_SHOWCASE_2511 && basePath === '/recreate'
   const draftRef = typeof searchParams.draft === 'string' ? searchParams.draft : undefined
   // M12 revisão (1): "Use your video" só aparece para quem pode gerar com ele. Ao cliente vai só o booleano, nunca a regra.
   const ownVideoVisible = user ? releaseVisible(user.email, SEU_VIDEO_RELEASE) : SEU_VIDEO_RELEASE === 'public'
@@ -55,7 +58,7 @@ export default async function RecreateFlowPage({ id, searchParams = {}, basePath
   // única: o MESMO RecreateClient, com as MESMAS props da linha de baixo (o guardião compara uma a uma), dentro da tela que junta o Clips.
   // Visitante e conta fora do interruptor: a linha de baixo, como sempre. Só nas rotas do Recreate (a prévia /recreate-flow-preview fica como está).
   if (user && basePath === '/recreate' && clipRecreateJuntosVisivel(user.email)) {
-    const recreate: RecreateProps = { currentFlow: true, flowBasePath: basePath, initialId: id, guestQuotes, signedIn: !!user, accountKey: user?.id ?? null, draftRef, ownVideoVisible, generationAllowed, internalTools: !!user && releaseVisible(user.email, 'internal'), formatos, formatIds, createTabs: !!user && createShellVisible(user.email) }
+    const recreate: RecreateProps = { currentFlow: true, polished, flowBasePath: basePath, initialId: id, guestQuotes, signedIn: !!user, accountKey: user?.id ?? null, draftRef, ownVideoVisible, generationAllowed, internalTools: !!user && releaseVisible(user.email, 'internal'), formatos, formatIds, createTabs: !!user && createShellVisible(user.email) }
     if (clipWorkspaceVisible(user.email)) {
       const { default: ClipTemplateWorkspace } = await import('@/components/create/ClipTemplateWorkspace')
       const { clipTemplateSpecs, clipOwnVideoModelLabel } = await import('@/lib/create/clipWorkspaceServer')
@@ -69,6 +72,7 @@ export default async function RecreateFlowPage({ id, searchParams = {}, basePath
     return <ClipRecreateJuntos measurementActor={user.id} recreate={recreate} />
   }
   return <RecreateClient currentFlow flowBasePath={basePath} initialId={id}
+    polished={polished}
     guestQuotes={guestQuotes}
     signedIn={!!user} accountKey={user?.id ?? null} draftRef={draftRef}
     ownVideoVisible={ownVideoVisible} generationAllowed={generationAllowed}

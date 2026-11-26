@@ -108,6 +108,8 @@ function playbackProof(source=rd(PLAYER)) {
   const one=mount(source,{clips:[h.list[0]]});one.visible(true);one.videos[0].emit('playing');one.videos[0].ended=true;one.videos[0].emit('ended')
   assert.equal(one.videos[1].src,'','one-clip fallback never loads duplicate buffer')
   assert.equal(one.videos[0].currentTime,0,'one-clip fallback restarts on ended')
+  one.videos[0].emit('error')
+  assert.equal(one.videos[0].hasAttribute('data-on'), false, 'a failed playing video reveals the poster again')
   one.cleanup()
 }
 

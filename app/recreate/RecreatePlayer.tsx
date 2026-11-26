@@ -13,8 +13,8 @@ interface PlayerProps {
 }
 
 /** The gallery loads covers first. Selecting one uses the existing mode-specific callback. */
-export function ExampleCover({ src, poster, label, disabled, onSelect, foco }: {
-  src: string; poster: string; label: string; disabled?: boolean; onSelect: () => void; /** KINEO-TELA-RECREATE-1611 — object-position da capa (rosto ou ação inteiros) */ foco?: string
+export function ExampleCover({ src, poster, label, disabled, onSelect, foco, action }: {
+  src: string; poster: string; label: string; disabled?: boolean; onSelect: () => void; /** KINEO-TELA-RECREATE-1611 — object-position da capa (rosto ou ação inteiros) */ foco?: string; action?: ReactNode
 }) {
   const video = useRef<HTMLVideoElement>(null)
   return <button type="button" className="rc-example-cover" aria-label={label} disabled={disabled}
@@ -26,6 +26,7 @@ export function ExampleCover({ src, poster, label, disabled, onSelect, foco }: {
     }}
     onPointerLeave={() => video.current?.pause()}>
     <video ref={video} src={src} poster={poster} muted loop playsInline preload="none" aria-hidden="true" style={foco ? { objectPosition: foco } : undefined} />
+    {action}
   </button>
 }
 

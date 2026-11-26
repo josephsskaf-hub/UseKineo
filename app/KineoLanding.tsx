@@ -98,6 +98,7 @@ const usdPrice = (cents: number) => (cents / 100).toFixed(2)
 // linha do trial, nao na etiqueta de preco do motor.
 const creditLabel = (quality: Parameters<typeof creditCostFor>[0]) =>
   `${creditCostFor(quality, true)} credits / video`
+import { FOCUSED_PRODUCT_NAV_2511 } from '@/lib/ui/workspaceNavigation'
 import NavUgcAdsLink from '@/components/NavUgcAdsLink' // KINEO-MENU-UGC-2010 — o item "AI UGC Ads" do menu do topo (destino pela língua)
 import { MADE_WITH_KINEO_HREF, MADE_WITH_KINEO_LABEL, MADE_WITH_KINEO_NAV_ITEM } from '@/lib/homeGaleria' // KINEO-GALERIA-HOME-2710 — item "Made with Kineo" do topo
 import WelcomeOfferModal from '@/components/WelcomeOfferModal' // KINEO-WELCOME20-2026-08-25
@@ -926,8 +927,8 @@ export default function KineoLanding({
             <Link href={createEntryHref('film', '/studio?intent_campaign=nav_door', isSignedIn)} data-nav-item="video" className="nav-primary"><UiLabel>{NOMES_DE_PRODUTO.film.curto}</UiLabel></Link>
             {/* KINEO-NAV-TOPO-ADS-2026-09-30 — /ads/new leva quem está logado ao montador e o visitante à porta pública /ads.
                 KINEO-DUAS-PORTAS-2026-10-13 — vira a 2ª porta do topo, "Product ads", com o mesmo peso do "Make a film". */}
-            <Link href={createEntryHref('ads', '/ads/new', isSignedIn)} data-nav-item="business" className="nav-primary"><UiLabel>{NOMES_DE_PRODUTO.product_ads.curto}</UiLabel></Link>
-            <NavUgcAdsLink data-nav-item="more:ugc" signedIn={isSignedIn} label={NOMES_DE_PRODUTO.ugc_ads.curto} />{/* KINEO-MENU-UGC-2010 — fundador 20/10 ("o 2 no menu no topo, sim"): "AI UGC Ads" logo depois de "Product ads", leva à pilar /ai-ugc-ads (PT → /anuncios-ugc-com-ia); nada saiu nem mudou de ordem */}
+            {!FOCUSED_PRODUCT_NAV_2511 && <Link href={createEntryHref('ads', '/ads/new', isSignedIn)} data-nav-item="business" className="nav-primary"><UiLabel>{NOMES_DE_PRODUTO.product_ads.curto}</UiLabel></Link>}
+            {!FOCUSED_PRODUCT_NAV_2511 && <NavUgcAdsLink data-nav-item="more:ugc" signedIn={isSignedIn} label={NOMES_DE_PRODUTO.ugc_ads.curto} />}{/* KINEO-MENU-UGC-2010 — fundador 20/10 ("o 2 no menu no topo, sim"): "AI UGC Ads" logo depois de "Product ads", leva à pilar /ai-ugc-ads (PT → /anuncios-ugc-com-ia); nada saiu nem mudou de ordem */}
             {/* KINEO-GALERIA-HOME-2710 — [TRAVA 8.2 — pedido do fundador 27/10 "uma seção no início onde a gente mostra todos os nossos clips, imagens, tudo junto"]: item "Made with Kineo" (nome exato dele) logo depois dos itens de filme e de anúncio; nada saiu nem mudou de ordem */}
             {/* KINEO-HOME-REMODELA-2010 — fundador 20/10: "esses vão ser os quatro principais, e ao lado vai ser o MCP do Claude e do GPT… more tools a gente vai cancelar". */}
             {/* KINEO-HOME-REMODELA-2010 — 4º principal: os desenhos 3D para crianças; ao lado, o conector (Claude e ChatGPT). O "More tools" saiu: Images, Clips, Spaces e Examples seguem no rodapé e pela URL. */}
@@ -960,11 +961,12 @@ export default function KineoLanding({
               {/* KINEO-DUAS-PORTAS-2026-10-13 — par do topo: as 2 portas + Pricing + Log in/Dashboard em cima; embaixo, sob o
                   rótulo "More tools", tudo o que saiu do topo (Imagem com os motores primeiro, Clips, Spaces, MCP, Examples). */}
               <Link href={createEntryHref('film', '/studio', isSignedIn)} data-nav-item="video"><UiLabel>{NOMES_DE_PRODUTO.film.curto}</UiLabel></Link>
-              <Link href={createEntryHref('ads', '/ads/new', isSignedIn)} data-nav-item="business"><UiLabel>{NOMES_DE_PRODUTO.product_ads.curto}</UiLabel></Link>
-              <NavUgcAdsLink data-nav-item="more:ugc" signedIn={isSignedIn} label={NOMES_DE_PRODUTO.ugc_ads.curto} />{/* KINEO-MENU-UGC-2010 — par do topo no celular */}
-              <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}>{MADE_WITH_KINEO_LABEL}</Link>{/* KINEO-GALERIA-HOME-2710 — par do topo no celular */}
+              {!FOCUSED_PRODUCT_NAV_2511 && <Link href={createEntryHref('ads', '/ads/new', isSignedIn)} data-nav-item="business"><UiLabel>{NOMES_DE_PRODUTO.product_ads.curto}</UiLabel></Link>}
+              {!FOCUSED_PRODUCT_NAV_2511 && <NavUgcAdsLink data-nav-item="more:ugc" signedIn={isSignedIn} label={NOMES_DE_PRODUTO.ugc_ads.curto} />}{/* KINEO-MENU-UGC-2010 — par do topo no celular */}
+              {!FOCUSED_PRODUCT_NAV_2511 && <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}>{MADE_WITH_KINEO_LABEL}</Link>}{/* KINEO-GALERIA-HOME-2710 — par do topo no celular */}
               <Link href={createEntryForContentHref('cartoon', MENU_CARTOON_HREF, '/kids-cartoon', isSignedIn)} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{NOMES_DE_PRODUTO.cartoon.curto}</UiLabel></Link>{/* KINEO-HOME-REMODELA-2010 — par do topo */}
               <Link href={RECREATE_MENU_HREF} data-nav-item={RECREATE_MENU_NAV_ITEM}>{RECREATE_MENU_LABEL}</Link>{/* KINEO-MENU-RECREATE-1211 — par do topo no celular */}
+              {FOCUSED_PRODUCT_NAV_2511 && <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}>{MADE_WITH_KINEO_LABEL}</Link>}
               <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM}>{MENU_CONNECTOR_LABEL}</Link>{/* KINEO-HOME-REMODELA-2010 — par do topo */}
               <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
 

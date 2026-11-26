@@ -10,7 +10,8 @@ import vm from 'node:vm'
 import { createRequire } from 'node:module'
 import assert from 'node:assert/strict'
 
-const args = process.argv.slice(2)
+const adsOnly = process.argv.includes('--ads-only')
+const args = process.argv.slice(2).filter(arg => arg !== '--ads-only')
 assert(args.length === 0 || args.length === 2 && args[0] === '--root', 'Use --root <repository>')
 const ROOT = path.resolve(args[1] || process.cwd())
 const require = createRequire(path.join(ROOT, 'package.json'))
@@ -153,6 +154,20 @@ console.log('1. o menu e os links')
   const cli = ler('app/(dashboard)/ads/v2/AdsV2Client.tsx')
   checa('com a entrada ligada, cabeçalho novo e sem as abas (o que o print 278 mostra)', cli.includes('{mode && !n9Head && advancedModes ? <AdsFlowTabs') && cli.includes("<h1>{n9Head ? n9Head.title : shell.title}</h1>"))
   checa('?mode= continua sendo lido pela tela', cli.includes(".get('mode') === 'full'") && cli.includes(".get('mode') === 'batch'"))
+}
+
+if (adsOnly) {
+  for (const reason of ['subscription', 'none']) {
+    const start = await abrirNovo(CLIENTE, { utm_source: 'legacy_nav' })
+    checa('link antigo de Ads preserva redirecionamento e origem', start.para === '/ads/v2?utm_source=legacy_nav')
+    for (const entry of ['product', 'ugc']) {
+      const result = await abrirV2(CLIENTE, { entry, utm_source: 'legacy_nav' }, { razao: reason })
+      checa('montagem logada de Ads abre ' + entry + ' (' + reason + ')', !result.para && result.cliente?.entry === entry && result.cliente.guest !== true)
+    }
+  }
+  assert.equal(falhas, 0)
+  console.log('PASS · /ads/new redireciona e /ads/v2 monta sem 404 com login simulado')
+  process.exit(0)
 }
 
 // ═══ Tela do desenho ═══

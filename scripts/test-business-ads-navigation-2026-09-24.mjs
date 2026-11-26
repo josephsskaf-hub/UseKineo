@@ -6,7 +6,6 @@ import { createRequire } from 'node:module'
 const { loader } = createRequire(import.meta.url)('../docs/recreate-0911/test-recreate.cjs')
 const entry = loader()('lib/create/entry')
 const ADS_TOP = entry.createEntryHref('ads', '/ads/new', false), FILM_TOP = entry.createEntryHref('film', '/studio', false)
-const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const check = (name, condition) => { if (!condition) throw Error(name); console.log('PASS '+name) }
 const read = file => readFileSync(new URL('../'+file, import.meta.url), 'utf8')
 // 27/09: visitante deslogado caía no /login; a porta pública é /ads (200 para todos), que leva ao criador.
@@ -19,21 +18,18 @@ const desktop = nav.slice(0,nav.indexOf('class="nav-right"'))
 // KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25 — o topo diz "For businesses" (Para empresas, decisão do fundador de 25/09); o
 // rodapé segue "Videos for businesses". Pedido explícito25/09: o destino agora é o criador /ads/new; acesso é validado lá, nunca um checkout direto.
 const linked = html => html.includes(destination) && /Videos for businesses|For businesses/.test(html) && !html.includes('buy.stripe.com')
-// reancorado 30/09 (KINEO-NAV-TOPO-ADS): o fundador trocou o topo para "Ads" (como os concorrentes) indo direto ao painel
-// /ads/new — que manda o logado ao montador e o visitante à porta pública /ads (nunca ao /login nem ao checkout).
-// O rodapé segue "Videos for businesses" → /ads.
-// reancorado 13/10 (KINEO-DUAS-PORTAS-2026-10-13, fundador "tudo sim", ação B): o item vira a 2ª porta, "Product ads", mesmo
-// destino /ads/new; Imagem e Spaces desceram para o "More tools" (depois da porta), Pricing segue por último.
-// reancorado 12/11 (KINEO-NOMES-DE-PRODUTO-1211, nomes aprovados pelo fundador 11/11): o rótulo do topo vira "Product Ads"; destino e regras iguais.
-const topLinked = html => new RegExp('href="' + esc(ADS_TOP) + '"[^>]*>(?:<!-- -->)?(?:<[^>]+>)*Product Ads<').test(html) && ADS_TOP === '/ads/new' && entry.createEntryHref('ads', '/ads/new', true) === '/create/ads' && entry.LEGACY_ENTRY_PATH.ads === '/ads/new' && !html.includes('buy.stripe.com') && !/For businesses/.test(html)
-check('desktop menu opens the Ads panel, not checkout', topLinked(desktop))
-check('mobile menu opens the Ads panel, not checkout', topLinked(mobile))
+// Focused navigation keeps Ads directly accessible in both session states.
+check('guest Ads creator resolves to the existing public entry', ADS_TOP === '/ads/new' && entry.LEGACY_ENTRY_PATH.ads === '/ads/new')
+check('signed-in Ads creator resolves to its existing workspace', entry.createEntryHref('ads', '/ads/new', true) === '/create/ads')
+const focused = html => html.length > 0 && !/data-nav-item="(?:business|more:ugc)"|Product Ads|UGC Ads|href="\/ai-ugc-ads(?:[?"]|$)|href="(?:\/ads(?:[/?"]|$)|\/create\/ads(?:[?"]|$))|buy\.stripe\.com/i.test(html)
+check('focused desktop omits Ads', focused(desktop))
+check('focused mobile omits Ads', focused(mobile))
 // KINEO-HOME-REMODELA-2010 — reancorado 20/10, fundador: "esses vão ser os quatro principais, e ao lado vai ser o MCP do Claude e do GPT… more tools a gente vai cancelar" — Images e Spaces saíram do topo (rodapé).
 // KINEO-PRICING-NO-MENU-1911 — em 19/11 às 19:38 o fundador moveu Pricing para a lista, depois de Claude & ChatGPT.
 const direita = nav.slice(nav.indexOf('class="nav-right"'), nav.indexOf('id="mobile-nav-menu"'))
-const desktopDestinations = [`href="${ADS_TOP}"`, 'href="/ai-kids-cartoon-videos"', 'href="/kineo-in-claude"', 'href="/pricing" data-nav-item="pricing"']
+const desktopDestinations = ['data-nav-item="video"', 'href="/ai-kids-cartoon-videos"', 'href="/kineo-in-claude"', 'href="/pricing" data-nav-item="pricing"']
 const positions = desktopDestinations.map(href => desktop.indexOf(href))
-check('top menu order: Product Ads · Cartoons · Claude & ChatGPT · Pricing, all in the list', positions.every((pos, i) => pos >= 0 && (i === 0 || pos > positions[i - 1])) && !direita.includes('data-nav-item="pricing"') && !desktop.includes('href="/images') && !desktop.includes('href="/spaces"'))
+check('top menu order: Films · Cartoons · Claude & ChatGPT · Pricing, all in the list', positions.every((pos, i) => pos >= 0 && (i === 0 || pos > positions[i - 1])) && !direita.includes('data-nav-item="pricing"') && !desktop.includes('href="/images') && !desktop.includes('href="/spaces"'))
 check('/ads/new sends visitors to the public door, never /login', /redirect\(visitante \? adsV2Href\(searchParams\) : adsPublicHref\(searchParams\)\)/.test(read('app/(dashboard)/ads/new/page.tsx')))
 check('shared footer opens the creator', linked(footer))
 check('existing pricing and studio destinations survive', nav.includes('href="/pricing"') && nav.includes('href="' + FILM_TOP + '"'))
@@ -51,4 +47,8 @@ for (const lang of ['es','hi','pt','fr','de','it','nl','pl','tr','ru','uk','ar',
   const translated = renderPage('components/Footer.tsx', false, {interfaceLanguage:lang,interfaceDictionary:{'Videos for businesses':value}}, {showStats:false})
   check(lang+' footer renders translated link', translated.includes(destination) && translated.includes(value))
 }
-check('mutant: removing mobile destination is rejected', !topLinked(mobile.replaceAll('href="' + ADS_TOP + '"','href="/pricing"')))
+for (const html of [desktop, mobile]) {
+  check('mutant: restoring UGC Ads is rejected', !focused(html + '<a href="/ai-ugc-ads">UGC Ads</a>'))
+  check('mutant: restoring the Ads link is rejected', !focused(html + '<a href="/ads/new">Product Ads</a>'))
+}
+check('mutant: losing the Ads footer link is rejected', !linked(footer.replaceAll(destination, 'href="/pricing"')))

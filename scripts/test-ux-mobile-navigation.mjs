@@ -35,7 +35,7 @@ const CreateMolduraTopo = () => null
 const loadPure = createOfflineLoader()
 // The shell's visibility hook runs with the same SSR hook shim as the shell itself.
 const loadNavigation = createOfflineLoader({ mocks: { react: hooks } })
-function loadComponent(file) {
+function loadComponent(file, loadLibrary = loadPure) {
   const source = fs.readFileSync(path.join(root, file), 'utf8')
   const output = ts.transpileModule(source, { compilerOptions: {
     module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React, target: ts.ScriptTarget.ES2020,
@@ -46,7 +46,7 @@ function loadComponent(file) {
     if (name === 'next/link') return { default: Link }
     if (name === 'next/navigation') return { usePathname: () => pathname }
     if (name === '@/lib/create/useCreateNavigationVisibility') return loadNavigation(name)
-    if (name.startsWith('@/lib/')) return loadPure(name)
+    if (name.startsWith('@/lib/')) return loadLibrary(name)
     if (name === '@/components/AccountMenuScope') return { useAccountMenuScope: () => null }
     if (name === '@/components/InterfaceLanguage') return { UiLabel: ({ children }) => children }
     if (name === '@/components/TopBar') return { default: TopBar }
@@ -62,7 +62,15 @@ function nodes(tree) {
   if (!tree || typeof tree !== 'object') return []
   return [tree, ...nodes(tree.props?.children)]
 }
-const MobileNav = loadComponent('components/MobileNav.tsx')
+const loadLegacy = createOfflineLoader({
+  source: (file, source) => {
+    if (file !== 'lib/ui/workspaceNavigation.ts') return source
+    const flag = 'const FOCUSED_PRODUCT_NAV_2511 = true'
+    assert.equal(source.split(flag).length, 2)
+    return source.replace(flag, 'const FOCUSED_PRODUCT_NAV_2511 = false')
+  },
+})
+const MobileNav = loadComponent('components/MobileNav.tsx', loadLegacy)
 const Shell = loadComponent('app/(dashboard)/DashboardShell.tsx')
 let passed = 0
 function check(name, test) { test(); passed++; console.log('OK ' + name) }
@@ -91,8 +99,22 @@ for (const href of expected) {
 }
 check('five primary slots', () => {
   const row = nodes(tree).find((n) => n.props.className === 'kineo-mobile-row')
-  assert.equal(row.props.children.length, 5)
+  assert.equal(React.Children.count(row.props.children), 5)
 })
+check('focused menu exposes the five product destinations in the agreed order', () => {
+  assert.equal(loadPure('@/lib/ui/workspaceNavigation').FOCUSED_PRODUCT_NAV_2511, true)
+  const FocusedMobileNav = loadComponent('components/MobileNav.tsx')
+  const rowLinks = nodes(FocusedMobileNav({ isLoggedIn: true }))
+  const row = rowLinks.find(node => node.props.className === 'kineo-mobile-row')
+  const primary = nodes(React.Children.toArray(row.props.children).slice(0, -1)).filter(node => node.type === Link)
+  const expectedPrimary = ['/studio', '/kids-cartoon', '/recreate', '/library', '/pricing']
+  assert.deepEqual(primary.map(node => node.props.href), expectedPrimary.map(entrada))
+  assert.equal(rowLinks.filter(node => node.type === 'details').length, 1)
+  assert(!rowLinks.some(node => node.type === Link && /^\/(?:ads|create\/ads)(?:[/?]|$)/.test(node.props.href)))
+  const sidebar = loadPure('@/lib/ui/workspaceNavigation').sidebarNavItems(true)
+  assert.deepEqual(Array.from(sidebar, item => item.href), expectedPrimary)
+})
+
 check('guest cannot see invite, affiliate or account', () => {
   const guestLinks = nodes(render('/studio', false)).filter((n) => n.type === Link).map((n) => n.props.href)
   for (const href of ['/studio', '/ads/new', '/kids-cartoon']) assert.ok(guestLinks.includes(href) && !guestLinks.some((h) => h.startsWith('/create/'))) // KINEO-ENTRADAS-SO-LOGADO-1011 — visitante: o destino de hoje

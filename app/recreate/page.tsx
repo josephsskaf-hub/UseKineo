@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 export default async function Page() {
   if (RECREATE_FLOW_ENABLED) {
     const { default: RecreateFlowPage } = await import('./RecreateFlowPage')
-    return RecreateFlowPage({ basePath: '/recreate' })
+    return RecreateFlowPage({ basePath: '/recreate', showcase: true })
   }
   const { user } = await recreateSession()
   if (!user) {

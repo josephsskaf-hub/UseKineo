@@ -1,5 +1,6 @@
 import { KineoBrandIcon } from '@/components/KineoBolt'
 import { UiLabel } from '@/components/InterfaceLanguage'
+import { FOCUSED_PRODUCT_NAV_2511 } from '@/lib/ui/workspaceNavigation'
 import NavUgcAdsLink from '@/components/NavUgcAdsLink'
 import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import { createEntryForContentHref, createEntryHref } from '@/lib/create/entry'
@@ -19,8 +20,8 @@ export default function PublicSiteHeader({ signedIn, currentPath, signupHref, si
   const filmHref = createEntryHref('film', '/studio', !!signedIn)
   const links = (<>
     <Link href={filmHref} data-nav-item="video"><UiLabel>{NOMES_DE_PRODUTO.film.curto}</UiLabel></Link>
-    <Link href={createEntryHref('ads', '/ads/new', !!signedIn)} data-nav-item="business"><UiLabel>{NOMES_DE_PRODUTO.product_ads.curto}</UiLabel></Link>
-    <NavUgcAdsLink data-nav-item="more:ugc" signedIn={signedIn} label={NOMES_DE_PRODUTO.ugc_ads.curto} />
+    {!FOCUSED_PRODUCT_NAV_2511 && <Link href={createEntryHref('ads', '/ads/new', !!signedIn)} data-nav-item="business"><UiLabel>{NOMES_DE_PRODUTO.product_ads.curto}</UiLabel></Link>}
+    {!FOCUSED_PRODUCT_NAV_2511 && <NavUgcAdsLink data-nav-item="more:ugc" signedIn={signedIn} label={NOMES_DE_PRODUTO.ugc_ads.curto} />}
     <Link href={createEntryForContentHref('cartoon', MENU_CARTOON_HREF, '/kids-cartoon', !!signedIn)} data-nav-item={MENU_CARTOON_NAV_ITEM} aria-current={currentPath === MENU_CARTOON_HREF ? 'page' : undefined}><UiLabel>{NOMES_DE_PRODUTO.cartoon.curto}</UiLabel></Link>
     <Link href={RECREATE_MENU_HREF} data-nav-item={RECREATE_MENU_NAV_ITEM} aria-current={currentPath === RECREATE_MENU_HREF ? 'page' : undefined}>{RECREATE_MENU_LABEL}</Link>
     <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM} aria-current={currentPath === MADE_WITH_KINEO_HREF ? 'page' : undefined}>{MADE_WITH_KINEO_LABEL}</Link>

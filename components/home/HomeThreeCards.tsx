@@ -26,7 +26,7 @@ import {
   type HomeCardId,
   type HomeCardPlaylist,
 } from '@/lib/ui/homeThreeCards'
-import { WOLF_CARTOON_PREVIEW, MARS_FILM_PREVIEW } from '@/lib/ui/homeFocusedShowcase2511'
+import { WOLF_CARTOON_PREVIEW, MARS_FILM_PREVIEW, MARS_FIRST_PAINT_POSTER, marsCardCopy } from '@/lib/ui/homeFocusedShowcase2511'
 import { createEntryForSignupHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"]
 import { homeCardLinha } from '@/lib/ui/homeCardLinha0411' // KINEO-FLUXO2-F-0411
 import HomeProductAdsReel from '@/components/home/HomeProductAdsReel' // KINEO-BEBE-QUE-FALA-2010 — o reel do card de produto no modo 4 cards
@@ -117,7 +117,7 @@ const FOCUSED_HOME_CARDS: readonly HomeCardChoice[] = [
 
 // KINEO-CARDS-GIRO-2410 — all cards share the event-driven double buffer.
 function CardMedia({ card, language, featuredPlaylist }: { card: HomeCardId; language: string; featuredPlaylist?: HomeCardPlaylist }) {
-  return <HomeCardCycleMedia card={card} language={language} playlist={HOME_CARD_TRAILERS_0411[card]} featuredPlaylist={featuredPlaylist} /> // KINEO-CARDS-TRAILER-0411 — Filmes mostra só o trailer; Produto e UGC seguem iguais
+  return <HomeCardCycleMedia firstPaintPoster={featuredPlaylist?.[0] === MARS_FILM_PREVIEW ? MARS_FIRST_PAINT_POSTER : undefined} card={card} language={language} playlist={HOME_CARD_TRAILERS_0411[card]} featuredPlaylist={featuredPlaylist} /> // KINEO-CARDS-TRAILER-0411 — Filmes mostra só o trailer; Produto e UGC seguem iguais
 }
 
 import HomePortasCelular from '@/components/home/HomePortasCelular' // KINEO-CELULAR-A-0611
@@ -127,6 +127,7 @@ import HomePortasCelular from '@/components/home/HomePortasCelular' // KINEO-CEL
 export default function HomeThreeCards({ signedIn, kidsCard = false, entradaNova = false, focusedShowcase = false }: { signedIn: boolean; kidsCard?: boolean; entradaNova?: boolean; focusedShowcase?: boolean }) { // KINEO-BEBE-QUE-FALA-2010 — + kidsCard (o 4º card); era: export default function HomeThreeCards({ signedIn }: { signedIn: boolean }) {
   const copy = useUiCopy()
   const language = useInterfaceLanguage()
+  const mars = marsCardCopy(language)
   const [chatgptArrival, setChatgptArrival] = useState(false) // KINEO-PAGINAS-IA-CLARAS-2110 — SSR e primeira hidratação usam a mesma ordem.
   useEffect(() => { // KINEO-PAGINAS-IA-CLARAS-2110 — regra compartilhada pela home e pelas páginas de entrada; sem persistir origem.
     setChatgptArrival(vemDoChatgpt(new URLSearchParams(window.location.search).get('utm_source'), document.referrer))
@@ -153,14 +154,14 @@ export default function HomeThreeCards({ signedIn, kidsCard = false, entradaNova
           {cardChoices.map(({ card, key, featuredPlaylist }, index) => card === 'kids_cartoon' ? ( // KINEO-PAGINAS-IA-CLARAS-2110 — ordem DOM e teclado seguem a ordem visual; chaves estáveis.
             <HomeKidsCard key={key} featuredPlaylist={featuredPlaylist} signedIn={signedIn} position={index + 1} entradaNova={entradaNova} /> // KINEO-PAGINAS-IA-CLARAS-2110
           ) : (
-            <Link key={key} href={entradaNova ? createEntryForSignupHref(homeCardHref(card, signedIn), signedIn) : homeCardHref(card, signedIn)} className="k3c-card" data-home-card={card} onClick={() => track(card, index + 1)}>
+            <Link key={key} href={entradaNova ? createEntryForSignupHref(homeCardHref(card, signedIn), signedIn) : homeCardHref(card, signedIn)} className="k3c-card" data-mars-story={key === 'mars' || undefined} data-home-card={card} onClick={() => track(card, index + 1)}>
               {kidsCard && card === 'product_ads' ? <HomeProductAdsReel language={language} /> : <CardMedia card={card} language={language} featuredPlaylist={featuredPlaylist} />}{/* KINEO-BEBE-QUE-FALA-2010 — modo 4 cards: o reel Lume + 3 trios no card de produto; era: <CardMedia card={card} language={language} /> */}
               <span className="k3c-shade" aria-hidden="true" />
               <span className="k3c-glass" aria-hidden="true" />
               {/* KINEO-HOME-CARDS-CLAROS-2010 — sem o selo do motor (fundador 21/10: "pode tirar o motor de todos os cards desses 4 primeiros"); era: <span className="k3c-badge" aria-hidden="true">{HOME_CARD_BADGE[card]}</span> */}
               <span className="k3c-body">
-                <h2 className="k3c-title">{copy(HOME_CARD_COPY[card].title)}</h2>
-                <p className="k3c-sub">{copy(homeCardLinha(card))}</p>
+                <h2 className="k3c-title">{key === 'mars' ? mars.title : copy(HOME_CARD_COPY[card].title)}</h2>
+                <p className="k3c-sub">{key === 'mars' ? mars.subtitle : copy(homeCardLinha(card))}</p>
                 <span className="btn btn-blue k3c-cta">{card === 'films' ? <UiLabel>Make my film</UiLabel> : adsCta(card)} <span className="k3c-arrow" aria-hidden="true">→</span></span>{/* KINEO-HOME-CARDS-BOTOES-2010 */}
               </span>
             </Link>

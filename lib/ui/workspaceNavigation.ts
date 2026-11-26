@@ -39,7 +39,11 @@ export const CARTOON_NAV = { href: '/kids-cartoon', label: 'Cartoon', icon: 'car
 // KINEO-MENU-RECREATE-1211 [fundador 12/11: "não tem o Recreate no menu"] — par do topo da home: Recreate logo depois do Cartoon na lateral
 // e no "More" do celular; leva ao catálogo de todos os modelos que a conta pode recriar (/recreate).
 export const RECREATE_NAV = { href: '/recreate', label: 'Recreate', icon: 'recreate' } as const
+export const FOCUSED_PRODUCT_NAV_2511 = true
+export const FOCUSED_WORKSPACE_NAV = [WORKSPACE_NAV[0], CARTOON_NAV, RECREATE_NAV, ...WORKSPACE_NAV.filter(item => SIDEBAR_LAST.has(item.href))] as const
+
 export function sidebarNavItems(clipsOn: boolean): readonly { href: string; label: string; icon: string }[] {
+  if (FOCUSED_PRODUCT_NAV_2511) return FOCUSED_WORKSPACE_NAV
   const doors = WORKSPACE_NAV.filter(item => !SIDEBAR_LAST.has(item.href))
   const tools = MORE_TOOLS_NAV.filter(item => item.href !== '/spaces' && (item.href !== '/clips' || clipsOn))
   const last = WORKSPACE_NAV.filter(item => SIDEBAR_LAST.has(item.href))

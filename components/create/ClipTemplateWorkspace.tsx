@@ -18,13 +18,13 @@ type Mode = 'templates' | 'motion' | 'own' | 'idea'
 type OwnVideo = ComponentProps<typeof SeuVideoRecreateClient>
 type Props = { measurementActor: string | null; recreate: RecreateProps; specs: Record<string, ClipTemplateSpec>; ownVideo?: OwnVideo }
 
-function ClipCover({ formats, media }: { formats: readonly RecreateFormat[]; media: PartesDoRecreate['midia'] }) {
+function ClipCover({ formats, media, polished }: { formats: readonly RecreateFormat[]; media: PartesDoRecreate['midia']; polished: boolean }) {
   const [index, setIndex] = useState(0)
   const [playOverride, setPlayOverride] = useState<boolean | null>(null)
   const [environment, setEnvironment] = useState({ visible: false, reducedMotion: true })
   const wantsPlayback = playOverride ?? !environment.reducedMotion
   const playing = environment.visible && wantsPlayback
-  const visible = formats.filter(f => publicRecreatePath(f.id) !== null).slice(0, 3)
+  const visible = polished ? formats.slice(0, 1) : formats.filter(f => publicRecreatePath(f.id) !== null).slice(0, 3)
   const count = visible.length
   const current = visible[index % count]
   useEffect(() => {
@@ -46,12 +46,13 @@ function ClipCover({ formats, media }: { formats: readonly RecreateFormat[]; med
   const asset = current ? media(current) : null
   return <div className="cw-cover">
     {asset && current && (playing ? <video key={current.id} src={asset.video} poster={asset.poster} muted autoPlay loop playsInline aria-hidden="true" /> : <img src={asset.poster} alt="" />)}
-    <h1>Kineo Clips</h1>
+    <h1>{polished ? 'Recreate' : 'Kineo Clips'}</h1>
     {count > 0 && <button aria-label={wantsPlayback ? 'Pause cover previews' : 'Play cover previews'} type="button" onClick={() => setPlayOverride(!wantsPlayback)}>{wantsPlayback ? 'Ⅱ' : '▶'}</button>}
   </div>
 }
 
 export default function ClipTemplateWorkspace({ measurementActor, recreate, specs, ownVideo }: Props) {
+  const polished = recreate.polished === true
   const [mode, setMode] = useState<Mode>('templates')
   const [ownOpened, setOwnOpened] = useState(false)
   const [category, setCategory] = useState<ClipTemplateCategory | 'All'>('All')
@@ -78,17 +79,17 @@ export default function ClipTemplateWorkspace({ measurementActor, recreate, spec
         setMode(next)
       }
 
-      return <main className="recreate rc-current-flow create-shell create-clip cw-workspace" data-create-shell="clip" data-clip-workspace="">
+      return <main className="recreate rc-current-flow create-shell create-clip cw-workspace" data-create-shell="clip" data-clip-workspace="" data-recreate-showcase={polished || undefined}>
         <header className="rc-nav ct-nav"><Link href="/" className="rc-brand" onClick={rc.sair}><KineoBrandIcon size={28} /><span>Kineo</span></Link><CreateTabs active="clip" showRecreate={false} showClip /><CreateNavConta /></header>
         {clip.estilos}
         <div className="cw-grid">
           <aside className="rc-panel cw-panel" aria-label="Clip controls">
-            <ClipCover formats={rc.catalogo} media={rc.midia} />
+            <ClipCover formats={rc.catalogo} media={rc.midia} polished={polished} />
             <div className="cw-modes" role="group" aria-label="Clip mode">
               {modes.filter(([, , enabled]) => enabled).map(([key, label]) => <button key={key} type="button" aria-pressed={mode === key} disabled={rc.ocupado} onClick={() => switchMode(key)}>{label}</button>)}
             </div>
             {templateMode && rc.aviso}
-            {templateMode && (rc.selecionado ? rc.painel : <>
+            {templateMode && (rc.selecionado ? rc.painel : polished ? <p className="rc-pick-template">Pick a template and add your photo.</p> : <>
               <div className="cw-empty-field"><strong>Reference video</strong><span>Choose a template to load its reference.</span></div>
               <div className="cw-empty-field"><strong>Your photo</strong><span>Add a photo after choosing a template.</span></div>
               <div className="cw-prompt"><label><span>Prompt</span><input type="checkbox" role="switch" disabled /></label></div>
