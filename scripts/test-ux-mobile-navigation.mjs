@@ -88,7 +88,7 @@ const expected = ['/studio', '/ads/new', '/library', '/pricing', '/made-with-kin
 // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — Make a film · Product ads · Cartoon passam pela entrada
 // única (lib/create/entry.ts): o destino ANTIGO segue sendo a identidade do item (medição e ativo); o link abre a tela nova (/create/<aba>).
 const ENTRY = loadPure('@/lib/create/entry')
-const entrada = (href) => ENTRY.createEntryForLegacyHref(href, true) // logado (o render padrão); KINEO-ENTRADAS-SO-LOGADO-1011: visitante fica no antigo
+const entrada = (href) => ENTRY.createEntryForLegacyHref(href, true) // logado (o render padrão)
 assert.deepEqual(['/studio', '/ads/new', '/kids-cartoon'].map(entrada), ['/create/film?intent_campaign=studio_simple', '/create/ads', '/create/cartoon'])
 check('all 11 approved destinations, no duplicates', () => assert.deepEqual(links.map((n) => n.props.href).sort(), expected.map(entrada).sort()))
 for (const href of expected) {
@@ -115,11 +115,37 @@ check('focused menu exposes the five product destinations in the agreed order', 
   assert.deepEqual(Array.from(sidebar, item => item.href), expectedPrimary)
 })
 
-check('guest cannot see invite, affiliate or account', () => {
-  const guestLinks = nodes(render('/studio', false)).filter((n) => n.type === Link).map((n) => n.props.href)
-  for (const href of ['/studio', '/ads/new', '/kids-cartoon']) assert.ok(guestLinks.includes(href) && !guestLinks.some((h) => h.startsWith('/create/'))) // KINEO-ENTRADAS-SO-LOGADO-1011 — visitante: o destino de hoje
-  for (const href of ['/referral', '/affiliate', '/account']) assert.ok(!guestLinks.includes(href))
-  assert.ok(guestLinks.includes('/pricing'))
+const guestFilm = '/create/film?intent_campaign=studio_simple'
+function checkGuestMenu(component, focused) {
+  const items = nodes(component({ isLoggedIn: false })).filter(node => node.type === Link)
+  const hrefs = items.map(node => node.props.href)
+  const films = items.filter(node => node.props['data-nav-item'] === 'video')
+  assert.deepEqual(films.map(node => node.props.href), [guestFilm], 'guest Films must open the public editor with its campaign')
+  assert.deepEqual(hrefs.filter(href => href.startsWith('/create/')), [guestFilm])
+  assert.ok(!hrefs.includes('/studio'))
+  for (const href of ['/kids-cartoon', '/pricing']) assert.ok(hrefs.includes(href), href)
+  assert.equal(hrefs.includes('/ads/new'), !focused)
+  for (const href of ['/referral', '/affiliate', '/account']) assert.ok(!hrefs.includes(href), href)
+}
+
+check('guest Films opens the editor in both menus; the other destinations and private links keep their policy', () => {
+  checkGuestMenu(MobileNav, false)
+  checkGuestMenu(loadComponent('components/MobileNav.tsx'), true)
+})
+
+check('mutant: sending guest Films back to /studio fails the destination assertion', () => {
+  const oldGuestFilm = createOfflineLoader({
+    source(file, source) {
+      if (file !== 'lib/create/entry.ts') return source
+      const anchor = 'const publicFilmMenu = signedIn === false'
+      assert.equal(source.split(anchor).length, 2)
+      return source.replace(anchor, 'const publicFilmMenu = false')
+    },
+  })
+  const mutatedNav = loadComponent('components/MobileNav.tsx', oldGuestFilm)
+  assert.throws(() => checkGuestMenu(mutatedNav, true), error =>
+    error instanceof assert.AssertionError && error.message.includes('guest Films must open the public editor') &&
+    error.actual.length === 1 && error.actual[0] === '/studio' && error.expected[0] === guestFilm)
 })
 for (const [route, active] of [['/studio', true], ['/studio/create', true], ['/studio-other', false]]) {
   check('route boundary ' + route, () => {
