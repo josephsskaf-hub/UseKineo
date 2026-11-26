@@ -106,14 +106,15 @@ async function prova({ f, g, e, r, i }, ler) {
   const portaoFala = (n, piso) => r.roteiroFaladoNoPortao2511({ voiceMode: 'characters', ligada: true, ingles: true, secoes: secoes(n), ...(piso ? { piso } : {}) })
   for (const [n, casa, cli] of [[12, true, false], [25, true, false], [28, true, false], [29, true, true], [45, true, true], [46, false, false]]) {
     assert.equal(portaoFala(n), casa, `6 casa (piso 12), ${n} palavras`); assert.equal(portaoFala(n, r.PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611), cli, `6 cliente (piso 29), ${n} palavras`) }
-  const trechoPiso = fatia(src, '    const faladoNoPortao2511 = ', '      }, { status: 422 })\n    }\n', 'rota: o portão do falado e o 422 do cliente')
-  const naRota = (email, n, voz = 'characters') => new Function('roteiroFaladoNoPortao2511', 'falasDoRoteiroSemElenco2511', 'PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611', 'faladoPedido2511', 'body', 'parsedScript', 'contaDaCasaExata2511', 'user', 'NextResponse',
-    js('return (() => {\n' + trechoPiso + '\nreturn { segue: faladoNoPortao2511 } })()'))(r.roteiroFaladoNoPortao2511, r.falasDoRoteiroSemElenco2511, r.PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611, voz === 'characters', { voice_mode: voz },
-    { segments: secoes(n).map((v) => ({ voiceover: v })) }, (x) => x === 'casa@example.org', { email }, { json: (b, o) => ({ b, status: o?.status }) })
-  for (const n of [12, 20, 28]) { const x = naRota('cliente@example.org', n); assert.equal(x.status, 422, '6 cliente com ' + n + ' palavras ditas = 422 antes de despachar'); assert.equal(x.b.reason, 'fala_curta_cliente'); assert.equal(x.b.missingWords, 29 - n); assert.equal(x.b.narrationTooShort, true) }
-  for (const n of [29, 40]) assert.equal(naRota('cliente@example.org', n).segue, true, '6 cliente com ' + n + ' palavras = o falado segue')
-  for (const n of [12, 25]) assert.equal(naRota('casa@example.org', n).segue, true, '6 a casa com ' + n + ' palavras = o falado segue (piso 12)')
-  assert.equal(naRota('cliente@example.org', 20, 'narrator').status, undefined, '6 sem voice_mode characters: nada novo (o narrado de sempre decide)')
+  const trechoPiso = fatia(src, '    const faladoNoPortao2511 = ', '      }, { status: 422 })\n      }\n    }\n', 'rota: o portão do falado e o 422 do cliente')
+  const naRota = async (email, n, voz = 'characters') => { const liberados = []; const x = await new Function('roteiroFaladoNoPortao2511', 'falasDoRoteiroSemElenco2511', 'PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611', 'faladoPedido2511', 'body', 'parsedScript', 'contaDaCasaExata2511', 'user', 'NextResponse', 'releaseBirthClaim',
+    js('return (async () => {\n' + trechoPiso + '\nreturn { segue: faladoNoPortao2511 } })()'))(r.roteiroFaladoNoPortao2511, r.falasDoRoteiroSemElenco2511, r.PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611, voz === 'characters', { voice_mode: voz },
+    { segments: secoes(n).map((v) => ({ voiceover: v })) }, (x) => x === 'casa@example.org', { email }, { json: (b, o) => ({ b, status: o?.status }) }, async (motivo) => { liberados.push(motivo); return true }); return { ...x, liberados } }
+  for (const n of [12, 20, 28]) { const x = await naRota('cliente@example.org', n); assert.equal(x.status, 422, '6 cliente com ' + n + ' palavras ditas = 422 antes de despachar'); assert.equal(x.b.reason, 'fala_curta_cliente'); assert.equal(x.b.missingWords, 29 - n); assert.equal(x.b.narrationTooShort, true)
+    igual(x.liberados, ['fala_curta_cliente_no_charge'], '6 [52b12696] o 422 devolve o claim de nascimento (sem isto, a nova tentativa leva 409 até expirar)') }
+  for (const n of [29, 40]) { const x = await naRota('cliente@example.org', n); assert.equal(x.segue, true, '6 cliente com ' + n + ' palavras = o falado segue'); igual(x.liberados, [], '6 o falado que segue não devolve o claim') }
+  for (const n of [12, 25]) assert.equal((await naRota('casa@example.org', n)).segue, true, '6 a casa com ' + n + ' palavras = o falado segue (piso 12)')
+  assert.equal((await naRota('cliente@example.org', 20, 'narrator')).status, undefined, '6 sem voice_mode characters: nada novo (o narrado de sempre decide)')
 }
 const igual = (a, b, m) => assert.equal(JSON.stringify(a), JSON.stringify(b), m)
 
@@ -123,7 +124,8 @@ const MUTANTES = [
   [MOD, '  return t.replace(ROTULO_DA_FALA_2611, (_m, antes: string) => antes)\n', '  return t\n'],
   ['lib/cinematic/roteiroFalado2511.ts', "f.palavras >= (typeof a.piso === 'number' ? a.piso : PALAVRAS_MIN_NO_FILME_FALADO_2511)", 'f.palavras >= PALAVRAS_MIN_NO_FILME_FALADO_2511'], // o piso do cliente ignorado
   ['lib/cinematic/roteiroFalado2511.ts', 'export const PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611 = 29\n', 'export const PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611 = 24\n'], // o piso do cliente abaixo do narrado
-  [ROTA, "      if (falas2611 && falas2611.palavras < PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611) return NextResponse.json({", "      if (false) return NextResponse.json({"], // o 422 do cliente some
+  [ROTA, "      if (falas2611 && falas2611.palavras < PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611) {\n", "      if (false) {\n"], // o 422 do cliente some
+  [ROTA, "        await releaseBirthClaim('fala_curta_cliente_no_charge')\n", ''], // [52b12696] o 422 sem devolver o claim (409 na nova tentativa)
   [ROTA, ", ...(typeof PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611 === 'number' && !contaDaCasaExata2511(user.email) ? { piso: PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611 } : {}) })", ' })'], // a rota não passa o piso do cliente
   [MOD, "  const oracao = ip2611 > 0 ? ws2611.slice(0, ip2611).join(' ') : antesDoOutro\n", '  const oracao = antesDoOutro\n'], // o corte na preposição
   [MOD, "(?:[\\p{L}\\p{N}'’-]+\\s+){0,3}", "(?:[\\p{L}'’-]+\\s+){0,3}"], // a idade escrita volta a matar o papel

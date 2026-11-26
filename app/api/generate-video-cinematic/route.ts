@@ -3689,10 +3689,15 @@ async function manipularPost(req: NextRequest) {
     // (a régua do narrado mediria os rótulos "Nome:" como palavras e deixaria passar um falado que, na queda, sai curto). A casa segue no piso de 12.
     if (typeof falasDoRoteiroSemElenco2511 === 'function' && typeof faladoPedido2511 !== 'undefined' && faladoPedido2511 === true && !faladoNoPortao2511 && !contaDaCasaExata2511(user.email)) {
       const falas2611 = falasDoRoteiroSemElenco2511(parsedScript.segments.map((s) => s.voiceover))
-      if (falas2611 && falas2611.palavras < PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611) return NextResponse.json({
+      if (falas2611 && falas2611.palavras < PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611) {
+        // [revisora 52b12696, volta] o claim de nascimento já existe (pendente) aqui: o 422 o devolve, como o 422 do narrado logo abaixo (KINEO-GUARD-DEVOLVE-2026-08-25);
+        // sem isto, a nova tentativa na mesma geração levava 409 "already being submitted" até o claim expirar. Nada foi cobrado.
+        await releaseBirthClaim('fala_curta_cliente_no_charge')
+        return NextResponse.json({
         error: `Your dialogue has ${falas2611.palavras} spoken words; a 15-second talking film needs at least ${PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611}. Add a line or two so the characters fill the film.`,
         narrationTooShort: true, reason: 'fala_curta_cliente', missingWords: PALAVRAS_MIN_NO_FILME_FALADO_CLIENTE_2611 - falas2611.palavras, suggestedDuration: 0,
       }, { status: 422 })
+      }
     }
     if (verbatim && parsedScript.narration && !paidKling4 && !faladoNoPortao2511) {
       let fit = narrationFitAt(parsedScript.narration, duration, narrationRate)
