@@ -51,7 +51,7 @@ export default function FilmMonitor({ business }: { business: BusinessSummary | 
 
   const recent = snap?.recent ?? []
   const pending = recent.filter(f => f.score===null).length
-  const list = (mode==='reviews' ? snap?.reviews ?? [] : recent).filter(f => (mode!=='pending' || f.score===null) && (f.title+' '+(f.engine||'')).toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
+  const list = (mode==='reviews' ? snap?.reviews ?? [] : recent).filter(f => (mode!=='pending' || f.score===null) && (f.title+' '+(f.engine||'')+' '+(f.secondary||'')).toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
   const film = list.find(f => f.id===selected) ?? list[0]
   function tab(m: Mode) {setMode(m); setSelected(null)}
   return <section className="fm-desk" aria-labelledby="fm-title">
@@ -78,7 +78,8 @@ function FilmDetail({film}:{film?:MonitorFilm}) {
   return <aside id="fm-detail" tabIndex={-1} aria-label="Detalhes do filme" className="fm-detail">{film ? <>
     <p>Filme selecionado</p><h3>{film.title}</h3>
     <div className="fm-grade"><b>{film.score===null?'—':formatScore(film.score)}</b><span>/ 10 · revisor</span></div>
-    <dl><dt>Motor</dt><dd>{film.engine||'Sem registro'}</dd><dt>Avaliação</dt><dd>{film.reviewed?day(film.reviewed)+' · '+time(film.reviewed)+' BRT':film.score===null?'Pendente':'Data não disponível'}</dd></dl>
+    <dl><dt>Motor de render</dt><dd>{film.engine||'Sem registro'}</dd><dt>{film.engineNote?.startsWith('Render conjunto')?'Outro motor do render':'Motor secundário'}</dt><dd>{film.secondary || 'Sem registro'}</dd><dt>Avaliação</dt><dd>{film.reviewed?day(film.reviewed)+' · '+time(film.reviewed)+' BRT':film.score===null?'Pendente':'Data não disponível'}</dd></dl>
+    {film.engineNote && <p>{film.engineNote}</p>}
     <h4>Defeitos registrados</h4>{film.defects?.length?<ul>{film.defects.map((d,i)=><li key={i}>{d}</li>)}</ul>:<p>{film.score===null?'Aguardando a avaliação.':film.defects===null?'Detalhes indisponíveis nesta leitura.':'Nenhum defeito registrado nesta avaliação.'}</p>}
     {film.url && <a href={film.url} target="_blank" rel="noreferrer">Abrir filme ↗</a>}
   </>:<p>Os detalhes aparecem quando há um filme no recorte.</p>}</aside>
