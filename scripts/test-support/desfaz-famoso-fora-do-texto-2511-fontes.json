@@ -1,0 +1,24 @@
+{
+ "version": "famoso_fora_do_texto_2511_v2",
+ "base": "03c2456fe",
+ "scope": {
+  "lib/kling4Trial.ts": {
+   "beforeSha256": "e7f912c7c300a2512fc130fcff771e8bd736a1e7d4227c7f25587fdfb82f24e4",
+   "afterSha256": "912878d9e5871a69357ba638bc260efbc7a58cf484aa16fa3af41fc34eda3f88",
+   "hunks": [
+    {
+     "before": "import { visualMostraAlguem } from '@/lib/cinematic/personagemAjuste' // KINEO-REFERENCIA-UNICA-PUBLIC-2411 — o detector de alguém na cena que a rota já usa no visual do plano\n",
+     "after": "import { visualMostraAlguem } from '@/lib/cinematic/personagemAjuste' // KINEO-REFERENCIA-UNICA-PUBLIC-2411 — o detector de alguém na cena que a rota já usa no visual do plano\nimport { semFamosoNoTextoDoMotor2511 } from '@/lib/hollywood/realPeople' // KINEO-FAMOSO-FORA-DO-TEXTO-2511\n"
+    },
+    {
+     "before": "\n",
+     "after": "\n// KINEO-FAMOSO-FORA-DO-TEXTO-2511 (D1) — o corte do teto que guarda a PROTEÇÃO do fim: a última cláusula \"no readable text…\"/\"no legible words…\" e tudo o que vem\n// depois dela (a frase do @Image, a cauda \" Mouth closed, no speaking.\") ficam inteiros; o corte cai no corpo, na fronteira de frase ou de oração\n// (cabeNoTetoDoPlano). Sem proteção no plano, o corte de sempre. Lição do \"menino da bolha\" (27/08): proibição decapitada vira pedido.\nconst PROTECAO_DO_PLANO_2611 = /,?\\s*(?:photorealistic,\\s*ultra-detailed,\\s*)?no (?:readable text|legible words)/giu\nexport function cabeComProtecao2611(texto: string, teto = KLING4_TETO_DO_PLANO): string {\n  if (Array.from(texto).length <= teto) return texto\n  const ultima = [...texto.matchAll(PROTECAO_DO_PLANO_2611)].pop()\n  if (!ultima || ultima.index === undefined) return cabeNoTetoDoPlano(texto, teto)\n  const fim = texto.slice(ultima.index), orcamento = teto - Array.from(fim).length\n  if (orcamento < 80) return cabeNoTetoDoPlano(texto, teto)\n  const corpo = cabeNoTetoDoPlano(texto.slice(0, ultima.index), orcamento).replace(/[\\s.,;:]+$/u, '')\n  return corpo + fim\n}\n\n"
+    },
+    {
+     "before": "  }\n",
+     "after": "  }\n  // KINEO-FAMOSO-FORA-DO-TEXTO-2511 [CEO 25/11] — o filme grátis (sempre com timing; o filme pago chama sem ele e não muda): o nome de figura atual da lista sai\n  // do texto do plano, depois da leitura de presença e de referência (que precisa dos nomes). Sem nome da lista, o plano fica byte a byte.\n  // [revisora 392f0a52] D3/D4: o contexto é o filme inteiro (planos + falas) e a ordem é a das referências; D1: o plano que cresceu volta ao teto SEM perder a\n  // proteção \"no readable text…\" (nem o que vem depois dela: a frase do @Image e a cauda da boca).\n  if (timing) {\n    const contexto = [...prompts, ...timing.voiceovers].join('\\n'), ordem = [timing.referenciaUnica?.nomes?.[0], timing.referenciaUnica?.segundo?.nomes?.[0]]\n    for (const plano of envio.input.multi_prompt as Array<{ prompt: string }>) { const limpo = semFamosoNoTextoDoMotor2511(plano.prompt, { contexto, ordem }); if (limpo !== plano.prompt) plano.prompt = cabeComProtecao2611(limpo) }\n  }\n"
+    }
+   ]
+  }
+ }
+}

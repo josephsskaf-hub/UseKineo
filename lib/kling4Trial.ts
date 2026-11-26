@@ -271,6 +271,20 @@ export function kling4TrialClipTotal(clipSeconds: unknown): number {
   return typeof clipSeconds === 'number' && Number.isInteger(clipSeconds) && clipSeconds >= 15 && clipSeconds <= 30 ? clipSeconds : 15
 }
 
+// KINEO-FAMOSO-FORA-DO-TEXTO-2511 (D1) — o corte do teto que guarda a PROTEÇÃO do fim: a última cláusula "no readable text…"/"no legible words…" e tudo o que vem
+// depois dela (a frase do @Image, a cauda " Mouth closed, no speaking.") ficam inteiros; o corte cai no corpo, na fronteira de frase ou de oração
+// (cabeNoTetoDoPlano). Sem proteção no plano, o corte de sempre. Lição do "menino da bolha" (27/08): proibição decapitada vira pedido.
+const PROTECAO_DO_PLANO_2611 = /,?\s*(?:photorealistic,\s*ultra-detailed,\s*)?no (?:readable text|legible words)/giu
+export function cabeComProtecao2611(texto: string, teto = KLING4_TETO_DO_PLANO): string {
+  if (Array.from(texto).length <= teto) return texto
+  const ultima = [...texto.matchAll(PROTECAO_DO_PLANO_2611)].pop()
+  if (!ultima || ultima.index === undefined) return cabeNoTetoDoPlano(texto, teto)
+  const fim = texto.slice(ultima.index), orcamento = teto - Array.from(fim).length
+  if (orcamento < 80) return cabeNoTetoDoPlano(texto, teto)
+  const corpo = cabeNoTetoDoPlano(texto.slice(0, ultima.index), orcamento).replace(/[\s.,;:]+$/u, '')
+  return corpo + fim
+}
+
 export function buildKling4TrialInput(
   prompts: readonly string[], approvedStills: readonly (string | null)[] = [], timing?: Kling4TrialTiming,
 ) {
@@ -281,7 +295,12 @@ export function buildKling4TrialInput(
   }
   // KINEO-FAMOSO-FORA-DO-TEXTO-2511 [CEO 25/11] — o filme grátis (sempre com timing; o filme pago chama sem ele e não muda): o nome de figura atual da lista sai
   // do texto do plano, depois da leitura de presença e de referência (que precisa dos nomes). Sem nome da lista, o plano fica byte a byte.
-  if (timing) for (const plano of envio.input.multi_prompt as Array<{ prompt: string }>) { const limpo = semFamosoNoTextoDoMotor2511(plano.prompt); if (limpo !== plano.prompt) plano.prompt = cabeNoTetoDoPlano(limpo) }
+  // [revisora 392f0a52] D3/D4: o contexto é o filme inteiro (planos + falas) e a ordem é a das referências; D1: o plano que cresceu volta ao teto SEM perder a
+  // proteção "no readable text…" (nem o que vem depois dela: a frase do @Image e a cauda da boca).
+  if (timing) {
+    const contexto = [...prompts, ...timing.voiceovers].join('\n'), ordem = [timing.referenciaUnica?.nomes?.[0], timing.referenciaUnica?.segundo?.nomes?.[0]]
+    for (const plano of envio.input.multi_prompt as Array<{ prompt: string }>) { const limpo = semFamosoNoTextoDoMotor2511(plano.prompt, { contexto, ordem }); if (limpo !== plano.prompt) plano.prompt = cabeComProtecao2611(limpo) }
+  }
   return envio
 }
 
