@@ -208,6 +208,35 @@ Na casa, 8 de 10. No cliente (`dialogue_rule: 'client'`), 5 de 10. Os textos rec
 - **O que dá para afirmar offline:** f5 e d3 falam com o texto real do ensaio. d4 casa, f4 e d4 cliente agora ganham a 2ª chamada certa, mas só o próximo ensaio diz se o modelo acerta nela.
 - **Conta para a meta de 8 de 9 no cliente:** os 5 que já falavam, mais f5 e d3, dão 7, mais o que a 2ª chamada recuperar entre f4 e d4. Ainda não medido.
 
+## Volta 7 (25/11 noite): o rótulo e o elenco, a 2ª chamada e a pessoa pelo contexto
+A revisora 392f0a52 liberou a v6 para a casa. A régua do cliente segue desligada. Esta volta mexe só na régua do cliente e no conferidor do ensaio.
+
+### V1 · o rótulo de quem fala casa com o elenco do servidor
+- **A regra (para combinar com o 3bbf48a0): o rótulo de quem fala pelo PAPEL é o NÚCLEO do papel.** É a última palavra do papel como a ideia a escreve, com maiúscula: "lighthouse keeper" vira "Keeper", "grumpy owl" vira "Owl", "flight attendant" vira "Attendant".
+  - É o núcleo que o elenco do servidor grava ("the lighthouse keeper" / "keeper").
+  - O `lerFalas2511` já casa o rótulo com o nome ou o núcleo, sem caixa. **Nada muda no leitor** para os papéis.
+- **Medido com o `lerFalas2511` REAL** (`fd67ef413`, extraído fora do repositório) e o elenco no formato que a revisora leu nos filmes:
+  - as 20 ideias comuns: **19 de 20 FALADAS no leitor** (antes, todo papel de 2 palavras saía narrado);
+  - os 10 casos sem o f3: **7 de 9**.
+- **O que ainda sai narrado no servidor:** o humano com nome na ideia (f1 "keeper named Elias", f4 "Rosa, a baker", "a pirate captain named Rosa"). O elenco grava o nome, e a decisão da volta 6 tira o nome do rótulo. **Decisão aberta para a CEO** (A/B/C na mensagem).
+- **O conferidor do ensaio mede pelo PRÓPRIO `lerFalas2511`:**
+  - o leitor vem desta árvore (quando a branch do 3bbf48a0 entrar) ou de `--leitor <pasta>`;
+  - `falantes_no_elenco` usa o elenco do dry-run (`[nome, núcleo]`);
+  - `falado_com_elenco_simulado` usa o elenco no formato de hoje (`elencoComoOServidor2511`). O elenco é simulado; o leitor é o real. Para nome inventado pelo modelo na régua da casa, a simulação é otimista;
+  - sem leitor, a coluna fica `null` (não medido), nunca por cópia.
+  - **Rodado nas respostas do 2º ensaio da CEO:** casa 8/8, cliente 3/5. Os 2 que faltam no cliente são os rótulos de papel de 2 palavras da v5, o furo que esta volta fecha.
+
+### V2 · `sem_adulto` sem 2ª chamada
+- Na régua positiva, `sem_adulto` é motivo de criança e vai direto ao narrado.
+- O acerto do papel também não ensina mais quem pode falar: em "a student who works as a part-time cashier talks to her teacher", a 2ª trocava "student" por "part-time cashier".
+
+### V3 · a pessoa real pelo papel com contexto (decisão da CEO) = `pessoa_unica`
+- "of/from" + nome próprio depois do papel ("mayor of New York", "senator from Vermont").
+- Superlativo e unicidade antes ("richest", "oldest", "best", "famous", "the first", "the last", "the only") ou depois ("in the world", "alive", "on earth", "in history", "of all time", "ever"). "first mate" continua papel comum, porque "first" faz parte do papel.
+- "first lady", e "who played/was/wrote/won…", "known as" e "famous for" depois do papel.
+- "the president talks to a farmer" (o presidente sozinho) e "cadet pilot" (o cadete é menor) estão no guardião.
+- **Limite declarado:** nacionalidade + papel ("argentinian captain") e o epíteto solto ("iron lady", "the boss") falam.
+
 ## O risco do caminho do servidor (conferido, executado)
 O roteiro de diálogo passa intacto pelo que o caminho da ideia solta faz depois do escritor (`lib/meta95/ideiaNoEscritor.ts`):
 - `roteiroSemMetaTexto` (l. 224) não remove nenhuma linha `Nome: fala`;

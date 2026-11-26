@@ -107,7 +107,7 @@ export function ideiaEmIngles2511(ideia: string): boolean {
 const IDADE_DE_MENOR_SOLTA = /(?<![\p{L}\p{N}.,:$£€])(?:1[0-7]|[1-9])(?![\p{N}%]|[.,:]\d|\s*(?:am|pm|a\.m|p\.m)\b)|(?<![\p{L}])(?:thirteen|fourteen|fifteen|sixteen|seventeen)(?![\p{L}])/iu
 export const idadeDeMenorNaIdeia2511 = (ideia: string): boolean => IDADE_DE_MENOR_SOLTA.test(String(ideia ?? ''))
 /** "Pequeno" ou "jovem" no trecho de GENTE: na dúvida, criança (no bicho não vale: o dragão pequeno fala). */
-const PEQUENO = /(?<![\p{L}])(?:little|tiny|small|young|younger|youngest|kiddo|wee)(?![\p{L}])/iu
+const PEQUENO = /(?<![\p{L}])(?:little|tiny|small|young|younger|youngest|kiddo|wee|cadets?)(?![\p{L}])/iu // volta 7: "cadet pilot"
 /** Ofícios e papéis de adulto que a lista da casa não tem (lista fechada, a direção POSITIVA): o papel diz adulto. */
 const ADULTO_DE_OFICIO = new RegExp('(?<![\\p{L}\\p{N}-])(?:driver|baker|operator|cashier|waiter|waitress|bartender|barista|clerk|guard|janitor|plumber|electrician|builder|tailor|butcher|grocer|shopkeeper|merchant|vendor|librarian|postman|mailman|courier|manager|boss|employee|coworker|colleague|landlord|landlady|veteran|cop|policeman|policewoman|mom|mum|dad|grandad|granddad|granny|stepmother|stepfather|bride|groom|spouse|ranger|hunter|president|minister|general|admiral|ambassador|pastor|rabbi|imam|actor|actress|old|elderly|retired|grown-?up|' +
   // volta 6 (CEO 25/11): passageiro, cliente, comissário, imediato e semelhantes de adulto
@@ -149,11 +149,18 @@ function papelEhNomeProprio(ideia: string, a: { ini: number; fim: number }): boo
 /** Volta 6 (CEO 25/11, F2): papel de PESSOA ÚNICA vai ao narrado: o cargo que só uma pessoa tem, o chefe "de" algo (ceo, founder, boss, owner, chairman
  *  com "of" depois, ou ceo e founder com qualquer qualificador, ou o chefe com qualificador no próprio papel: "tesla boss") e o papel com "of the …".
  *  Limite declarado: o epíteto solto ("iron lady", "the boss") passa. */
-const PESSOA_UNICA = /(?<![\p{L}])(?:president|pope|king|queen|prime\s+minister|chancellor|emperor|empress|pharaoh|tsar|czar|sultan|monarch|dictator|premier)(?![\p{L}])/iu
+const PESSOA_UNICA = /(?<![\p{L}])(?:president|pope|king|queen|prime\s+minister|chancellor|emperor|empress|pharaoh|tsar|czar|sultan|monarch|dictator|premier|first\s+lady|first\s+gentleman)(?![\p{L}])/iu
+/** Volta 7 (V3, CEO 25/11): o papel com CONTEXTO que aponta uma pessoa: superlativo e unicidade antes ("the richest", "the first") ou depois ("in the world",
+ *  "alive"), "of/from" + nome próprio ("mayor of New York", "senator from Vermont") e "who played/was …". Limite declarado: nacionalidade + papel
+ *  ("argentinian captain") e o epíteto solto. */
+const UNICO_ANTES = /(?<![\p{L}-])(?:richest|wealthiest|oldest|youngest|greatest|best|tallest|strongest|fastest|smartest|biggest|most\s+famous|famous|legendary|first|last|only)(?![\p{L}-])/iu
+const UNICO_DEPOIS = /^[^.,;!?]{0,40}?(?<![\p{L}])(?:in\s+the\s+world|alive|on\s+earth|in\s+history|of\s+all\s+time|ever)(?![\p{L}])|^\s+(?:of|from)\s+(?:the\s+)?\p{Lu}|^\s*,?\s+(?:who|that)\s+(?:played|plays|was|is|became|wrote|won|invented|founded|directed|sang|starred|led|ruled)(?![\p{L}])|^\s*,?\s+(?:known\s+as|famous\s+for)(?![\p{L}])/u
 const CHEFE = /(?<![\p{L}])(?:ceo|boss|founder|owner|chairman|chairwoman|chairperson)(?![\p{L}])/iu
 export function pessoaUnica2511(ideia: string, papel: string, trecho: string, a: { fim: number }): boolean {
   const depois = ideia.slice(a.fim)
   if (PESSOA_UNICA.test(papel) || /\sof\s/i.test(papel) || /^\s+of\s+the\s/i.test(depois)) return true
+  if (UNICO_DEPOIS.test(depois)) return true // volta 7 (V3)
+  if (UNICO_ANTES.test(trecho.split(/\s+/).slice(0, -papel.split(/\s+/).length).join(' '))) return true // volta 7 (V3): o contexto ANTES do papel ("first mate" é o papel)
   if (!CHEFE.test(papel)) return false
   if (/^\s+of\s/i.test(depois) || papel.trim().split(/\s+/).length > 1) return true
   const antes = trecho.split(/\s+/).slice(0, -1).filter((w) => !/^(?:a|an|the|this|that|her|his|their|its|my|your|our)$/i.test(w))
@@ -199,6 +206,10 @@ export function quemFala2511(ideia: string, papel: string): QuemFala2511 {
   return 'sem_adulto'
 }
 const tituloDoPapel = (papel: string): string => papel.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+/** Volta 7 (V1, a regra combinada com o leitor do filme): o rótulo de quem fala pelo PAPEL é o NÚCLEO, a última palavra do papel como a ideia escreve, com
+ *  maiúscula ("lighthouse keeper" = "Keeper", "grumpy owl" = "Owl"). É o núcleo que o elenco do servidor grava ("the lighthouse keeper" / "keeper"), e o
+ *  lerFalas2511 casa o rótulo com o nome ou o núcleo do elenco, sem caixa. */
+export const nucleoDoPapel2511 = (papel: string): string => tituloDoPapel(papel.trim().split(/\s+/).pop() ?? '')
 const temNomeExato = (ideia: string, nome: string): boolean => new RegExp(`(?<![\\p{L}\\p{N}])${nome.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`, 'u').test(ideia)
 export type MotivoDoCliente2511 = 'json' | 'formato' | 'papel' | 'nome_inventado' | 'sem_adulto' | 'menor' | 'pessoa_unica' | 'nome_de_gente'
 /** Lê os falantes do cliente ({ role, name }) contra a ideia e devolve o JSON no formato do conferidor de sempre (o rótulo de cada falante é o nome da
@@ -228,11 +239,11 @@ export function falantesDoCliente2511(raw: string, ideia: string): { raw: string
     }
     if (quem === 'sem_adulto') return { motivo: quem, falante: papel }
     // volta 6 (CEO 25/11): HUMANO fala só pelo PAPEL, nunca pelo nome próprio; o nome como rótulo só para o não humano (o cão Rex, o dragão Ember)
-    const rotulo = quem === 'nao_humano' && nome ? nome : tituloDoPapel(papel)
+    const rotulo = quem === 'nao_humano' && nome ? nome : nucleoDoPapel2511(papel)
     rotulos.push(rotulo)
     if (rotulo !== nome) papeis.push(rotulo)
     if (nome && rotulo !== nome) semNome.push([nome, papel]) // o nome de gente sai também da marca: vira o papel da ideia
-    for (const k of [papel, rotulo.toLowerCase(), nome.toLowerCase()]) if (k) mapa.set(k, rotulo)
+    for (const k of [papel, rotulo.toLowerCase(), nome.toLowerCase(), nucleoDoPapel2511(papel).toLowerCase()]) if (k && !mapa.has(k)) mapa.set(k, rotulo)
   }
   const shots = r.shots.map((sh) => {
     const y = sh && typeof sh === 'object' && !Array.isArray(sh) ? (sh as Record<string, unknown>) : null
@@ -363,8 +374,9 @@ export function prazoDoDialogo2511(decorridoMs: number, narradoMs: number): numb
 /** Volta 5: os motivos de TAMANHO ganham UMA 2ª chamada, dentro do mesmo prazo, com o que cada seção tem e o que falta. Abaixo de 3 s de sobra, não. */
 export const MOTIVOS_DE_TAMANHO_2511 = ['curto', 'longo', 'secao_longa'] as const
 /** Volta 6 (2º ensaio: "Penguin 1", papel vazio, a categoria no papel, "brother" sem adulto): a 2ª chamada também acerta a FORMA dos falantes. Nunca os
- *  motivos de segurança (menor, figura, pessoa única, nome de gente, língua): esses vão direto ao narrado. A resposta da 2ª passa pelas mesmas réguas. */
-export const MOTIVOS_DA_SEGUNDA_2511 = [...MOTIVOS_DE_TAMANHO_2511, 'nome', 'falantes', 'papel', 'nome_inventado', 'sem_adulto', 'falante_fora', 'dois_pontos_na_fala', 'rubrica', 'cue', 'falas_na_secao', 'fala_vazia'] as const
+ *  motivos de segurança (menor, figura, pessoa única, nome de gente, língua) nem o sem_adulto (volta 7, V2: na régua positiva ele é motivo de criança; a
+ *  2ª ensinava o caminho, "student" virava "part-time cashier"): esses vão direto ao narrado. A resposta da 2ª passa pelas mesmas réguas. */
+export const MOTIVOS_DA_SEGUNDA_2511 = [...MOTIVOS_DE_TAMANHO_2511, 'nome', 'falantes', 'papel', 'nome_inventado', 'falante_fora', 'dois_pontos_na_fala', 'rubrica', 'cue', 'falas_na_secao', 'fala_vazia'] as const
 export const MENOR_PRAZO_DA_SEGUNDA_2511_MS = 3_000
 /** Quantas palavras de fala cada seção tem no JSON do modelo (contadas como o código conta). */
 export function palavrasPorSecao2511(raw: string): number[] {
@@ -386,9 +398,8 @@ export function pedidoDeAcerto2511(raw: string, motivo: string = 'curto', falant
   }
   const quem = falante ? `"${limpa(falante, 60)}"` : 'One speaker'
   const porque = motivo === 'nome' || motivo === 'falantes' ? 'Every speaking character needs its own label made of letters only: no number, no title, no article, and two characters never share a label.'
-    : motivo === 'papel' ? `${quem} has no valid "role": the role is the noun of the idea that names that character, one to three words copied letter by letter from the idea, never a category and never empty. Only an adult whose job or family role the idea states, or an animal, creature, machine, plant or object, may speak; one speaker is enough.`
+    : motivo === 'papel' ? `${quem} has no valid "role": the role is the noun of the idea that names that character, one to three words copied letter by letter from the idea, never a category and never empty.`
     : motivo === 'nome_inventado' ? `${quem} has a name the idea does not write: a "name" is allowed only when the idea writes that exact name; otherwise it is an empty string.`
-    : motivo === 'sem_adulto' ? `${quem} may not speak: only an adult whose job or family role the idea states, or an animal, creature, machine, plant or object, may speak. Keep only characters that may speak; one speaker is enough.`
     : 'Every line is said by a declared speaker and has no colon, parentheses or brackets; every shot has 1 or 2 lines and a cue of 2 to 8 words.'
   return `${porque} Rewrite the whole JSON with the same story and the same shots, and write the count of every shot in "words".`
 }

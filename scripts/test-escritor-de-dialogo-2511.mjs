@@ -108,7 +108,7 @@ async function suite(change) {
   assert.equal(script, ROTEIRO_BOM, 'o formato exato')
   // o conferidor do ensaio (a régua escrita antes, no formato do leitor do 3bbf48a0) aprova o que o escritor monta, item a item
   { const { conferirEnsaio } = await import('./ensaio-escritor-de-dialogo-2511.mjs'), c = conferirEnsaio(script, ['Elias Ward', 'Mara Quinn'])
-    for (const [k, v] of Object.entries(c)) if (!['falantes', 'palavras', 'historia_do_pedido', 'fala_longa', 'rotulo_na_ideia'].includes(k)) assert.equal(v, true, 'o conferidor: ' + k)
+    for (const [k, v] of Object.entries(c)) if (!['falantes', 'palavras', 'historia_do_pedido', 'fala_longa', 'rotulo_na_ideia', 'falantes_no_elenco', 'motivo_do_leitor', 'falado_com_elenco_simulado', 'motivo_com_elenco_simulado'].includes(k)) assert.equal(v, true, 'o conferidor: ' + k)
     // volta 4: a conta da fala_longa do leitor (T4 é do 3bbf48a0). O BOM tem seções de 6, 7, 7 e 7: nenhuma passa de 8 (3,75 s), três passam de 6 (3 s)
     igual(c.fala_longa, { a_3_75s: 0, a_3s: 3 }, 'a conta da fala_longa')
     const { TETO_DO_LEITOR } = await import('./ensaio-escritor-de-dialogo-2511.mjs')
@@ -281,8 +281,33 @@ async function suite(change) {
   // o conferidor do ensaio: o rótulo de papel bate com o elenco e com a ideia
   { const { conferirEnsaio } = await import('./ensaio-escritor-de-dialogo-2511.mjs')
     const s = (await roda5('A lighthouse keeper and a radio operator guide a boat home', [P5('lighthouse keeper'), P5('radio operator')])).script
-    const c = conferirEnsaio(s, ['the lighthouse keeper', 'a radio operator'], 'A lighthouse keeper and a radio operator guide a boat home')
-    igual([c.falantes_no_elenco, c.rotulo_na_ideia, conferirEnsaio(s, ['Elias', 'Mara'], 'Elias and Mara').falantes_no_elenco, conferirEnsaio(s, null, 'Elias and Mara').rotulo_na_ideia], [true, true, false, false], 'falantes_no_elenco e rotulo_na_ideia') }
+    // volta 7 (V1): o conferidor mede pelo lerFalas2511 que recebe (o REAL no ensaio), com o elenco [nome, núcleo]; sem leitor = null, nunca por cópia
+    const chamadas = [], leitorDeTeste = (vo, el, n) => { chamadas.push({ vo, el, n }); return el.every((e) => e.some((x) => s.includes('\n' + x.charAt(0).toUpperCase() + x.slice(1) + ': '))) ? { falas: [] } : { motivo: 'falante_fora_do_elenco' } }
+    const ideiaK = 'A lighthouse keeper and a radio operator guide a boat home'
+    const c = conferirEnsaio(s, [['the lighthouse keeper', 'keeper'], ['the radio operator', 'operator']], ideiaK, { lerFalas: leitorDeTeste })
+    igual([c.falantes, c.falantes_no_elenco, c.motivo_do_leitor, c.falado_com_elenco_simulado, c.rotulo_na_ideia, chamadas[0]?.n, chamadas[0]?.vo, chamadas[0]?.el], [['Keeper', 'Operator'], true, null, true, true, 4, P.parseUserScript(s).segments.map((x) => x.voiceover), [['the lighthouse keeper', 'keeper'], ['the radio operator', 'operator']]], 'o conferidor passa ao leitor as falas, o elenco e os planos')
+    const fora = conferirEnsaio(s, [['Elias', 'Elias'], ['Mara', 'Mara']], 'A lighthouse keeper named Elias and a radio operator named Mara', { lerFalas: leitorDeTeste })
+    igual([fora.falantes_no_elenco, fora.motivo_do_leitor, fora.falado_com_elenco_simulado, fora.motivo_com_elenco_simulado], [false, 'falante_fora_do_elenco', false, 'falante_fora_do_elenco'], 'o humano com nome: o elenco grava o nome')
+    igual([conferirEnsaio(s, [['the lighthouse keeper', 'keeper']], ideiaK).falantes_no_elenco, conferirEnsaio(s, null, ideiaK).falado_com_elenco_simulado], [null, null], 'sem o leitor: não medido')
+    const { elencoComoOServidor2511 } = await import('./ensaio-escritor-de-dialogo-2511.mjs')
+    igual([elencoComoOServidor2511('A lighthouse keeper named Elias and a radio operator guide a boat', ['Keeper', 'Operator']), elencoComoOServidor2511('Two penguins plan a party for their friend the walrus', ['Penguins', 'Walrus']), elencoComoOServidor2511('A grumpy owl and a night-shift nurse', ['Owl', 'Nurse'])],
+      [[['Elias', 'Elias'], ['the radio operator', 'operator']], [['the penguins', 'penguins'], ['the walrus', 'walrus']], [['the grumpy owl', 'owl'], ['the night-shift nurse', 'nurse']]], 'o elenco no formato de hoje do servidor') }
+  // volta 7 (V1): o rótulo do papel é o NÚCLEO (a última palavra do papel), o que o elenco do servidor grava
+  for (const [ideia, f, rot] of [['A lighthouse keeper and a radio operator guide a boat home', [P5('lighthouse keeper'), P5('radio operator')], ['Keeper', 'Operator']], ['A grumpy owl and a cheerful squirrel prepare for winter', [P5('grumpy owl'), P5('cheerful squirrel')], ['Owl', 'Squirrel']],
+    ['A pilot and a flight attendant calm a nervous plane', [P5('pilot'), P5('flight attendant')], ['Pilot', 'Attendant']], ['A tiny dragon named Ember learns to fly with a wise owl', [P5('dragon', 'Ember'), P5('owl')], ['Ember', 'Owl']]]) {
+    const r = await roda5(ideia, f); igual(rot.map((x) => r.script?.includes('\n' + x + ': ')), rot.map(() => true), 'o rótulo é o núcleo: ' + r.script?.slice(0, 100)) }
+  // volta 7 (V2): sem_adulto é motivo de criança: direto ao narrado, SEM 2ª chamada (a 2ª ensinava "student" a virar "part-time cashier")
+  { const corpos = []; const segunda = resp5([P5('part-time cashier'), P5('teacher')])
+    const r = await E.escreverDialogo2511({ ideia: 'a student who works as a part-time cashier talks to her teacher', segundos: 15, regua: 'cliente', chamar: async (c) => { corpos.push(c); return corpos.length === 1 ? resp5([P5('student'), P5('teacher')]) : segunda } })
+    igual([r.script, r.relato.motivo, corpos.length], [null, 'sem_adulto', 1], 'V2: sem 2ª chamada no sem_adulto') }
+  // volta 7 (V3): a pessoa real pelo papel com contexto = pessoa_unica; o presidente sozinho; o cadete; os limites declarados falam
+  for (const [ideia, f] of [['the mayor of New York talks to a cop', [P5('mayor'), P5('cop')]], ['the senator from Vermont debates a teacher', [P5('senator'), P5('teacher')]], ['the richest man in the world buys a boat from a sailor', [P5('man'), P5('sailor')]],
+    ['the oldest woman alive bakes bread with a baker', [P5('woman'), P5('baker')]], ['the first astronaut on the moon talks to an engineer', [P5('astronaut'), P5('engineer')]], ['the first lady greets a chef', [P5('first lady'), P5('chef')]],
+    ['the actor who played a famous wizard meets a waiter', [P5('actor'), P5('waiter')]], ['the president talks to a farmer', [P5('president'), P5('farmer')]], ['the best chef in the world cooks with a waiter', [P5('chef'), P5('waiter')]]])
+    igual((await roda5(ideia, f)).motivo, 'pessoa_unica', 'V3 pessoa única: ' + ideia)
+  igual((await roda5('a cadet pilot and an instructor fly a small plane', [P5('cadet pilot'), P5('instructor')])).motivo, 'menor', 'o cadete é menor')
+  for (const [ideia, f] of [['the argentinian captain talks to a coach', [P5('captain'), P5('coach')]], ['A pirate captain and her first mate hunt for treasure', [P5('pirate captain'), P5('first mate')]], ['a forest ranger and an old farmer fix a fence', [P5('forest ranger'), P5('old farmer')]]])
+    igual((await roda5(ideia, f)).fala, true, 'fala (limite declarado ou papel comum): ' + ideia)
   // ── 5d. volta 6, o 2º ensaio da CEO (25/11 23:12): os textos que a régua recusou, das MINHAS 10 ideias, de volta no escritor ──────────────────
   { const C = Object.fromEntries(JSON.parse(readFileSync('scripts/fixtures/escritor-de-dialogo-2511-casos.json', 'utf8')).casos.map((c) => [c.id, c.corpo.topic]))
     const sh = (cue, speaker, line, words) => ({ cue, words, lines: [{ speaker, line }] })
@@ -299,13 +324,13 @@ async function suite(change) {
     { const x = await replay(R.d3, 'd3', 'cliente'); assert.ok(x.r.script?.includes('\nCactus: ') && x.r.script?.includes('\nSunflower: '), 'd3: o nome comum vira o papel: ' + x.r.script?.slice(0, 80)) }
     // d4 da casa ("Penguin 1"), f4 (Tomas sem papel) e d4 do cliente (24 palavras): a 2ª chamada com o acerto do motivo
     { const x = await replay(R.d4casa, 'd4', 'casa'); igual([x.n, x.r.relato.motivo_1a], [2, 'nome'], 'd4 casa: a 2ª chamada'); assert.ok(x.acerto?.startsWith('Every speaking character needs its own label made of letters only: no number'), 'o acerto do nome: ' + x.acerto) }
-    { const x = await replay(R.f4, 'f4', 'cliente'); igual([x.n, x.r.relato.motivo_1a], [2, 'papel'], 'f4: a 2ª chamada'); assert.ok(x.acerto?.startsWith('"Tomas" has no valid "role"') && x.acerto?.includes('one speaker is enough'), 'o acerto do papel, com quem: ' + x.acerto) }
+    { const x = await replay(R.f4, 'f4', 'cliente'); igual([x.n, x.r.relato.motivo_1a], [2, 'papel'], 'f4: a 2ª chamada'); assert.ok(x.acerto?.startsWith('"Tomas" has no valid "role"') && !x.acerto?.includes('may speak'), 'o acerto do papel, com quem, sem ensinar quem pode falar (V2): ' + x.acerto) }
     { const x = await replay(R.d4cli, 'd4', 'cliente'); igual([x.n, x.r.relato.motivo_1a], [2, 'curto'], 'd4 cliente: a 2ª chamada'); assert.ok(x.acerto?.startsWith('Your film has 24 spoken words: HOOK 6 (needs 1 more), MICRO REWARD 1 6 (needs 1 more), MICRO REWARD 2 6 (needs 1 more), PAYOFF 6 (needs 1 more).'), 'o acerto do tamanho: ' + x.acerto) }
     // a 2ª boa passa: o f4 só com a padeira
     { const so = JSON.stringify({ speakers: [{ role: 'baker', name: 'Rosa' }], shots: [sh('Rosa opening the flour sack', 'Rosa', 'Wait, there is a note in here.', 7), sh('Rosa reading the note slowly', 'Rosa', 'Meet me at the old mill tonight.', 7), sh('Rosa calling on her phone', 'Rosa', 'Tomas, you have to see this now.', 7), sh('Rosa smiling at the old mill', 'Rosa', 'So the note was from you, brother!', 7)] })
       const x = await replay(R.f4, 'f4', 'cliente', so); igual([!!x.r.script, x.r.relato.tentativas, x.r.relato.motivo_1a, x.r.script?.includes('\nBaker: ')], [true, 2, 'papel', true], 'f4: a 2ª só com a padeira fala') }
     // sem adulto: o acerto diz quem não pode falar; segurança (menor, figura, pessoa única, nome de gente) NUNCA ganha a 2ª
-    { const x = await replay(resp5([P5('baker', 'Rosa'), P5('brother', 'Tomas')]), 'f4', 'cliente'); igual([x.n, x.r.relato.motivo_1a], [2, 'sem_adulto'], 'sem adulto: a 2ª chamada'); assert.ok(x.acerto?.startsWith('"brother" may not speak'), 'o acerto do sem adulto: ' + x.acerto) }
+    { const x = await replay(resp5([P5('baker', 'Rosa'), P5('brother', 'Tomas')]), 'f4', 'cliente'); igual([x.n, x.r.relato.motivo, x.acerto], [1, 'sem_adulto', null], 'sem adulto: SEM 2ª chamada (V2)') }
     for (const [ideia, f, motivo] of [['A mother and her sister walk on the beach', [P5('mother')], 'menor'], ['the tesla boss tests a new rocket with an engineer', [P5('tesla boss'), P5('engineer')], 'pessoa_unica'], ['the senator Bernie Sanders debates a teacher on the radio', [P5('senator'), P5('teacher')], 'nome_de_gente']]) {
       const falas = motivo === 'menor' ? ['Look at the big wave over there!', 'It is coming right at us now!', 'I am only seven years old!', 'What a big day for us.'] : null
       const r = await roda5(ideia, f, falas); igual([r.motivo, r.chamou], [motivo, 1], 'segurança não ganha a 2ª: ' + motivo) } }
@@ -402,17 +427,23 @@ const mutants = [
   [MOD, 'papel.trim().split(/\\s+/).length > 1) return true', 'false) return true'],
   [MOD, "      if (nomeCompletoNoPapel2511(ideia, onde)) return { motivo: 'nome_de_gente' }", '      void 0'],
   [MOD, 'depois = ideia.slice(a.fim), antes = ideia.slice(0, a.ini)', "depois = ideia.slice(a.fim), antes = ''"],
-  [MOD, "const rotulo = quem === 'nao_humano' && nome ? nome : tituloDoPapel(papel)", 'const rotulo = nome || tituloDoPapel(papel)'],
+  [MOD, "const rotulo = quem === 'nao_humano' && nome ? nome : nucleoDoPapel2511(papel)", 'const rotulo = nome || nucleoDoPapel2511(papel)'],
   [MOD, '    const cue = semNome.reduce(', '    const cue = [].reduce('],
   [MOD, '  return /^\\s+\\p{Lu}/u.test(ideia.slice(a.fim))', '  return false'],
   [MOD, '  if (/[\\s-]\\p{Lu}/u.test(t)) return true', '  if (/\\s\\p{Lu}/u.test(t)) return true'],
   [MOD, "trecho.replace(/(\\p{L})-(?=\\p{L})/gu, '$1')", 'trecho'],
   [MOD, "'passenger|customer|", "'customer|"],
   [MOD, "('puppy kitten", "('kitten"],
-  [MOD, "'nome', 'falantes', 'papel', 'nome_inventado', 'sem_adulto', ", ''], // v6: sem a 2ª chamada de forma
+  [MOD, "'nome', 'falantes', 'papel', 'nome_inventado', ", ''], // v6: sem a 2ª chamada de forma
   [MOD, 'if (!(PAPEL_RE.test(papel) && achaPapel(ideia, papel)) && ondeNome &&', 'if (false && ondeNome &&'],
   [MOD, "!papelEhNomeProprio(ideia, ondeNome)) { papel = comoPapel; nome = '' }", "true) { papel = comoPapel; nome = '' }"],
-  [MOD, '`${quem} may not speak: only', '`${quem} only'],
+  [MOD, "const rotulo = quem === 'nao_humano' && nome ? nome : nucleoDoPapel2511(papel)", "const rotulo = quem === 'nao_humano' && nome ? nome : tituloDoPapel(papel)"], // v7: V1
+  [MOD, '  if (UNICO_DEPOIS.test(depois)) return true', '  if (false) return true'],
+  [MOD, '  if (UNICO_ANTES.test(trecho', '  if (false && UNICO_ANTES.test(trecho'],
+  [MOD, 'slice(0, -papel.split(/\\s+/).length)', 'slice(0)'], // v7: "first mate" não é "the first"
+  [MOD, '|wee|cadets?)', '|wee)'],
+  [MOD, '|first\\s+lady|first\\s+gentleman)', ')'],
+  [MOD, "'nome_inventado', 'falante_fora',", "'nome_inventado', 'sem_adulto', 'falante_fora',"], // v7: V2
   [MOD, '(needs ${MIN_PALAVRAS_ALVO_2511 - n} more)', ''],
   [MOD, 'pedidoDeAcerto2511(raw, String(r.motivo), r.falante)', 'pedidoDeAcerto2511(raw, String(r.motivo))'],
   [MOD, 'A name has letters only: never a number, and two characters never share a name. ', ''],
