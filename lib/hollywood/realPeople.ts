@@ -101,3 +101,28 @@ export function sanitizeRealPeople(text: string): string {
     .replace(/\s{2,}/g, ' ')
     .trim()
 }
+
+// KINEO-FAMOSO-FORA-DO-TEXTO-2511 [CEO 25/11, parte (b) do famoso] — o nome de uma figura ATUAL (só a lista CONTEMPORARY_FIGURE_RE; nunca a heurística
+// título + Nome, que pega personagem inventado como "Captain Rosa") sai do TEXTO que vai ao motor do filme grátis: os planos do Kling 4 e o cabeçalho do
+// Gemini. A narração não muda. Palavra solta só conta com maiúscula ("Musk", "Drake", "Trump"); em minúscula é palavra comum ("musk ox", "a drake", "trump
+// card"). Nome composto ("elon musk", "taylor swift") conta em qualquer caixa. Um título colado antes ("President Trump", "Mr. Bezos") sai junto.
+// Sem nome da lista, o texto volta IDÊNTICO (o filme de hoje, byte a byte).
+export const FAMOSO_NO_MOTOR_2511 = 'a person'
+const TITULO_COLADO_2511 = /(?:President|Vice\s+President|Prime\s+Minister|Senator|Governor|Chancellor|Mr|Mrs|Ms|Dr|Sir)\.?\s+$/u
+export function semFamosoNoTextoDoMotor2511(texto: string): string {
+  const t = typeof texto === 'string' ? texto : ''
+  const re = new RegExp(CONTEMPORARY_FIGURE_RE.source, 'gi')
+  let saida = '', desde = 0
+  for (const m of t.matchAll(re)) {
+    const nome = m[0]
+    if (!/\s|\d/u.test(nome) && !/^\p{Lu}/u.test(nome)) continue // palavra solta em minúscula = palavra comum
+    let ini = m.index ?? 0
+    const titulo = TITULO_COLADO_2511.exec(t.slice(desde, ini))
+    if (titulo) ini -= titulo[0].length
+    const antes = t.slice(0, ini)
+    const comeca = /(?:[.!?]\s+|\n\s*)$/u.test(antes) // maiúscula só depois de fim de frase (o cabeçalho do Gemini lê "is a person")
+    saida += t.slice(desde, ini) + (comeca ? 'A person' : FAMOSO_NO_MOTOR_2511)
+    desde = (m.index ?? 0) + nome.length
+  }
+  return desde === 0 ? t : saida + t.slice(desde)
+}

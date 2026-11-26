@@ -1,3 +1,4 @@
+import { semFamosoNoTextoDoMotor2511 } from '@/lib/hollywood/realPeople' // KINEO-FAMOSO-FORA-DO-TEXTO-2511
 import { narrationWordCount } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 // Push #315 — Cinematic Mode: fal.ai Wan 2.1 AI video generation.
 // Submits each scene to fal.ai queue (async), returns request IDs immediately.
@@ -8701,7 +8702,7 @@ async function manipularPost(req: NextRequest) {
       // [revisora 25/11, para todos] o nome do cabeçalho ("<IMAGE_REF_0> is …") passa pela MESMA limpeza de nomes de obra que o texto dos planos (timing.papelVisual2411,
       // aplicada em buildKling4TrialInput): nome de obra vira o papel, nome comum fica igual (a nota 10 continua byte a byte)
       const papel2511 = (e.timing as { papelVisual2411?: (plano: string) => string } | undefined)?.papelVisual2411 // posto no timing do envio do grátis (Object.assign acima)
-      const nome2511 = (n: string | null | undefined) => (n && papel2511 ? papel2511(n) : n)
+      const nome2511 = (n: string | null | undefined) => { const p = n && papel2511 ? papel2511(n) : n; return p && typeof semFamosoNoTextoDoMotor2511 === 'function' ? semFamosoNoTextoDoMotor2511(p) : p } // KINEO-FAMOSO-FORA-DO-TEXTO-2511 (typeof: as fatias que os guardiões executam não têm a limpeza no escopo): + o nome de figura atual da lista sai do cabeçalho (o texto dos planos já sai limpo do envio)
       const entrada = geminiDoKling4(wire.input, [nome2511(ru?.nomes?.[0]), nome2511(ru?.segundo?.nomes?.[0])])
       if (!entrada) return null
       // KINEO-FALA-DOS-PERSONAGENS-2511 — o pedido FALADO troca só o texto do Gemini (a entrada do Kling 4 guardada para a queda fica a de hoje, narrada)

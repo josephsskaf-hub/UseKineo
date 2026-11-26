@@ -2,6 +2,7 @@
 import { KLING4_TRIAL_COST_USD } from '@/lib/kling4TrialBudget'
 import { narrationWordCount } from '@/lib/textLanguage'
 import { visualMostraAlguem } from '@/lib/cinematic/personagemAjuste' // KINEO-REFERENCIA-UNICA-PUBLIC-2411 — o detector de alguém na cena que a rota já usa no visual do plano
+import { semFamosoNoTextoDoMotor2511 } from '@/lib/hollywood/realPeople' // KINEO-FAMOSO-FORA-DO-TEXTO-2511
 import { planoNegaGente } from '@/lib/cinematic/folhaDePersonagem' // KINEO-REFERENCIA-UNICA-PUBLIC-2411 — a ausência que a rota já marca ("No people, no human figures…", gente negada)
 
 export const KLING4_T2V_MODEL = 'kling/v4/text-to-video'
@@ -278,6 +279,9 @@ export function buildKling4TrialInput(
     // Presence and reference selection require the original names. Only edit text in the final payload.
     for (const plano of envio.input.multi_prompt as Array<{ prompt: string }>) plano.prompt = timing.papelVisual2411(plano.prompt)
   }
+  // KINEO-FAMOSO-FORA-DO-TEXTO-2511 [CEO 25/11] — o filme grátis (sempre com timing; o filme pago chama sem ele e não muda): o nome de figura atual da lista sai
+  // do texto do plano, depois da leitura de presença e de referência (que precisa dos nomes). Sem nome da lista, o plano fica byte a byte.
+  if (timing) for (const plano of envio.input.multi_prompt as Array<{ prompt: string }>) { const limpo = semFamosoNoTextoDoMotor2511(plano.prompt); if (limpo !== plano.prompt) plano.prompt = cabeNoTetoDoPlano(limpo) }
   return envio
 }
 
