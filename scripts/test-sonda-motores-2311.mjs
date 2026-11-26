@@ -38,20 +38,36 @@ function load(source, deps, env) {
 
 // Banco falso: só a tabela events, com os filtros que a rota usa. Cada leitura e escrita fica registrada.
 function fakeDb({ rows = [], readError = false, readThrows = false, insertError = false } = {}) {
-  const reads = [], inserts = []
+  const reads = [], inserts = [], lockWrites = []
+  let lock = null
   return {
-    reads, inserts,
+    reads, inserts, lockWrites,
     from(table) {
       const preds = []
-      let insertion = null, cap = Infinity, wasRead = false
+      let insertion = null, update = null, cap = Infinity, wasRead = false
       const q = {
         select() { wasRead = true; return q },
         eq(k, v) { preds.push((r) => r[k] === v); return q },
+        update(row) { update = plain(row); return q },
+        is(k, v) { return q.eq(k, v) },
+        maybeSingle() { return q },
         gte(k, v) { preds.push((r) => r[k] >= v); return q },
         limit(n) { cap = n; return q },
         insert(row) { insertion = plain(row); return q },
         then(resolve, reject) {
           return Promise.resolve().then(() => {
+            if (insertion?.name === 'admin_engine_probe_mutex') {
+              if (lock) return { data: null, error: { code: '23505' } }
+              lock = insertion
+              lockWrites.push('insert')
+              return { data: null, error: null }
+            }
+            if (update) {
+              if (!lock || !preds.every(matches => matches(lock))) return { data: null, error: null }
+              Object.assign(lock, update)
+              lockWrites.push(update.session_id === null ? 'release' : 'acquire')
+              return { data: { id: lock.id }, error: null }
+            }
             if (insertion) { inserts.push({ table, row: insertion }); return insertError ? { data: null, error: { message: 'fixture insert failed' } } : { data: null, error: null } }
             if (wasRead) reads.push({ table })
             if (readThrows) throw new Error('fixture network down')
@@ -86,7 +102,7 @@ function harness(source, { user = ADMIN, db = fakeDb(), fal = fakeFal(), dbNull 
     'node:crypto': offModules('node:crypto'),
     '@/lib/cinematic/geminiBlocos2611': offModules('@/lib/cinematic/geminiBlocos2611.ts'),
     '@/lib/cinematic/geminiNaEsteira2511': offModules('@/lib/cinematic/geminiNaEsteira2511.ts'),
-    'next/server': { NextResponse: { json: (body, init) => ({ status: init?.status ?? 200, body: plain(body) }) }, NextRequest: class {} },
+    'next/server': { NextResponse: { json: (body, init) => Object.defineProperties({ status: init?.status ?? 200, body: plain(body) }, { ok: { value: (init?.status ?? 200) < 300 }, clone: { value: () => ({ json: async () => plain(body) }) } }) }, NextRequest: class {} },
     '@fal-ai/client': { fal: fal.fal },
     '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user } }) } }) },
     '../_shared/db': { serviceClient: () => (dbNull ? null : db) },
@@ -128,6 +144,7 @@ for (const [endpoint, seconds, est] of [[K4, 15, 2.355], [K4F, 10, 0.94], [GEM, 
     assert.deepEqual(h.fal.submits, [{ model: endpoint, input }])
     assert.deepEqual(Object.keys(h.fal.submits[0].input).sort(), Object.keys(input).sort())
     assert.deepEqual(r.body, { model: endpoint, request_id: REQ_ID, est_usd: est, day_total_usd: Math.round((1.5 + est) * 10000) / 10000 })
+    assert.deepEqual(h.db.lockWrites, ['insert', 'release'])
     assert.equal(h.db.inserts.length, 1)
     assert.deepEqual(h.db.inserts[0], { table: 'events', row: { user_id: ADMIN.id, name: 'admin_engine_probe', path: '/api/admin/engine-test', metadata: { endpoint, seconds, est_usd: est, request_id: REQ_ID } } })
   })

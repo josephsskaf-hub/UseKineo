@@ -1,0 +1,80 @@
+{
+  "post": "/api/admin/engine-test?probe=blocks",
+  "teto_usd": 5,
+  "blocos": [
+    {
+      "bloco": 3,
+      "corpo": {
+        "dry_run": true,
+        "duration": 15,
+        "cast": [
+          {
+            "name": "Elias Ward",
+            "image_url": "https://v3b.fal.media/files/b/0ab3d531/hceF35nALFgYRRrVm7J7A.jpg"
+          },
+          {
+            "name": "Mara Quinn",
+            "image_url": "https://v3b.fal.media/files/b/0ab3d531/7zjTYzXVR-RBbOMjCKCpB.jpg"
+          }
+        ],
+        "blocks": [
+          [
+            {
+              "duration": 4,
+              "prompt": "Photoreal. Wide, from the dock facing shore. At first sunlight Elias and Mara stand facing the camera, lighthouse behind them, the small boat moored at frame right. A loose end of rope lands beside Mara's boot on the wet boards. Elias @Image1 in his navy coat, gray beard; Mara @Image2 in her green sweater, red hair. Mouths closed. No letters, numbers, labels or signage."
+            },
+            {
+              "duration": 4,
+              "prompt": "Photoreal. Medium shot, camera fixed at dock level on the water side. Mara crouches toward frame right and picks the loose end up with both hands. The line hangs slack beside the moored boat. Mara @Image2 in her green sweater, red hair. Mouths closed. No letters, numbers, labels or signage."
+            },
+            {
+              "duration": 3,
+              "prompt": "Photoreal. Medium shot, camera beside the cleat facing Elias. He lays the slack rope around the iron cleat and draws it snug. The hull settles against the dock. Elias @Image1 in his navy coat, gray beard. Mouths closed. No letters, numbers, labels or signage."
+            },
+            {
+              "duration": 4,
+              "prompt": "Photoreal. Two-shot from the water side. With the line now snug and still, Mara lifts an unlit brass storm lantern from the wet boards and holds it out. Elias takes its handle; the lighthouse is behind them. Elias @Image1 in his navy coat, gray beard; Mara @Image2 in her green sweater, red hair. Mouths closed. No letters, numbers, labels or signage."
+            }
+          ]
+        ]
+      }
+    },
+    {
+      "bloco": 4,
+      "corpo": {
+        "dry_run": true,
+        "duration": 15,
+        "cast": [
+          {
+            "name": "Elias Ward",
+            "image_url": "https://v3b.fal.media/files/b/0ab3d531/hceF35nALFgYRRrVm7J7A.jpg"
+          },
+          {
+            "name": "Mara Quinn",
+            "image_url": "https://v3b.fal.media/files/b/0ab3d531/7zjTYzXVR-RBbOMjCKCpB.jpg"
+          }
+        ],
+        "blocks": [
+          [
+            {
+              "duration": 4,
+              "prompt": "Photoreal. Same two-shot from the water side in first sunlight. Elias holds the unlit brass lantern by its handle; Mara releases it. The secured rope and moored boat remain beside them. Elias @Image1 in his navy coat, gray beard; Mara @Image2 in her green sweater, red hair. Mouths closed. No letters, numbers, labels or signage."
+            },
+            {
+              "duration": 4,
+              "prompt": "Photoreal. Camera fixed at the foot of the lighthouse steps looking toward the dock. Elias carries the lantern along the wet boards toward the camera; Mara walks beside him. They stop on the lowest step. Elias @Image1 in his navy coat, gray beard; Mara @Image2 in her green sweater, red hair. Mouths closed. No letters, numbers, labels or signage."
+            },
+            {
+              "duration": 3,
+              "prompt": "Photoreal. Close shot from beside the stone doorway looking down. Elias sets the unlit lantern on the flat step. Mara's hand steadies its base until the handle folds down. Elias @Image1 in his navy coat, gray beard; Mara @Image2 in her green sweater, red hair. Mouths closed. No letters, numbers, labels or signage."
+            },
+            {
+              "duration": 4,
+              "prompt": "Photoreal. Wide shot from the dock looking toward the lighthouse. The lantern rests on the bottom step between Elias and Mara. They look across the calm harbor at the moored boat as the sun clears the breakwater. Hold still. Elias @Image1 in his navy coat, gray beard; Mara @Image2 in her green sweater, red hair. Mouths closed. No letters, numbers, labels or signage."
+            }
+          ]
+        ]
+      }
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
@@ -27,7 +28,7 @@ const body=(duration,variation='')=>({duration,cast,blocks:Array.from({length:du
   {prompt:'@Image2 turns the dial at bench '+i+variation+'.',duration:8},
 ])})
 const response={json:(b,o)=>Response.json(b,o)}
-function environment({on=true,inside=true,spent=0,breakPost=0,denyRead=0,rejectPost=0}={}) {
+function environment({on=true,inside=true,email='josephskaf@hotmail.com',spent=0,breakPost=0,denyRead=0,rejectPost=0}={}) {
   const rows=[], sent=[], http=[]
   let dbReads=0, spendReads=0, errorAt=breakPost, readFailAt=denyRead
   if(spent)rows.push({id:'old',name:'admin_engine_probe',metadata:{est_usd:spent}})
@@ -49,17 +50,71 @@ function environment({on=true,inside=true,spent=0,breakPost=0,denyRead=0,rejectP
     if(errorAt&&sent.length===errorAt){errorAt=0;throw Error('simulated ambiguous response')}
     return Response.json({request_id:'01234567-0123-4123-8123-'+String(sent.length).padStart(12,'0')})}
   const load=createOfflineLoader({env:{FAL_KEY:'local-fixture'},globals:{AbortSignal,fetch:failFetch,setTimeout,clearTimeout},
-    source:(p,s)=>{if(p!==subject)return s;if(mut)s=s.replace(mut[1],mut[2]);return on?s.replace("= 'off'","= 'internal'"):s},
+    source:(p,s)=>{if(p!==subject)return s;if(mut)s=s.replace(mut[1],mut[2]);return on?s:s.replace("'internal' = 'internal'","'internal' = 'off'")},
     mocks:{'next/server':{NextResponse:response},'@fal-ai/client':{fal:{config(){}}},
-      '@/lib/supabase/server':{createClient:()=>({auth:{getUser:async()=>({data:{user:inside?{id:'tester',email:'josephskaf@hotmail.com'}:null}})}})},
+      '@/lib/supabase/server':{createClient:()=>({auth:{getUser:async()=>({data:{user:inside?{id:'tester',email}:null}})}})},
       '../_shared/db':{serviceClient:()=>{dbReads++;return db}}}})
   const route=load('@/app/api/admin/engine-test/route.ts')
   const post=async (input,forceBody=false)=>{let reads=0;const r=await route.POST({nextUrl:new URL('https://example.invalid/api/admin/engine-test?probe=blocks'),json:async()=>{reads++;if(forceBody)throw Error('fixture');return input}})
     return {status:r.status,body:await r.json(),reads}}
   return {post,sent,rows,dbReads:()=>dbReads}
 }
+// Exercise the shipped switch and production POST with the actual two continuation bodies.
+const fixture = JSON.parse(readFileSync('docs/filme-nota-9/teste-motores-2511/pedidos/60s-blocos-3-e-4.json', 'utf8'))
+const originalSheets = [
+  'https://v3b.fal.media/files/b/0ab3d531/hceF35nALFgYRRrVm7J7A.jpg',
+  'https://v3b.fal.media/files/b/0ab3d531/7zjTYzXVR-RBbOMjCKCpB.jpg',
+]
+assert.deepEqual(fixture.blocos.map(b => b.bloco), [3, 4])
+const rehearsal = environment()
+const customer = environment({email:'customer@example.invalid'})
+const previews = []
+for (const {bloco, corpo} of fixture.blocos) {
+  assert.equal(corpo.dry_run, true)
+  assert.deepEqual(corpo.cast.map(c => c.name), ['Elias Ward', 'Mara Quinn'])
+  for (const dry_run of [true, false]) {
+    const denied = await customer.post({...corpo, dry_run})
+    assert.equal(denied.status, 403)
+    assert.equal(denied.reads, 0)
+  }
+  const {status, body: preview} = await rehearsal.post(corpo)
+  assert.equal(status, 200)
+  assert.equal(preview.dry_run, true)
+  assert.equal(preview.model, 'google/gemini-omni-flash/v1.2/reference-to-video')
+  assert.equal(preview.est_usd, 1.2285)
+  assert.equal(preview.blocks.length, 1)
+  const [input] = preview.blocks
+  assert.deepEqual(input.image_urls, originalSheets)
+  assert.equal(input.duration, 15)
+  assert.equal(input.aspect_ratio, '9:16')
+  assert.equal(input.resolution, '720p')
+  const shots = input.prompt.split('\n').slice(1)
+  assert.deepEqual(shots.map(s => s.split(' (shot ')[0]), ['0-4 s','4-8 s','8-11 s','11-15 s'])
+  for (const [i, shot] of shots.entries()) {
+    const expected = corpo.blocks[0][i].prompt.replaceAll('@Image1','<IMAGE_REF_0>').replaceAll('@Image2','<IMAGE_REF_1>')
+    assert(shot.endsWith('hard cut): ' + expected))
+  }
+  previews.push({bloco, ...preview})
+}
+assert.equal(rehearsal.sent.length, 0)
+assert.equal(rehearsal.dbReads(), 0)
+assert.equal(customer.sent.length, 0)
+assert.equal(customer.dbReads(), 0)
+assert.notEqual(previews[0].plan_id, previews[1].plan_id)
+assert.equal(previews.reduce((n,p) => n + p.est_usd, 0), 2.457)
+if (process.argv.includes('--receipt')) console.log(JSON.stringify({status:'PASS', scope:'offline route POST, simulated house account', provider_calls:0, ledger_accesses:0, total_video_est_usd:2.457, previews}, null, 2))
+const serial = environment()
+for (const [i, {corpo}] of fixture.blocos.entries()) {
+  const paidFixture = {...corpo, dry_run:false}
+  const first = await serial.post(paidFixture)
+  assert.equal(first.status, 200, 'internal switch permits one authorized block')
+  assert.equal(first.body.receipts.length, 1)
+  assert.deepEqual((await serial.post(paidFixture)).body.receipts, first.body.receipts)
+  assert.deepEqual(serial.sent, previews.slice(0,i+1).map(p => p.blocks[0]))
+}
+
 const off=environment({on:false})
-for(const duration of [30,60]){
+for(const duration of [15,30,60]){
   const plan=body(duration);const r=await off.post({...plan,dry_run:true})
   assert.equal(r.status,200);assert.equal(r.body.blocks.length,duration/15)
   assert.equal(r.body.est_usd,duration*819/10000)

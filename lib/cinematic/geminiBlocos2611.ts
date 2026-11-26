@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { geminiDoKling4, GEMINI_OMNI_REF_USD_PER_S_720P, type EntradaDoGemini } from './geminiNaEsteira2511'
 
-export const GEMINI_BLOCOS_2611: 'off' | 'internal' = 'off'
+export const GEMINI_BLOCOS_2611: 'off' | 'internal' = 'internal'
 export const blocosInternosLigados = (modo: string) => modo === 'internal'
 export const BLOCK_UNITS = Math.round(15 * GEMINI_OMNI_REF_USD_PER_S_720P * 10000)
 
@@ -20,7 +20,7 @@ function referenciasDoBlocoValidas(text: string, folhas: number): boolean {
 }
 
 export function prepararBlocos2611(body: unknown, imageAllowed: (s: string) => boolean): Plan | null {
-  if (!object(body) || (body.duration !== 30 && body.duration !== 60)) return null
+  if (!object(body) || (body.duration !== 15 && body.duration !== 30 && body.duration !== 60)) return null
   if (!Array.isArray(body.cast) || body.cast.length < 1 || body.cast.length > 2 || !Array.isArray(body.blocks) || body.blocks.length !== body.duration / 15) return null
   const names: string[] = [], images: string[] = []
   for (const person of body.cast) {
