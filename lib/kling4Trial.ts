@@ -279,10 +279,16 @@ export function cabeComProtecao2611(texto: string, teto = KLING4_TETO_DO_PLANO):
   if (Array.from(texto).length <= teto) return texto
   const ultima = [...texto.matchAll(PROTECAO_DO_PLANO_2611)].pop()
   if (!ultima || ultima.index === undefined) return cabeNoTetoDoPlano(texto, teto)
-  const fim = texto.slice(ultima.index), orcamento = teto - Array.from(fim).length
+  const fim = texto.slice(ultima.index), ponto = /^\s*,/u.test(fim) ? '' : '.', orcamento = teto - Array.from(fim).length - ponto.length // "fecha com ." quando a proteção não começa por vírgula
   if (orcamento < 80) return cabeNoTetoDoPlano(texto, teto)
-  const corpo = cabeNoTetoDoPlano(texto.slice(0, ultima.index), orcamento).replace(/[\s.,;:]+$/u, '')
-  return corpo + fim
+  const inteiro = texto.slice(0, ultima.index)
+  let corpo = cabeNoTetoDoPlano(inteiro, orcamento).replace(/[\s.,;:]+$/u, '')
+  // [revisora 392f0a52, D1b] a frase longa SEM vírgula: o corte por frase/oração esvaziava o corpo (o plano caía para 113 cp, sem o @Image1, o "Setting:" e a
+  // ação). Corpo com menos da metade do orçamento, ou sem um @ImageN que tinha: corta na última fronteira de PALAVRA que cabe (o começo — referência,
+  // cenário — fica; sai só o fim da ação).
+  const refs = inteiro.match(/@Image\d+/gu) ?? []
+  if (Array.from(corpo).length < orcamento / 2 || refs.some((r) => !corpo.includes(r))) corpo = Array.from(inteiro).slice(0, orcamento).join('').replace(/\s+\S*$/u, '').replace(/[\s.,;:]+$/u, '')
+  return corpo + ponto + fim
 }
 
 export function buildKling4TrialInput(

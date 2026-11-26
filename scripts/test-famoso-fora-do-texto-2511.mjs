@@ -111,6 +111,19 @@ function prova(w, srcRota) {
   assert.equal(comPapel.input.multi_prompt[0].prompt, 'the plumber jumps while a person watches.', 'B o papel da obra e o famoso, os dois')
   const cauda = envio.buildKling4TrialInput(COM, [], timing).input.multi_prompt[2].prompt
   assert.ok(cauda.endsWith(CAUDA), 'B a cauda da boca fica inteira depois da troca')
+  // D1b [392f0a52]: a frase de ação longa e SEM vírgula num plano de 511/512 (o corte por frase/oração esvaziava o corpo: 113 cp, sem @Image1 nem "Setting:")
+  for (const cab of ['Keep the face and outfit of @Image1. Setting: a launch pad at dusk with floodlights. ', 'Setting: a launch pad at dusk. ']) {
+    let plano = cab + 'Musk walks slowly across the crowded launch pad toward the giant silver rocket while the engineers in white suits watch him'
+    while (cp(plano + ' and the crowd near the fence' + PROTECAO + '.' + CAUDA) <= 512) plano += ' and the crowd'
+    plano += ' near the fence' + PROTECAO + '.' + CAUDA
+    while (cp(plano) < 511) plano = plano.replace(' near the fence', ' a near the fence')
+    assert.ok(cp(plano) >= 511 && cp(plano) <= 512, 'D1b o caso no teto (' + cp(plano) + ')')
+    const r = envio.cabeComProtecao2611(L(plano))
+    assert.ok(cp(r) <= 512 && cp(r) >= 400, `D1b o plano não cai (${cp(r)} cp)`)
+    for (const parte of [...(cab.includes('@Image1') ? ['@Image1'] : []), 'Setting:', 'walks slowly across', 'no readable text, letters, numbers, labels or signage']) assert.ok(r.includes(parte), 'D1b fica: ' + parte)
+    assert.ok(r.endsWith(CAUDA), 'D1b a cauda inteira')
+  }
+  assert.ok(envio.cabeComProtecao2611('Setting: a dock. ' + 'A man walks the dock '.repeat(30).trim() + ' no readable text, letters, numbers, labels or signage.' + CAUDA).match(/\. no readable text/u), 'D1b sem vírgula antes da proteção, a ação fecha com "."')
   // D3 no envio: o composto num plano faz o sobrenome com aposto de outro plano trocar; sem o composto no filme, o inventado fica
   const d3 = envio.buildKling4TrialInput(['Elon Musk walks across the desert.', 'Musk, the founder, waves at Arno.', SEM[2]], [], timing).input.multi_prompt
   assert.equal(d3[1].prompt, 'a person, the founder, waves at Arno.', 'D3 o contexto do filme inteiro: o composto do plano 1 vale no plano 2')
@@ -149,6 +162,9 @@ const MUTANTES = [
   [ENVIO, 'ordem = [timing.referenciaUnica?.nomes?.[0], timing.referenciaUnica?.segundo?.nomes?.[0]]', 'ordem = []', 'D4 sem a ordem das referências'],
   [ENVIO, 'plano.prompt = cabeComProtecao2611(limpo) }', 'plano.prompt = cabeNoTetoDoPlano(limpo) }', 'D1 o corte de antes (a proteção sai)'],
   [ENVIO, 'plano.prompt = cabeComProtecao2611(limpo) }', 'plano.prompt = limpo }', 'sem o teto de 512'],
+  [ENVIO, "  if (Array.from(corpo).length < orcamento / 2 || refs.some((r) => !corpo.includes(r))) corpo =", "  if (false) corpo =", 'D1b o corpo vazio (113 cp)'],
+  [ENVIO, "  if (Array.from(corpo).length < orcamento / 2 || refs.some((r) => !corpo.includes(r))) corpo =", "  if (refs.some((r) => !corpo.includes(r))) corpo =", 'D1b só a referência (sem @Image o corpo esvazia)'],
+  [ENVIO, "ponto = /^\\s*,/u.test(fim) ? '' : '.'", "ponto = ''", 'D1b sem o ponto antes da proteção sem vírgula'],
   [LISTA, '    if (!aceitaNome2511(nome)) return false\n', '', 'palavra solta em minúscula vira nome'],
   [LISTA, '    if (titulo) ini -= titulo[0].length\n    else {', '    if (false) ini -= 0\n    else {', 'o título colado fica'],
   [LISTA, "const reDaLista2511 = (): RegExp => new RegExp(CONTEMPORARY_FIGURE_RE.source, 'gi')", "const reDaLista2511 = (): RegExp => new RegExp(CONTEMPORARY_FIGURE_RE.source, 'g')", 'sem caixa'],
