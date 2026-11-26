@@ -136,14 +136,10 @@ async function suite(change) {
   }
   { // KINEO-DUAS-PESSOAS-CLIENTE-2511 [CEO 25/11] cedd1250 (duas pessoas fotorreais com folha) para o CLIENTE: em 'public_humano' o MESMO 2º da casa; com a
     // chave das duas pessoas em 'internal' (só a casa), nunca o 2º (o de ontem)
-    // [CEO 25/11 noite] PUBLICADO em 'internal' (a régua das duas pessoas deu volta): pela rota, o cliente com duas folhas = o pedido de hoje; a régua
-    // MONTADA em 'public_humano' (5º argumento) continua dando ao cliente o MESMO 2º da casa
     const c = admitir(route, f, fr, vp, { email: CLIENTE, snapshot: retrato() })
-    assert.equal(f.DUAS_PESSOAS_DO_CLIENTE_2511, 'internal', "publicado: 'internal'")
-    assert.ok(!c.referenciaUnica && c.referenciaUnicaRecusa === 'mais_de_uma_folha', "publicado: cliente com duas folhas = o pedido de hoje (o motivo de ontem)")
-    const ch = admitir(route, { ...f, admitirReferenciaUnica2411: (m, e, s, fl) => f.admitirReferenciaUnica2411(m, e, s, fl, 'public_humano') }, fr, vp, { email: CLIENTE, snapshot: retrato() })
-    assert.ok(ch.referenciaUnica && ch.referenciaUnicaDoCliente === true, "montada em 'public_humano': cliente com duas folhas fotorreais liga")
-    igual(ch.referenciaUnica, t.referenciaUnica, "montada em 'public_humano': cliente = a referência da casa, com o 2º")
+    assert.equal(f.DUAS_PESSOAS_DO_CLIENTE_2511, 'public_humano')
+    assert.ok(c.referenciaUnica && c.referenciaUnicaDoCliente === true, 'cliente com duas folhas fotorreais: liga')
+    igual(c.referenciaUnica, t.referenciaUnica, 'cliente = a referência da casa, com o 2º')
     const ci = admitir(route, { ...f, admitirReferenciaUnica2411: (m, e, s, fl) => f.admitirReferenciaUnica2411(m, e, s, fl, 'internal') }, fr, vp, { email: CLIENTE, snapshot: retrato() })
     assert.ok(!ci.referenciaUnica && ci.referenciaUnicaRecusa === 'mais_de_uma_folha', "duas pessoas em 'internal': cliente nunca o 2º, o motivo de ontem")
     // mesmo com a referência única em 'public' (o cliente entra pelo caminho da casa), o 2º é só da casa: o interruptor próprio decide

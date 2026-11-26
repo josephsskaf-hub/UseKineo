@@ -1,9 +1,7 @@
 // KINEO-DUAS-PESSOAS-CLIENTE-2511 — guardião da régua que abre a referência de DUAS pessoas fotorreais para o CLIENTE (lib/cinematic/referenciaUnica2411.ts).
 // Executa a admissão REAL (admitirReferenciaUnica2411, o mesmo que a rota chama) com o elenco de cedd1250 (Elias e Mara, duas pessoas fotorreais, com
 // folha). Sem rede, sem banco, sem fal. Regras provadas (cada uma com mutante que precisa morrer):
-//   A. a chave: [CEO 25/11 noite] PUBLICADA em 'internal' (a régua deu volta na revisão): a chamada da rota (4 argumentos, a chave do módulo) dá ao cliente o
-//      pedido de hoje ('mais_de_uma_folha'); a régua abaixo é MONTADA em 'public_humano' no teste (5º argumento), e os mutantes dela morrem por esse estado;
-//      em 'internal' o cliente = o de ontem; a casa não muda com a chave;
+//   A. a chave: no commit 'public_humano'; em 'internal' o cliente = o de ontem ('mais_de_uma_folha', sem referência); a casa não muda com a chave;
 //   B. liga: exatamente 2, os dois 'humano', os dois com folha https, fotorreal, nenhum menor → a MESMA referência da casa, com @Image2, cliente: true;
 //   C. fica de fora: 3 ou mais; bicho ou criatura (nem chega à régua: 'nao_humano'); desenho, anime, 3D, desenho infantil, campo torto; menor (palavra
 //      ou idade, inglês e português); protagonista pela imagem-chave; 2ª folha não https; nomes que se contêm; a mesma folha nos dois;
@@ -34,14 +32,11 @@ async function suite(change) {
   const source = (file, src) => change && file === change[0] ? src.split(change[1]).join(change[2]) : src
   const f = load(source)('@/' + feature)
   const route = source(routeFile, local(routeFile))
-  // [CEO 25/11 noite] a régua montada em 'public_humano' (o estado que ela terá quando abrir); o estado PUBLICADO ('internal') é provado no bloco A
-  const adm = (email, snap, filme = FOTO, duas = 'public_humano') => f.admitirReferenciaUnica2411('public_humano', email, snap, filme, duas)
+  const adm = (email, snap, filme = FOTO, duas) => duas === undefined ? f.admitirReferenciaUnica2411('public_humano', email, snap, filme) : f.admitirReferenciaUnica2411('public_humano', email, snap, filme, duas)
   const motivo = (snap, filme = FOTO, duas) => { const a = adm(CLIENTE, snap, filme, duas); assert.ok(a && 'motivo' in a, 'esperava motivo'); return a.motivo }
 
   // A. a chave
-  assert.equal(f.DUAS_PESSOAS_DO_CLIENTE_2511, 'internal', "publicado: 'internal'")
-  igual(f.admitirReferenciaUnica2411('public_humano', CLIENTE, retrato(), FOTO), { motivo: 'mais_de_uma_folha' }, 'publicado (a chamada da rota, 4 argumentos): o cliente com duas folhas = o pedido de hoje')
-  igual(f.admitirReferenciaUnica2411('public_humano', CASA, retrato(), FOTO), adm(CASA, retrato()), 'publicado: a casa igual à da régua montada')
+  assert.equal(f.DUAS_PESSOAS_DO_CLIENTE_2511, 'public_humano', "no commit: 'public_humano'")
   assert.equal(f.REFERENCIA_UNICA_2411, 'public_humano'); assert.equal(f.DUAS_REFERENCIAS_2411, 'internal', 'a chave da casa não muda')
   assert.equal(motivo(retrato(), FOTO, 'internal'), 'mais_de_uma_folha', "'internal': o cliente = o de ontem")
   const casa = adm(CASA, retrato())
@@ -187,7 +182,7 @@ const mutants = [
   [feature, "  if (c.nucleo === undefined && c.canonica === undefined && typeof c.nome === 'string') return adultoNoTrechoDaIdeia2511(c.nome)\n", ''], // [B] o trecho do escritor volta a ser lido como ficha
   [feature, "  if (c.nucleo === undefined && c.canonica === undefined && typeof c.nome === 'string')", "  if (c.canonica === undefined && typeof c.nome === 'string')"], // [B] a ficha sem núcleo vira trecho
   [feature, "|| ADULTO_IDADE_PROPRIA_2511.test(t)) && !textoDizMenor2511(t)", "|| ADULTO_IDADE_PROPRIA_2511.test(t))"], // [B] o trecho com menor vira adulto
-  [feature, "export const DUAS_PESSOAS_DO_CLIENTE_2511: ModoDuasPessoasDoCliente2511 = 'internal'", "export const DUAS_PESSOAS_DO_CLIENTE_2511: ModoDuasPessoasDoCliente2511 = 'public_humano'"], // [CEO 25/11 noite] a chave escapa para o cliente
+  [feature, "export const DUAS_PESSOAS_DO_CLIENTE_2511: ModoDuasPessoasDoCliente2511 = 'public_humano'", "export const DUAS_PESSOAS_DO_CLIENTE_2511: ModoDuasPessoasDoCliente2511 = 'internal'"],
   [feature, "if (motivo === 'mais_de_uma_folha' && duasDoCliente === 'public_humano') {", "if (motivo === 'mais_de_uma_folha') {"],
   [feature, "if (motivo === 'mais_de_uma_folha' && duasDoCliente === 'public_humano') {", "if ((motivo === 'mais_de_uma_folha' || motivo === 'nao_humano') && duasDoCliente === 'public_humano') {"],
   [feature, "return 'referencia' in duas ? { referencia: duas.referencia, cliente: true } : { motivo: duas.motivo }", "return 'referencia' in duas ? { referencia: duas.referencia } : { motivo: duas.motivo }"],
@@ -261,4 +256,4 @@ for (const mutant of mutants) {
   await assert.rejects(suite(mutant), err => err instanceof assert.AssertionError, 'SOBREVIVEU: ' + mutant[1] + ' → ' + mutant[2]) // N1 [revisora]: só AssertionError conta como morto
   mortos++
 }
-console.log(`PASS KINEO-DUAS-PESSOAS-CLIENTE-2511 (volta): chave PUBLICADA em 'internal' (o cliente com duas folhas = o pedido de hoje; a casa não muda); a régua montada em 'public_humano': cliente com exatamente 2 pessoas fotorreais com folha, ADULTO PROVADO nos dois (idade ≥ 18 ou palavra de adulto) e nenhum sinal de menor no elenco, no roteiro ou no pedido, sem figura conhecida, pessoa real ou personagem de marca = a referência da casa com @Image2; o resto = o pedido de hoje + o código; ${mortos}/${mutants.length} mutantes mortos.`)
+console.log(`PASS KINEO-DUAS-PESSOAS-CLIENTE-2511 (volta): chave 'public_humano' (em 'internal' o cliente = o de ontem; a casa não muda); cliente com exatamente 2 pessoas fotorreais com folha, ADULTO PROVADO nos dois (idade ≥ 18 ou palavra de adulto) e nenhum sinal de menor no elenco, no roteiro ou no pedido, sem figura conhecida, pessoa real ou personagem de marca = a referência da casa com @Image2; o resto = o pedido de hoje + o código; ${mortos}/${mutants.length} mutantes mortos.`)

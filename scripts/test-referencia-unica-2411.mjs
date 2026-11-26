@@ -553,11 +553,10 @@ async function suiteHumano2411({ api, f, route }) {
     ['dragão (sintético)', { ...s0, characters: [outro('the dragon', 'criatura', true)], characterReferences: [folha('the dragon')] }, {}, 'nao_humano'],
     ['pessoa + bicho COM folha', { ...s0, characters: [lead, outro('the dog', 'animal', false)], characterReferences: [...s0.characterReferences, folha('the dog')] }, {}, 'nao_humano'],
     ['pessoa + criatura COM folha', { ...s0, characters: [lead, outro('the ghost', 'criatura', false)], characterReferences: [...s0.characterReferences, folha('the ghost')] }, {}, 'nao_humano'],
-    // KINEO-DUAS-PESSOAS-CLIENTE-2511 [CEO 25/11 noite] a chave das duas pessoas PUBLICADA em 'internal' (a régua deu volta): duas folhas = 'mais_de_uma_folha',
-    // o pedido de hoje. A régua MONTADA em 'public_humano' (logo abaixo dos casos) dá os motivos dela: 'duas_sem_folha' e 'duas_estilizado'.
-    ['protagonista pela imagem-chave + outra pessoa COM folha', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [folha('the woman')], approvedStills: [{ url: 'https://example.org/offline/k.png', characterNames: [lead.nome] }] }, {}, 'mais_de_uma_folha'],
-    ['duas pessoas COM folha (caed3456; a chave das duas em internal = o de ontem)', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [...s0.characterReferences, folha('the woman')] }, {}, 'mais_de_uma_folha'],
-    ['duas pessoas COM folha num filme 3D', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [...s0.characterReferences, folha('the woman')] }, { look: 'animated3d' }, 'mais_de_uma_folha'],
+    // KINEO-DUAS-PESSOAS-CLIENTE-2511 [CEO 25/11] duas pessoas fotorreais COM folha agora ligam para o cliente com o 2º (caso 3 abaixo); com a chave em
+    // 'internal' o motivo volta a ser 'mais_de_uma_folha' (scripts/test-duas-pessoas-cliente-2511.mjs). Fora da régua, o motivo da régua das duas:
+    ['protagonista pela imagem-chave + outra pessoa COM folha', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [folha('the woman')], approvedStills: [{ url: 'https://example.org/offline/k.png', characterNames: [lead.nome] }] }, {}, 'duas_sem_folha'],
+    ['duas pessoas COM folha num filme 3D', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [...s0.characterReferences, folha('the woman')] }, { look: 'animated3d' }, 'duas_estilizado'],
     // [revisora 24/11 · CEO, c06af33d] a forma provada tinha UMA pessoa no elenco da folha: duas pessoas no elenco, mesmo com uma só folha https, não liga
     ['duas pessoas, só uma com folha (c06af33d, "dynamic duo")', { ...s0, characters: [lead, outro('the woman', 'humano', false)] }, {}, 'mais_de_um_humano'],
     ['duas pessoas, a 2ª com folha NÃO https', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [...s0.characterReferences, { nome: 'the woman', url: 'http://inseguro.example/w.png' }] }, {}, 'mais_de_um_humano'],
@@ -586,15 +585,6 @@ async function suiteHumano2411({ api, f, route }) {
     const hi = admitir(route, { ...f, REFERENCIA_UNICA_2411: 'internal' }, { email: casa, snapshot: snap, ...opts })
     assert.equal(JSON.stringify(h.referenciaUnica ?? null), JSON.stringify(hi.referenciaUnica ?? null), 'casa + ' + nome + ': igual a internal')
   }
-  // [CEO 25/11 noite] a régua das duas pessoas MONTADA em 'public_humano' (5º argumento; a rota chama com 4 e a chave do módulo é 'internal')
-  const comDuasMontada = { ...f, admitirReferenciaUnica2411: (m, e, s, fl) => f.admitirReferenciaUnica2411(m, e, s, fl, 'public_humano') }
-  for (const [nome, motivo] of [['protagonista pela imagem-chave + outra pessoa COM folha', 'duas_sem_folha'], ['duas pessoas COM folha num filme 3D', 'duas_estilizado']]) {
-    const [, snap, opts] = casos.find(c => c[0] === nome)
-    const t = admitir(route, comDuasMontada, { email: cliente, snapshot: snap, ...opts })
-    assert.equal('referenciaUnica' in t, false, 'régua montada · cliente + ' + nome + ' não liga')
-    assert.equal(t.referenciaUnicaRecusa, motivo, 'régua montada · cliente + ' + nome + ': o motivo da régua das duas')
-    assert.deepEqual(JSON.parse(JSON.stringify(f.relatoClienteSemReferencia2411(t))), { versao: 'KINEO-REFERENCIA-UNICA-HUMANO-2411', motivo }, 'régua montada · claim: só a versão e o código')
-  }
   for (const nome of ['bicho', 'criatura', 'anime', 'desenho infantil', 'robô em desenho 3D (sintético)', 'dragão (sintético)']) {
     const [, snap, opts] = casos.find(c => c[0] === nome)
     assert.ok(admitir(route, f, { email: casa, snapshot: snap, ...opts }).referenciaUnica, 'casa + ' + nome + ' liga')
@@ -602,16 +592,17 @@ async function suiteHumano2411({ api, f, route }) {
   // 3. o que ainda liga para cliente: pessoa + bicho SEM folha (o bicho não tem referência a trocar), filme noir (fotorreal em preto e branco); o coadjuvante
   // só citado no texto (fora do elenco, como em Le Prince, Slocum e Cooper) = o elenco de UMA pessoa
   for (const [nome, snap, opts] of [['pessoa + bicho sem folha', { ...s0, characters: [lead, outro('the dog', 'animal', false)] }, {}], ['noir', s0, { look: 'noir' }], ['fotorreal, coadjuvante só no texto', s0, {}],
-    ['protagonista pela imagem-chave, sem outra folha', { ...s0, characterReferences: [], approvedStills: [{ url: 'https://example.org/offline/k.png', characterNames: [lead.nome] }] }, {}]]) {
-    // [CEO 25/11 noite] o caso das duas pessoas liga com a régua MONTADA; o estado publicado ('internal') é conferido logo depois deste laço
-    const t = admitir(route, nome.startsWith('duas pessoas') ? comDuasMontada : f, { email: cliente, snapshot: snap, ...opts })
+    ['protagonista pela imagem-chave, sem outra folha', { ...s0, characterReferences: [], approvedStills: [{ url: 'https://example.org/offline/k.png', characterNames: [lead.nome] }] }, {}],
+    // [volta 3, V5: adulto só por IDADE] as duas fichas levam a idade escrita (a ficha "A young man" sem idade barra, o custo aceito: ver o caso logo abaixo do laço)
+    ['duas pessoas COM folha (caed3456, c06af33d) — KINEO-DUAS-PESSOAS-CLIENTE-2511', { ...s0, characters: [{ ...lead, canonica: 'the young man, a 30-year-old sailor' }, { ...outro('the woman', 'humano', false), canonica: 'the woman, a 40-year-old radio operator' }], characterReferences: [...s0.characterReferences, folha('the woman')] }, {}]]) {
+    const t = admitir(route, f, { email: cliente, snapshot: snap, ...opts })
     assert.ok(t.referenciaUnica && !('referenciaUnicaRecusa' in t), 'cliente + ' + nome + ' liga')
     assert.equal(!!t.referenciaUnica.segundo, nome.startsWith('duas pessoas'), 'cliente + ' + nome + ': o 2º só com duas folhas')
   }
-  { // [CEO 25/11 noite] PUBLICADO: a chave das duas pessoas em 'internal' = o cliente com duas folhas recebe o pedido de hoje (a chamada da rota, 4 argumentos)
-    assert.equal(f.DUAS_PESSOAS_DO_CLIENTE_2511, 'internal', "publicado: a chave das duas pessoas em 'internal'")
+  { // [V5] o mesmo par sem idade escrita ("A young man", "A woman") = sem prova de adulto = a referência de UMA pessoa não entra para duas (o custo aceito)
     const t = admitir(route, f, { email: cliente, snapshot: { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [...s0.characterReferences, folha('the woman')] } })
-    assert.ok(!t.referenciaUnica && t.referenciaUnicaRecusa === 'mais_de_uma_folha', "publicado: cliente + duas pessoas COM folha = o pedido de hoje, 'mais_de_uma_folha'") }
+    assert.ok(!t.referenciaUnica && t.referenciaUnicaRecusa === 'duas_menor', 'V5 o par sem idade = duas_menor (' + JSON.stringify(t.referenciaUnicaRecusa) + ')')
+  }
   // 4. a guarda sozinha: estilo ausente ou torto = estilizado (na dúvida, o de hoje)
   for (const filme of [{}, { estilizado: undefined }, { estilizado: 'false' }, { estilizado: 0 }]) assert.equal(f.motivoClienteSemReferencia2411(s0, filme), 'estilizado', JSON.stringify(filme))
   assert.equal(f.motivoClienteSemReferencia2411(s0, { estilizado: false }), null)
