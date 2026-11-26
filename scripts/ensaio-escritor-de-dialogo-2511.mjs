@@ -8,8 +8,8 @@
 // desta árvore, ou de outra pasta com --leitor <raiz> (a branch dele). Sem o elenco do dry-run, mede também com o elenco no formato de hoje do servidor
 // (elencoComoOServidor2511: "the <papel>" / núcleo; o humano com nome na ideia = o nome), coluna à parte.
 // Imprime, por ideia, cada item da régua (true/false) e o placar. "A história é a do pedido" é a única linha de olho humano: vai como null.
-// Volta 4 (T4 é do 3bbf48a0; aqui só a CONTA): fala_longa = quantas seções passam do teto do leitor, floor(2,2 × segundos do plano), a 3,75 s (8 palavras)
-// e a 3 s (6 palavras). O leitor devolve fala_longa para o filme INTEIRO, que sai narrado. Informativo: não entra no 'passa'.
+// Volta 4 (T4 é do 3bbf48a0; aqui só a CONTA): fala_longa = quantas seções passam do teto do leitor, floor(3 × segundos do plano) desde a volta 7b, a
+// 3,75 s (11 palavras) e a 3 s (9 palavras). O leitor devolve fala_longa para o filme INTEIRO, que sai narrado. Informativo: não entra no 'passa'.
 import { readFileSync } from 'node:fs'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
@@ -18,7 +18,7 @@ const SECOES = ['HOOK', 'MICRO REWARD 1', 'MICRO REWARD 2', 'PAYOFF']
 const NARRADOR = /^(?:narrator|narration|voice|voiceover|voice over|voice-over|vo|announcer|host)$/i
 const TITULO = /^(?:captain|capt|mr|mrs|ms|miss|mister|dr|doctor|sir|lady|lord|king|queen|prince|princess|officer|detective|agent|professor|prof|uncle|aunt)\.?$/i
 const palavras = (t) => String(t ?? '').trim().split(/\s+/u).filter(Boolean).length // como o leitor conta
-export const TETO_DO_LEITOR = (segundos) => Math.floor(2.2 * segundos) // lerFalas2511: 2,2 palavras por segundo do plano
+export const TETO_DO_LEITOR = (segundos) => Math.floor(3 * segundos) // o leitor do 3bbf48a0: PALAVRAS_POR_SEGUNDO_2511 = 3 por segundo do plano (era 2,2: a linha FALA_LONGA exagerava)
 const temNome = (texto, nome) => { const n = String(nome).trim().split(' ')[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); return !!n && new RegExp(`(?<![\\p{L}\\p{N}])${n}(?![\\p{L}\\p{N}])`, 'iu').test(texto) }
 
 /** A régua de um roteiro, no formato do leitor do servidor do filme. */

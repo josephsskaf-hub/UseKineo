@@ -109,12 +109,12 @@ async function suite(change) {
   // o conferidor do ensaio (a régua escrita antes, no formato do leitor do 3bbf48a0) aprova o que o escritor monta, item a item
   { const { conferirEnsaio } = await import('./ensaio-escritor-de-dialogo-2511.mjs'), c = conferirEnsaio(script, ['Elias Ward', 'Mara Quinn'])
     for (const [k, v] of Object.entries(c)) if (!['falantes', 'palavras', 'historia_do_pedido', 'fala_longa', 'rotulo_na_ideia', 'falantes_no_elenco', 'motivo_do_leitor', 'falado_com_elenco_simulado', 'motivo_com_elenco_simulado'].includes(k)) assert.equal(v, true, 'o conferidor: ' + k)
-    // volta 4: a conta da fala_longa do leitor (T4 é do 3bbf48a0). O BOM tem seções de 6, 7, 7 e 7: nenhuma passa de 8 (3,75 s), três passam de 6 (3 s)
-    igual(c.fala_longa, { a_3_75s: 0, a_3s: 3 }, 'a conta da fala_longa')
+    // volta 7b: o teto do leitor é 3 palavras por segundo do plano (PALAVRAS_POR_SEGUNDO_2511). O BOM (6, 7, 7 e 7) não passa nem a 3 s (9)
+    igual(c.fala_longa, { a_3_75s: 0, a_3s: 0 }, 'a conta da fala_longa')
     const { TETO_DO_LEITOR } = await import('./ensaio-escritor-de-dialogo-2511.mjs')
-    igual([TETO_DO_LEITOR(3.75), TETO_DO_LEITOR(3), TETO_DO_LEITOR(4)], [8, 6, 8], 'o teto do leitor')
-    // por construção: a 3,75 s nenhum aceito dá fala_longa (8 por seção); a 3 s TODO aceito dá (25 > 4 × 6, ao menos uma seção de 7)
-    assert.ok(E.MAX_PALAVRAS_POR_SECAO <= TETO_DO_LEITOR(3.75) && E.PALAVRAS_DO_FILME.min > SECOES_N * TETO_DO_LEITOR(3), 'a conta por construção')
+    igual([TETO_DO_LEITOR(3.75), TETO_DO_LEITOR(3), TETO_DO_LEITOR(2.5)], [11, 9, 7], 'o teto do leitor')
+    // por construção: com até 8 por seção, nenhum roteiro aceito dá fala_longa em plano de 3 s ou mais (9); abaixo de 2,7 s, sim
+    assert.ok(E.MAX_PALAVRAS_POR_SECAO <= TETO_DO_LEITOR(3) && E.MAX_PALAVRAS_POR_SECAO > TETO_DO_LEITOR(2.5) && SECOES_N === 4, 'a conta por construção')
     for (const [ruim, item] of [[script.replace('Elias: The lamp', 'Narrator: The lamp'), 'nada_de_narrador'], [script.replace('Elias climbing', 'Someone climbing'), 'quem_fala_esta_na_marca'], [script.replace('tonight.', 'tonight'), 'fala_termina_em_pontuacao'], [script.replace('The lamp went dark again tonight.', 'The old lamp went dark again late tonight, sadly.'), 'ate_8_palavras_por_secao']])
       assert.equal(conferirEnsaio(ruim, null)[item], false, 'o conferidor pega: ' + item) }
   { const p = P.parseUserScript(script)
@@ -293,7 +293,10 @@ async function suite(change) {
     igual([elencoComoOServidor2511('A lighthouse keeper named Elias and a radio operator guide a boat', ['Keeper', 'Operator']), elencoComoOServidor2511('Two penguins plan a party for their friend the walrus', ['Penguins', 'Walrus']), elencoComoOServidor2511('A grumpy owl and a night-shift nurse', ['Owl', 'Nurse'])],
       [[['Elias', 'Elias'], ['the radio operator', 'operator']], [['the penguins', 'penguins'], ['the walrus', 'walrus']], [['the grumpy owl', 'owl'], ['the night-shift nurse', 'nurse']]], 'o elenco no formato de hoje do servidor') }
   // volta 7 (V1): o rótulo do papel é o NÚCLEO (a última palavra do papel), o que o elenco do servidor grava
-  for (const [ideia, f, rot] of [['A lighthouse keeper and a radio operator guide a boat home', [P5('lighthouse keeper'), P5('radio operator')], ['Keeper', 'Operator']], ['A grumpy owl and a cheerful squirrel prepare for winter', [P5('grumpy owl'), P5('cheerful squirrel')], ['Owl', 'Squirrel']],
+  // D1 (revisora, volta 7): o núcleo é a última palavra ANTES da 1ª preposição
+  igual(['nurse in training', 'doctor on call', 'chef de cuisine', 'lighthouse keeper', 'nurse', 'robot with wheels', 'chef of the house'].map(E.nucleoDoPapel2511), ['Nurse', 'Doctor', 'Chef', 'Keeper', 'Nurse', 'Robot', 'Chef'], 'D1: o núcleo antes da preposição')
+  for (const [ideia, f, rot] of [['A nurse in training and a doctor on call share a night shift', [P5('nurse in training'), P5('doctor on call')], ['Nurse', 'Doctor']], ['A chef de cuisine and a waiter argue about a sauce', [P5('chef de cuisine'), P5('waiter')], ['Chef', 'Waiter']],
+    ['A lighthouse keeper and a radio operator guide a boat home', [P5('lighthouse keeper'), P5('radio operator')], ['Keeper', 'Operator']], ['A grumpy owl and a cheerful squirrel prepare for winter', [P5('grumpy owl'), P5('cheerful squirrel')], ['Owl', 'Squirrel']],
     ['A pilot and a flight attendant calm a nervous plane', [P5('pilot'), P5('flight attendant')], ['Pilot', 'Attendant']], ['A tiny dragon named Ember learns to fly with a wise owl', [P5('dragon', 'Ember'), P5('owl')], ['Ember', 'Owl']]]) {
     const r = await roda5(ideia, f); igual(rot.map((x) => r.script?.includes('\n' + x + ': ')), rot.map(() => true), 'o rótulo é o núcleo: ' + r.script?.slice(0, 100)) }
   // volta 7 (V2): sem_adulto é motivo de criança: direto ao narrado, SEM 2ª chamada (a 2ª ensinava "student" a virar "part-time cashier")
@@ -442,6 +445,7 @@ const mutants = [
   [MOD, '  if (UNICO_ANTES.test(trecho', '  if (false && UNICO_ANTES.test(trecho'],
   [MOD, 'slice(0, -papel.split(/\\s+/).length)', 'slice(0)'], // v7: "first mate" não é "the first"
   [MOD, '|wee|cadets?)', '|wee)'],
+  [MOD, 'return tituloDoPapel((i > 0 ? ws[i - 1] : ws[ws.length - 1])', 'return tituloDoPapel((ws[ws.length - 1])'], // D1
   [MOD, '|first\\s+lady|first\\s+gentleman)', ')'],
   [MOD, "'nome_inventado', 'falante_fora',", "'nome_inventado', 'sem_adulto', 'falante_fora',"], // v7: V2
   [MOD, '(needs ${MIN_PALAVRAS_ALVO_2511 - n} more)', ''],

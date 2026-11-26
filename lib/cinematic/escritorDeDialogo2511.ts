@@ -209,7 +209,12 @@ const tituloDoPapel = (papel: string): string => papel.split(' ').map((w) => w.c
 /** Volta 7 (V1, a regra combinada com o leitor do filme): o rótulo de quem fala pelo PAPEL é o NÚCLEO, a última palavra do papel como a ideia escreve, com
  *  maiúscula ("lighthouse keeper" = "Keeper", "grumpy owl" = "Owl"). É o núcleo que o elenco do servidor grava ("the lighthouse keeper" / "keeper"), e o
  *  lerFalas2511 casa o rótulo com o nome ou o núcleo do elenco, sem caixa. */
-export const nucleoDoPapel2511 = (papel: string): string => tituloDoPapel(papel.trim().split(/\s+/).pop() ?? '')
+/** D1 (revisora, volta 7): papel com preposição tem o núcleo ANTES dela ("nurse in training" = "Nurse", "doctor on call" = "Doctor", "chef de cuisine" = "Chef"). */
+const PREPOSICAO = /^(?:in|on|of|at|for|de|du|da|del|from|with|without|to|by|under|over|about|after|before|behind|near|inside|outside|on-call)$/i
+export const nucleoDoPapel2511 = (papel: string): string => {
+  const ws = papel.trim().split(/\s+/), i = ws.findIndex((w, k) => k > 0 && PREPOSICAO.test(w))
+  return tituloDoPapel((i > 0 ? ws[i - 1] : ws[ws.length - 1]) ?? '')
+}
 const temNomeExato = (ideia: string, nome: string): boolean => new RegExp(`(?<![\\p{L}\\p{N}])${nome.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`, 'u').test(ideia)
 export type MotivoDoCliente2511 = 'json' | 'formato' | 'papel' | 'nome_inventado' | 'sem_adulto' | 'menor' | 'pessoa_unica' | 'nome_de_gente'
 /** Lê os falantes do cliente ({ role, name }) contra a ideia e devolve o JSON no formato do conferidor de sempre (o rótulo de cada falante é o nome da

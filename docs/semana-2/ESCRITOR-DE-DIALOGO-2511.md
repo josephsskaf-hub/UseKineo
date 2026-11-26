@@ -237,6 +237,13 @@ A revisora 392f0a52 liberou a v6 para a casa. A régua do cliente segue desligad
 - "the president talks to a farmer" (o presidente sozinho) e "cadet pilot" (o cadete é menor) estão no guardião.
 - **Limite declarado:** nacionalidade + papel ("argentinian captain") e o epíteto solto ("iron lady", "the boss") falam.
 
+### Volta 7b (25/11, pedido da CEO depois da revisora 392f0a52)
+- **D1:** papel com preposição tem o núcleo ANTES dela: "nurse in training" vira "Nurse", "doctor on call" vira "Doctor", "chef de cuisine" vira "Chef". É o núcleo que o elenco grava; antes, o rótulo saía "Training", "Call" e "Cuisine", e o filme saía narrado.
+- **O teto do conferidor é o do leitor:** 3 palavras por segundo do plano (`PALAVRAS_POR_SEGUNDO_2511`), e não 2,2. A 3,75 s são 11 palavras; a 3 s, 9.
+  - Com até 8 palavras por seção, nenhum roteiro aceito dá `fala_longa` em plano de 3 s ou mais.
+  - **A conta "10 de 10 a 3 s" da volta 4 estava exagerada.**
+- **A régua do cliente pode ligar do lado do escritor** quando a opção B do leitor do filme (3bbf48a0, `8497b7b54`, `papelDaFicha2511`) estiver publicada.
+
 ## O risco do caminho do servidor (conferido, executado)
 O roteiro de diálogo passa intacto pelo que o caminho da ideia solta faz depois do escritor (`lib/meta95/ideiaNoEscritor.ts`):
 - `roteiroSemMetaTexto` (l. 224) não remove nenhuma linha `Nome: fala`;
