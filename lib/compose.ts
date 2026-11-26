@@ -3220,9 +3220,13 @@ export function buildCreatomateSource({
     // inside buildCaptionsFromWhisperWords. Nothing competes for that band any
     // more — KINEO-ONE-WATERMARK-2026-08-07 deleted the tail CTA outright, so a
     // caption blackout at the end of the timeline would buy nothing.
+    // KINEO-LEGENDA-FALADA-2611 [CEO 26/11, 0345902c] — no filme FALADO a fala é do motor e as palavras vêm do Whisper do clipe; o masterDuration é o TTS
+    // da narração que NÃO toca (25 palavras ≈ 9,5 s), e a janela min(masterDuration, 15) cortava a legenda no meio ("They can" e a 4ª fala sem legenda).
+    // Aqui a janela é o filme (15 s). Fora do falado, a de sempre, byte a byte.
+    const janelaDaLegenda2611 = falaDoMotorAtiva ? totalDuration : Math.min(masterDuration, totalDuration)
     const directCaps = buildCaptionsFromWhisperWords(
       whisperWords,
-      Math.min(masterDuration, totalDuration),
+      janelaDaLegenda2611,
       0,
       // PUSH #94 — one word per chunk (was the literal 3). Every caption is now
       // the word being spoken, which IS the tier-1 active-word look.
@@ -3249,7 +3253,12 @@ export function buildCreatomateSource({
         ? Math.min(6, Math.max(CAPTION_HOOK_WINDOW_SECONDS, w.end))
         : CAPTION_HOOK_WINDOW_SECONDS
     })()
-    for (const cap of directCaps) {
+    // KINEO-LEGENDA-FALADA-2611 — no filme falado cada plano é de quem fala: a legenda sai 0,35 s depois da última palavra DITA (não espera a próxima), para
+    // "THEM LIGHT" não ficar na tela no plano 3. Fora do falado, os pedaços de sempre.
+    const capsDaLegenda2611 = falaDoMotorAtiva
+      ? directCaps.map((c) => { const ultima = c.words?.[c.words.length - 1]; return ultima && Number.isFinite(ultima.end) ? { ...c, duration: Math.max(0.3, Math.min(c.duration, ultima.end + 0.35 - c.time)) } : c })
+      : directCaps
+    for (const cap of capsDaLegenda2611) {
       elements.push(...buildCaptionElements({
         text: cap.text,
         time: cap.time,
