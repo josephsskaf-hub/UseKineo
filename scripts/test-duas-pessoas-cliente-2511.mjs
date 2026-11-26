@@ -126,6 +126,14 @@ async function suite(change) {
     assert.equal(motivo(retrato(), { estilizado: false, textoDoFilme: roteiro }), 'duas_menor', 'V5 no roteiro: ' + roteiro)
   assert.equal(motivo(retrato(), { estilizado: false, textoDoFilme: 'Элиас и Мара смотрят на море.' }), 'duas_menor', 'V5 roteiro em escrita não latina')
   assert.ok('referencia' in adm(CLIENTE, retrato([ELIAS, { ...MARA, canonica: 'Mara, a 30-year-old pilot, 5 ft 6, flies at 10 am' }])), 'V5 medida e hora não são idade')
+  // [V7 da revisora 52b12696] idade em meses, semanas ou dias é bebê: nunca prova adulto (nem na idade escrita, nem na âncora) e a 2ª trava a lê
+  for (const canonica of ['Mara, aged 18 months', 'Mara, appearance anchors: 18-24 months', 'Mara, appearance anchors: 20 months', 'Mara, aged 30 weeks', 'Mara, an 18-month-old baby',
+    'Mara, 20 months old', 'Mara, 25 days old', 'Mara, aged 45 days']) {
+    assert.equal(motivo(retrato([ELIAS, { ...MARA, canonica }])), 'duas_menor', 'V7 ' + canonica)
+    assert.equal(f.adultoProvado2511({ ...MARA, canonica }), false, 'V7 não prova adulto: ' + canonica)
+  }
+  for (const t of ['Elias carries his 18-month-old daughter Mia to the pier.', 'Mia, 20 months old, sleeps on the boat.', 'Mia, aged 30 weeks, sleeps.']) assert.equal(motivo(retrato(), { estilizado: false, textoDoFilme: t }), 'duas_menor', 'V7 no roteiro: ' + t)
+  for (const canonica of ['Mara, aged 45', 'Mara, appearance anchors: 20-30', 'Mara, a 30-year-old radio operator']) assert.ok('referencia' in adm(CLIENTE, retrato([ELIAS, { ...MARA, canonica }])), 'V7 a idade adulta continua entrando: ' + canonica)
   // [V4] as formas de idade que a 2ª trava não lia
   for (const canonica of ['Theo, a young man of 17', 'Ana, 16, a woman of few words', 'Rina, a woman who looks about 15', 'Elle, a woman of seventeen with braids', 'Bea, a lady at her sweet sixteen party',
     'Lia, a woman, 16, quiet', 'Pia, a woman, ek choti ladki', 'Ece, a woman, bir çocuk', 'Lu, a woman, 15 lat', 'Ayse, a woman, 14 yaşında', 'Sara, a woman, 12 saal ki', 'Ola, a woman, dziewczynka']) {
@@ -196,6 +204,12 @@ const mutants = [
   [feature, "if (!snapshot.characters.every((c) => adultoProvado2511(c)))", "if (!snapshot.characters.some((c) => adultoProvado2511(c)))"],
   [feature, "  return ADULTO_IDADE_PROPRIA_2511.test(primeiraOracao2511(c))\n", "  return true\n"],
   // VOLTA 3 (V5)
+  // V7: meses/semanas/dias
+  [feature, " + '(?![\\\\s-]*' + UNIDADE_CURTA_2611 + ')' +", ' +'], // "aged 18 months" volta a provar adulto
+  [feature, "(?!\\s*(?:(?:-|–|to)\\s*[0-9]{1,3}\\s*)?-?\\s*(?:months?|mos?|weeks?|wks?|days?)(?![\\p{L}]))/iu", '/iu'], // a âncora "18-24 months" volta a ser adulto
+  [feature, "(?!\\s*(?:(?:-|–|to)\\s*[0-9]{1,3}\\s*)?-?\\s*", "(?!\\s*-?\\s*"], // só "20 months" na âncora; "18-24 months" passa pelo "18"
+  [feature, "  '|' + SEM_LETRA_ANTES + '[0-9]{1,3}(?:\\\\s*(?:-|–|to)\\\\s*[0-9]{1,3})?[\\\\s-]*' + UNIDADE_CURTA_2611 + '[\\\\s-]*old' + SEM_LETRA_DEPOIS +\n", ''], // a 2ª trava não lê "N months old"
+  [feature, "  '|' + SEM_LETRA_ANTES + '(?:aged?|age)\\\\s+[0-9]{1,3}[\\\\s-]*' + UNIDADE_CURTA_2611, 'iu')", "  '', 'iu')"], // a 2ª trava não lê "aged N weeks"
   [feature, "  return ADULTO_IDADE_PROPRIA_2511.test(primeiraOracao2511(c))\n", "  return ADULTO_IDADE_PROPRIA_2511.test(primeiraOracao2511(c)) || ADULTO_PALAVRA_2511.test(primeiraOracao2511(c))\n"], // a palavra de adulto volta a bastar
   [feature, "  const oracao = (t.split(/[,;.\\n]/u)[0] ?? '')", "  const oracao = (t ?? '')"], // R2: a 1ª oração vira a canônica inteira
   [feature, " || MENOR_FORMAS_2511.test(t) || MENOR_FORMAS_V5_2511.test(t)", " || MENOR_FORMAS_2511.test(t)"],
