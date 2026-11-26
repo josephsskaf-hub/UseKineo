@@ -16,6 +16,7 @@ import {
 } from '@/lib/growth/checkoutRobotGate' // KINEO-CHECKOUT-ROBO-1510
 import { caminhoForaDasLinguas } from '@/lib/seo/linguasPublicas0311' // KINEO-5-LINGUAS-0311
 import { destinoDoVisitanteQueEscreve } from '@/lib/growth/visitanteEscreveAntes' // KINEO-ESCREVE-ANTES-DO-LOGIN-0411
+import { decidirDominioAntigo2611 } from '@/lib/seo/dominioAntigo2611' // KINEO-DOMINIO-ANTIGO-2611
 
 const LEGACY_PUBLIC_HOSTS = new Set([
   'shortsforgeai.com',
@@ -62,9 +63,27 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     .toLowerCase()
   const hostname = rawHost.split(':')[0]
 
+  // KINEO-DOMINIO-ANTIGO-2611 — as páginas dos anúncios antigos (e o que elas carregam ao abrir) respondem NO PRÓPRIO shortsforgeai.com, igual para todo
+  // user-agent; o fetch da página (a pré-carga RSC) a outra página recebe 204 no mesmo host; o resto do host antigo segue com o 308 abaixo. Regra: lib/seo/dominioAntigo2611.ts.
+  const dominioAntigo2611 = decidirDominioAntigo2611({
+    host: hostname,
+    pathname: request.nextUrl.pathname,
+    method: request.method,
+    buscaDaPagina: request.headers.get('sec-fetch-dest') === 'empty', // o fetch da página (a pré-carga RSC); o Next 14 apaga o cabeçalho RSC antes do middleware
+  })
+  if (dominioAntigo2611?.acao === 'reescreve') {
+    const paginaUrl = request.nextUrl.clone()
+    paginaUrl.pathname = dominioAntigo2611.para
+    return NextResponse.rewrite(paginaUrl)
+  }
+  if (dominioAntigo2611?.acao === 'pre_carga_204') {
+    return new NextResponse(null, { status: 204, headers: { 'Cache-Control': 'private, no-store', Vary: 'RSC' } })
+  }
+
   if (
     LEGACY_PUBLIC_HOSTS.has(hostname) &&
-    !runsOnLegacyHost(request.nextUrl.pathname)
+    !runsOnLegacyHost(request.nextUrl.pathname) &&
+    dominioAntigo2611?.acao !== 'segue'
   ) {
     const canonicalUrl = request.nextUrl.clone()
     canonicalUrl.protocol = 'https:'
