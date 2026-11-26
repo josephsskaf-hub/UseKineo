@@ -36,7 +36,8 @@ async function suite(change) {
   const rota = muda(ROUTE, local(ROUTE)), compose = muda(COMPOSE, local(COMPOSE)), claimSrc = muda(CLAIM, local(CLAIM))
 
   // ── A. o módulo puro ──
-  assert.equal(f.FALA_DOS_PERSONAGENS_2511, 'internal', "A no commit: 'internal'")
+  // [KINEO-FALA-PARA-CLIENTE-2611 · CEO 26/11] a chave PUBLICADA em 'public' (a fala aberta ao cliente); o 'internal' segue provado montado no teste (abaixo)
+  assert.equal(f.FALA_DOS_PERSONAGENS_2511, 'public', "A no commit: 'public'")
   igual([f.falaDosPersonagensLigada('internal', CASA), f.falaDosPersonagensLigada('internal', CLIENTE), f.falaDosPersonagensLigada('off', CASA), f.falaDosPersonagensLigada('internal', 'xjosephsskaf@gmail.com')], [true, false, false, false], 'A a chave: só a casa exata')
   igual([f.vozPedida2511({ voice_mode: 'characters' }), f.vozPedida2511({ voice_mode: 'Characters' }), f.vozPedida2511({}), f.vozPedida2511(null), f.vozPedida2511({ voice_mode: 'narrator' }), f.vozPedida2511({ voz: 'personagens' })], ['personagens', 'narrador', 'narrador', 'narrador', 'narrador', 'narrador'], 'A o corpo: só voice_mode "characters" liga')
   const NOMES = [['Elias Ward', 'Elias'], ['Mara Quinn', 'Mara']]
@@ -164,7 +165,10 @@ async function suite(change) {
     const r = await Function(...Object.keys(escopo), corpo)(...Object.values(escopo))
     return { ...r, envios }
   }
-  for (const [nome, opts] of [['cliente', { email: CLIENTE }], ['voice_mode narrator', { voz: 'narrator' }], ["chave 'off'", { chave: 'off' }], ['sem voice_mode no corpo', { voz: null }]]) {
+  { const x = await rodar({ email: CLIENTE }) // [2611] a chave publicada: o cliente recebe o MESMO pedido falado da casa (UM pedido, a fala no plano)
+    assert.equal(x.envios.length, 1, 'B cliente com a chave publicada: um pedido'); assert.notEqual(JSON.stringify(x.envios[0]), JSON.stringify(FIX.gemini_input_nota_10), 'B cliente com a chave publicada: o pedido FALADO')
+    assert.equal(x.fala2511?.marcador?.modo, 'falado', 'B cliente com a chave publicada: o marcador diz falado') }
+  for (const [nome, opts] of [['cliente (chave interna)', { email: CLIENTE, chave: 'internal' }], ['voice_mode narrator', { voz: 'narrator' }], ["chave 'off'", { chave: 'off' }], ['sem voice_mode no corpo', { voz: null }]]) {
     const x = await rodar(opts)
     igual(x.envios, [FIX.gemini_input_nota_10], `B ${nome}: o pedido da nota 10, byte a byte`)
     assert.equal(x.fala2511?.marcador ?? null, null, `B ${nome}: nenhum campo novo`)
@@ -280,11 +284,12 @@ async function suite(change) {
     assert.ok(linhaP.includes("(body as { voice_mode?: unknown }).voice_mode === 'characters'") && linhaP.includes('falaDosPersonagensLigada(FALA_DOS_PERSONAGENS_2511, user.email)') && linhaP.includes("narrationLanguage.language === 'en'"), 'F voice_mode + chave + inglês')
     const iG = rota.indexOf('    const faladoNoPortao2511 = '), iB = rota.indexOf('    if (verbatim && parsedScript.narration && !paidKling4 && !faladoNoPortao2511) {\n      let fit = narrationFitAt(', iG)
     assert.ok(iG > iE && iB > iG, 'F a cobertura do narrado (o 422) não roda para o falado no formato')
-    const avalia = (corpo, email, lingua, falas) => Function('body', 'user', 'narrationLanguage', 'falaDosPersonagensLigada', 'FALA_DOS_PERSONAGENS_2511', 'roteiroFaladoNoPortao2511', 'parsedScript',
-      ts.transpile(linhaP + '\n' + rota.slice(iG, rota.indexOf('\n', iG)) + '\nreturn faladoNoPortao2511'))(corpo, { email }, { language: lingua }, f.falaDosPersonagensLigada, f.FALA_DOS_PERSONAGENS_2511, P2.roteiroFaladoNoPortao2511, parseUserScript(roteiro(FALADO_30)))
+    const avalia = (corpo, email, lingua, falas, chave = f.FALA_DOS_PERSONAGENS_2511) => Function('body', 'user', 'narrationLanguage', 'falaDosPersonagensLigada', 'FALA_DOS_PERSONAGENS_2511', 'roteiroFaladoNoPortao2511', 'parsedScript',
+      ts.transpile(linhaP + '\n' + rota.slice(iG, rota.indexOf('\n', iG)) + '\nreturn faladoNoPortao2511'))(corpo, { email }, { language: lingua }, f.falaDosPersonagensLigada, chave, P2.roteiroFaladoNoPortao2511, parseUserScript(roteiro(FALADO_30)))
     assert.equal(avalia({ voice_mode: 'characters' }, CASA, 'en'), true, 'F a rota (trecho real): a casa com voice_mode characters escapa do 422')
-    for (const [nome, corpo, email, lingua] of [['sem voice_mode', {}, CASA, 'en'], ['narrator', { voice_mode: 'narrator' }, CASA, 'en'], ['cliente (chave interna)', { voice_mode: 'characters' }, CLIENTE, 'en'], ['outra língua', { voice_mode: 'characters' }, CASA, 'pt']])
-      assert.equal(avalia(corpo, email, lingua), false, 'F a rota: ' + nome + ' = o 422 de hoje') }
+    assert.equal(avalia({ voice_mode: 'characters' }, CLIENTE, 'en'), true, 'F a rota: o cliente com a chave publicada escapa do 422 como a casa')
+    for (const [nome, corpo, email, lingua, chave] of [['sem voice_mode', {}, CASA, 'en'], ['narrator', { voice_mode: 'narrator' }, CASA, 'en'], ['cliente (chave interna)', { voice_mode: 'characters' }, CLIENTE, 'en', 'internal'], ['outra língua', { voice_mode: 'characters' }, CASA, 'pt']])
+      assert.equal(avalia(corpo, email, lingua, undefined, chave), false, 'F a rota: ' + nome + ' = o 422 de hoje') }
   assert.ok(local(IDEIA).includes("  const aval = avaliarRoteiroEscrito({ script: limpo.script, engine, seconds: args.seconds, language: args.language, ...(args.falado === true ? { falado: true } : {}) })"), 'F o escritor do servidor repassa o falado à avaliação')
   assert.ok(compose.includes("captionEvidence: typeof falaMontada2511 !== 'undefined' && falaMontada2511 ? { ...captionEvidence, status: 'not_applicable' as const } : captionEvidence"), 'F o portão do grátis não lê a evidência da TTS que não toca')
 }
@@ -312,7 +317,7 @@ const mutantes = [
   [ROUTE, "    if (verbatim && parsedScript.narration && !paidKling4 && !faladoNoPortao2511) {", "    if (verbatim && parsedScript.narration && !paidKling4) {"],
   [ROUTE, "const faladoPedido2511 = (body as { voice_mode?: unknown }).voice_mode === 'characters' && ", 'const faladoPedido2511 = '],
   [ROUTE, "falaDosPersonagensLigada(FALA_DOS_PERSONAGENS_2511, user.email) && narrationLanguage.language === 'en'\n", 'falaDosPersonagensLigada(FALA_DOS_PERSONAGENS_2511, user.email)\n'],
-  [MOD, "export const FALA_DOS_PERSONAGENS_2511: ModoFalaDosPersonagens2511 = 'internal'", "export const FALA_DOS_PERSONAGENS_2511: ModoFalaDosPersonagens2511 = 'public'"],
+  [MOD, "export const FALA_DOS_PERSONAGENS_2511: ModoFalaDosPersonagens2511 = 'public'", "export const FALA_DOS_PERSONAGENS_2511: ModoFalaDosPersonagens2511 = 'internal'"], // [2611] a chave volta a 'internal'
   [MOD, "modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))", "modo !== 'off'"],
   [MOD, "return v === 'characters' ? 'personagens' : 'narrador'", "return v ? 'personagens' : 'narrador'"],
   [MOD, "(body as { voice_mode?: unknown }).voice_mode", "(body as { voz?: unknown }).voz"],
@@ -371,4 +376,4 @@ for (const m of mutantes) {
   await assert.rejects(suite(m), (e) => e instanceof assert.AssertionError, 'SOBREVIVEU: ' + m[0] + ' · ' + m[1].slice(0, 100))
   mortos++
 }
-console.log(`PASS KINEO-FALA-DOS-PERSONAGENS-2511: chave 'internal' (casa exata) + voice_mode 'characters' (com ou sem verbatim); cliente, 'off' ou narrador = a nota 10 byte a byte; a casa = UM pedido falado ao Gemini (cabeçalho da nota 10, fala no plano, sem "Mouth closed"), o Kling 4 da queda = o de hoje (narrado); fora do formato, língua, roteiro da IA, pessoa real e recusa = narrado com o motivo; a montagem falada só com o Gemini entregando (som do motor, sem narração nem música, 15 s, legenda do Whisper do clipe); selo e claim dizem a voz; um débito só; ${mortos}/${mutantes.length} mutantes mortos.`)
+console.log(`PASS KINEO-FALA-DOS-PERSONAGENS-2511: chave 'public' (cliente e casa; 'internal' = só a casa exata, provado montado) + voice_mode 'characters' (com ou sem verbatim); cliente, 'off' ou narrador = a nota 10 byte a byte; a casa = UM pedido falado ao Gemini (cabeçalho da nota 10, fala no plano, sem "Mouth closed"), o Kling 4 da queda = o de hoje (narrado); fora do formato, língua, roteiro da IA, pessoa real e recusa = narrado com o motivo; a montagem falada só com o Gemini entregando (som do motor, sem narração nem música, 15 s, legenda do Whisper do clipe); selo e claim dizem a voz; um débito só; ${mortos}/${mutantes.length} mutantes mortos.`)

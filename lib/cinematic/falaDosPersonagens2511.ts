@@ -18,7 +18,7 @@ import { falanteConhecido2511, falanteAdulto2511 } from '@/lib/cinematic/reguaDa
 export const FALA_DOS_PERSONAGENS_2511_VERSAO = 'fala_dos_personagens_2511_v1'
 export type ModoFalaDosPersonagens2511 = 'off' | 'internal' | 'public'
 /** 'internal' = só a lista EXATA da casa; cliente e 'off' = o pedido de hoje, byte a byte (nenhum campo novo). Voltar: 'off'. */
-export const FALA_DOS_PERSONAGENS_2511: ModoFalaDosPersonagens2511 = 'internal'
+export const FALA_DOS_PERSONAGENS_2511: ModoFalaDosPersonagens2511 = 'public'
 export const falaDosPersonagensLigada = (modo: ModoFalaDosPersonagens2511, email: string | null | undefined): boolean =>
   modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))
 
