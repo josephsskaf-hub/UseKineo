@@ -253,6 +253,7 @@ async function provas(over = {}) {
       '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user: email ? { email } : null } }) } }) },
       '@/app/api/admin/_shared/db': { isAdminEmail: (e) => ADMINS.has(String(e ?? '').trim().toLowerCase()) },
       '@/app/api/admin/ceo/compute': { computeCeoData: async () => { espias.ceo++; return { ok: true } } },
+      '@/components/admin/FilmMonitor': { __esModule: true, default: () => React.createElement('section', { 'data-film-monitor': true }) },
       '@/app/(dashboard)/admin/ceo/CeoClient': { __esModule: true, default: (p) => React.createElement('div', { 'data-ceo': p.denied ? 'negado' : 'visao' }) },
       'next/navigation': { redirect: (u) => { espias.redirect = u; throw new Error('NEXT_REDIRECT') } },
       '@/components/admin/AdminAbas': { __esModule: true, default: (p) => React.createElement('nav', { 'data-aba': p.atual }) },
@@ -271,7 +272,7 @@ async function provas(over = {}) {
     const html = renderToStaticMarkup(await a.mod.default({ searchParams: {} }))
     const b = homeCom('cliente@exemplo.com', { aba: 'clientes' })
     const html2 = renderToStaticMarkup(await b.mod.default({ searchParams: { aba: 'clientes' } }))
-    return a.espias.ceo === 1 && html.includes('data-aba="visao"') && html.includes('data-ceo="visao"') && html.indexOf('data-aba') < html.indexOf('data-ceo') &&
+    return a.espias.ceo === 1 && html.includes('data-aba="visao"') && html.includes('data-film-monitor') && !html2.includes('data-film-monitor') && html.includes('data-ceo="visao"') && html.indexOf('data-aba') < html.indexOf('data-ceo') &&
       b.espias.ceo === 0 && b.espias.redirect === null && html2.includes('data-ceo="negado"')
   })
 
@@ -414,12 +415,28 @@ async function provas(over = {}) {
       const pai = lf(execFileSync('git', ['show', `${PAI}:${f}`], { cwd: ROOT, encoding: 'utf8' }))
       // reancorado KINEO-PACOTE-3-FILMES-1610 — o pacote "3 filmes" (+ "Pedidos 3 filmes" no grupo Operação, vizinho do atalho
       // Clientes) chegou depois: sai primeiro, pelo desfaz EXATO dele, e só então o desta aba roda contra o pai.
-      return vivo.includes(MARCA_ADMIN_JORNADA_1510) && lf(semAdminJornada1510(f, semPacote3Filmes1610(f, semEp2Painel3110(vivo, f)))) === pai && !pai.includes(MARCA_ADMIN_JORNADA_1510)
+      return vivo.includes(MARCA_ADMIN_JORNADA_1510) && lf(semAdminJornada1510(f, semPacote3Filmes1610(f, semEp2Painel3110(semMonitor(vivo, f), f)))) === pai && !pai.includes(MARCA_ADMIN_JORNADA_1510)
     }) && lanca(() => semAdminJornada1510(F.shell, rd(F.shell).replace("['/admin/clientes', 'Clientes']", "['/admin/clientes', 'Clientes ']")))
   })
   return res
 }
 
+function semMonitor(text, file) {
+  if (file !== F.home) return text
+  const inserts = [
+    "import FilmMonitor from '@/components/admin/FilmMonitor'",
+    '      <FilmMonitor business={data ? { mrr: data.mrr, paying: data.payingActive, newUsers: data.newUsersThisWeek } : null} />',
+    '      <details id="admin-full-report" className="fm-report"><summary>Relatório completo e atividade</summary>',
+    '      </details>',
+  ]
+  let source = lf(text)
+  for (const line of inserts) {
+    const parts = source.split(line + '\n')
+    if (parts.length !== 2) throw Error('Montagem do monitor mudou: '+line)
+    source = parts.join('')
+  }
+  return source
+}
 console.log('── provas (código real)')
 const base = await provas()
 for (const [n, v] of base) ok(v, n)
