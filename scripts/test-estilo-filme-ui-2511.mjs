@@ -19,6 +19,13 @@ const BASE = '9270f6e05'
 const voiceFile = 'lib/cinematic/filmVoice2511.ts'
 const voiceRollback = { [voiceFile]: read(voiceFile).replace("'off' | 'on' = 'on'", "'off' | 'on' = 'off'") }
 const BASE_UI = Object.fromEntries([SIMPLE, LINK].map(file => [file, fromGit(file)]))
+// The frozen composer predates private photo selection. Pair its Generate handler
+// with the reviewed inline box that still implements that contract.
+const BASE_BOX = Object.fromEntries([
+  'components/create/CaixaNovaDoFilme.tsx',
+  'components/create/CaixaDeCriar.tsx',
+  'components/create/FilmAdvancedSettings.tsx',
+].map(file => [file, fromGit(file, '61c5a5d7d708ddd0b56badb088f9c096e2387a87')]))
 const load = createOfflineLoader()
 const gate = load('@/lib/cinematic/filmLook2511Server')
 const internal = load('@/lib/internalAccounts').INTERNAL_EXACT_EMAILS[0]
@@ -29,8 +36,8 @@ const cartoon = 'A cartoon guard opens the old gate.'
 const anime = 'Anime detective at a train station.'
 const labels = ['Realistic', 'Cartoon', 'Anime']
 
-function fromGit(file) {
-  return execFileSync('git', ['show', BASE + ':' + file], { encoding: 'utf8', maxBuffer: 12 * 1024 * 1024 })
+function fromGit(file, ref = BASE) {
+  return execFileSync('git', ['show', ref + ':' + file], { encoding: 'utf8', maxBuffer: 12 * 1024 * 1024 })
 }
 function runJS(source, globals) {
   const js = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText
@@ -138,7 +145,7 @@ for (const surface of ['simple', 'steps', 'box']) {
   assert.equal(submit(auto).searchParams.has('look'), false, 'a sugestão visível não autoriza look')
   assert.deepEqual(styleEvents(auto), [{ initial_look: 'animated3d', chosen_look: null, changed: false }])
   const off = mount(surface, false, voiceRollback, ordinary)
-  const existing = mount(surface, false, { ...BASE_UI, ...voiceRollback }, ordinary)
+  const existing = mount(surface, false, { ...BASE_UI, ...(surface === 'box' ? BASE_BOX : {}), ...voiceRollback }, ordinary)
   // Each harness shares the globals it installs. Compare markup before the click and keep the requests independent.
   assert.equal(off.html(), existing.html(), 'OFF preserva o HTML da base')
   assert.equal(submit(off).href, submit(existing).href, 'OFF preserva o pedido da base byte a byte')
