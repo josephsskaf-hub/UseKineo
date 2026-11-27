@@ -458,7 +458,27 @@ mutante('Recreate no exemplo de anúncio (em vez do convite)', { [MOSAICO]: troc
 mutante('exemplo de anúncio medido como clipe', { [MOSAICO]: troca("data-home-cta={podeFazerAnuncio(t) ? 'mosaic_ad' : convite === 'film' ? 'mosaic_film' : convite === 'cartoon' ? 'mosaic_cartoon' : 'mosaic_clip'}", 'data-home-cta="mosaic_clip"') })
 // KINEO-HOME-ESTRATEGIA-A-1311 — o convite de filme e de desenho: destino, medida e botão
 const mutanteConvite = (nome, novasTrocas, frase) => { let r; try { r = checa(carrega(novasTrocas)) } catch (err) { r = ['quebrou: ' + err.message] } const m = r.find((x) => x.includes(frase)); ok(!!m, `M ${nome}: vermelho pela regra do convite${m ? ' — ' + m.slice(0, 90) : ' (passou batido: ' + String(r[0] ?? 'nada').slice(0, 60) + ')'}`) }
-mutanteConvite('convite de desenho leva ao /clips vazio', { [MOSAICO]: troca("href={convite === 'cartoon' ? createEntryForContentHref('cartoon', MENU_CARTOON_HREF, '/kids-cartoon', signedIn)", "href={convite === 'cartoon' ? viaSignup('/clips', signedIn)") }, '(convite de desenho) não leva ao Cartoon do menu')
+// Prove the public offer at the rendered link, independently of unrelated legacy failures above.
+function destinosDoConviteCartoon(overrides = {}) {
+  const { mosaico } = carrega(overrides)
+  const destinos = []
+  for (const signedIn of [false, true]) {
+    for (const full of [false, true]) {
+      const html = renderToStaticMarkup(React.createElement(mosaico.default, { signedIn, full }))
+      const cards = [...html.matchAll(/<a\b[^>]*>/g)].map(m => m[0]).filter(a => a.includes('data-clip-novo="raposa-lanterna"'))
+      if (cards.length !== 1 || !cards[0].includes('data-home-cta="mosaic_cartoon"')) throw Error('Cartoon invitation missing or duplicated')
+      destinos.push(/href="([^"]+)"/.exec(cards[0])?.[1])
+    }
+  }
+  return destinos
+}
+const destinoCartoonCorreto = href => href === '/create/cartoon'
+const conviteCartoon = "const href = convite === 'cartoon' ? createEntryForContentHref('cartoon', MENU_CARTOON_HREF, '/kids-cartoon', signedIn)"
+const conviteTrocado = { [MOSAICO]: troca(conviteCartoon, "const href = convite === 'cartoon' ? '/create/clip'") }
+const convitesOriginais = destinosDoConviteCartoon()
+const convitesMutantes = destinosDoConviteCartoon(conviteTrocado)
+ok(convitesOriginais.every(destinoCartoonCorreto), 'convite Cartoon abre o editor de desenho na home e na galeria, com e sem conta')
+ok(convitesMutantes.every(href => href === '/create/clip' && !destinoCartoonCorreto(href)), 'M Cartoon → Clip: o link mudou nos quatro renders e falhou pela regra do destino')
 mutanteConvite('convite de filme leva ao /clips vazio', { [MOSAICO]: troca(": convite === 'film' || clipeNovoAbreStudio(c) ? filmHref", ': clipeNovoAbreStudio(c) ? filmHref') }, '(convite de filme) não abre o Studio')
 mutanteConvite('convite some da tela', { [MOSAICO]: troca('      {convite ? <MakeYours tipo={convite} /> : null}\n', '') }, 'sem o convite "Make a')
 mutanteConvite('convite em todo clipe novo', { [LIB]: troca("=> CLIPE_CONVITE[c.id] ?? null", "=> CLIPE_CONVITE[c.id] ?? 'film'") }, 'sem estar no mapa aprovado')
