@@ -353,7 +353,7 @@ html[data-theme='dark'] .kpl .klp{--card:#10141B;--line:#1F2530;--line2:#2A3240;
 html[data-theme='dark'] .kpl .kpc-caixa{color:#C9D1DC!important}
 html[data-theme='dark'] .kpl .kpc-porta{color:#F2F4F7!important}
 html[data-theme='dark'] .kpn{background:#0B0E13!important;border-bottom-color:#1F2530!important}
-html[data-theme='dark'] .kpn-logo{color:#F2F4F7!important}
+html[data-theme='dark'] .kpn-logo,html[data-theme='dark'] .kpn-links a,html[data-theme='dark'] .kpn-login{color:#F2F4F7!important}
 html[data-theme='dark'] .kpn-bars i{background:#F2F4F7!important}
 @media(max-width:767px){
   .kpl .kpc-tit{display:none!important}
