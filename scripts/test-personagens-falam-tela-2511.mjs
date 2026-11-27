@@ -134,7 +134,7 @@ for (const [file, props] of [
   const stable = Object.fromEntries([file, 'components/studio/StudioSimples.tsx', 'components/create/CaixaNovaDoFilme.tsx', 'components/create/CaixaDeCriar.tsx', 'lib/growth/studioSimples.ts'].map(path => [path, fromBase(path)]))
   if (props.caixaNova) {
     // O OFF da voz preserva a caixa atual, inclusive o atalho de ajustes no próprio Film.
-    for (const path of ['components/create/CaixaNovaDoFilme.tsx', 'components/create/CaixaDeCriar.tsx']) {
+    for (const path of ['components/create/CaixaNovaDoFilme.tsx', 'components/create/CaixaDeCriar.tsx', 'components/create/FilmAdvancedSettings.tsx']) {
       stable[path] = fromBase(path, '61c5a5d7d708ddd0b56badb088f9c096e2387a87')
     }
   }
