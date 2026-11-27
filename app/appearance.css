@@ -484,3 +484,42 @@ body::before{z-index:-1}
 @media (max-width: 767px) {
   .credit-balance-notice { width: auto; left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); }
 }
+
+/* Use a consistent dark navy surface for app navigation in both themes. */
+.kineo-gaveta,
+.kineo-topbar,
+.kineo-mobile-nav,
+.recreate .rc-nav {
+  --nav-navy: #102848;
+  --sidebar-bg: var(--nav-navy);
+  --header-bg: var(--nav-navy);
+  --card: var(--nav-navy);
+  --card2: #19385b;
+  --text: #f6f9ff;
+  --text2: #dce7f8;
+  --muted: #afc2df;
+  --muted2: #c1d2e9;
+  --accent: #a9d0ff;
+  --accent-soft: #234770;
+  --border: #345171;
+  --border2: #4b6685;
+  color: var(--text);
+}
+
+.recreate .rc-nav {
+  --rc-card: var(--nav-navy);
+  --rc-panel: var(--nav-navy);
+  --rc-input: var(--card2);
+  --rc-border: var(--border);
+  --rc-line: var(--border2);
+  --rc-muted: var(--muted2);
+  --rc-text: var(--text);
+  --rc-body: var(--text2);
+  --rc-accent: var(--accent);
+  --rc-soft: var(--accent-soft);
+}
+
+:is(.kineo-gaveta, .kineo-topbar, .kineo-mobile-nav) :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
