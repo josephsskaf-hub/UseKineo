@@ -244,7 +244,7 @@ check('/library opens in the new frame: no old top bar, no sidebar', () => { // 
     assert.equal(shell.filter((n) => n.type === TopBar).length, 0)
     assert.ok(shell.some((n) => n.props && n.props['data-dashboard-moldura'] === 'nova'))
     const top = shell.find((n) => n.type === CreateMolduraTopo)
-    assert.deepEqual(top?.props, expected)
+    assert.deepEqual(top?.props, { ...expected, surface: 'library_top' })
   }
 })
 check('SSR outputs links and controls without network', () => {

@@ -100,7 +100,7 @@ export default function DashboardShell({
   // foto div1-library-decisao-ABC.png; as outras telas logadas seguem na casca de sempre até a decisão do dono.
   if (usaMolduraNova(pathname)) return (
     <div data-dashboard-moldura="nova" style={{ background: 'var(--bg)', minHeight: '100svh' }}>
-      <CreateMolduraTopo showRecreate={navigation.showRecreate} showClip={navigation.showClip} />
+      <CreateMolduraTopo showRecreate={navigation.showRecreate} showClip={navigation.showClip} surface={pathname === '/account' ? 'account_top' : 'library_top'} />
       <AnnualWelcomeBar initial={annualWelcomeBar} placement="app" />
       <BlackFridayBanner placement="app" />
       {isLoggedIn && <Creator30OfferModal />}

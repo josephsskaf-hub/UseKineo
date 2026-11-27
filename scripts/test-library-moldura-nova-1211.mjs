@@ -32,6 +32,7 @@ async function all(o = {}) {
   const R = loader(stubs, o)(ROTAS.replace(/\.ts$/, ''))
   // 1) Quais rotas moram na moldura nova: a Library (e o que estiver dentro dela), nada mais por enquanto.
   ok(R.usaMolduraNova('/library') && R.usaMolduraNova('/library/abc'), '/library na moldura nova')
+  ok(R.usaMolduraNova('/account') && !R.usaMolduraNova('/accounting'), 'Conta usa a moldura sem pegar rotas vizinhas')
   ok(!R.usaMolduraNova('/images') && !R.usaMolduraNova('/libraryx') && !R.usaMolduraNova('/'), 'as outras telas seguem na casca de sempre (decisão do dono para a C)')
   // 2) O cabeçalho é o da tela nova: abas sem nenhuma marcada, créditos, "My videos ↗", e o "Buy credits" do assinante.
   const html = renderToStaticMarkup(React.createElement(T.default, { showRecreate: true, showClip: true }))
@@ -54,7 +55,7 @@ async function all(o = {}) {
   const recreateAccess = navLoader('lib/create/clipRecreateJuntos')
   const visibilityRoute = src('app/api/account/create-visibility/route.ts')
   const sameRule = s.includes('useCreateNavigationVisibility(userEmail)') &&
-    /<CreateMolduraTopo showRecreate=\{navigation\.showRecreate\} showClip=\{navigation\.showClip\} \/>/.test(ramo[1]) &&
+    /<CreateMolduraTopo showRecreate=\{navigation\.showRecreate\} showClip=\{navigation\.showClip\} surface=\{pathname === '\/account' \? 'account_top' : 'library_top'\} \/>/.test(ramo[1]) &&
     src('lib/create/useCreateNavigationVisibility.ts').includes("readServerVisibility('/api/account/create-visibility')") &&
     visibilityRoute.includes('abaRecreateVisivel(user?.email)') &&
     src('app/(dashboard)/ads/v2/AdsV2Workspace.tsx').includes('showRecreate: abaRecreateVisivel(user?.email)') &&
@@ -112,8 +113,9 @@ await all()
 const real = passed
 const r = p => read(p)
 const mutants = [
-  ['Library volta para a casca velha', ROTAS, r(ROTAS).replace("export const MOLDURA_TOPO_ROTAS: readonly string[] = ['/library']", 'export const MOLDURA_TOPO_ROTAS: readonly string[] = []')],
-  ['C sem decisão do dono (Images também)', ROTAS, r(ROTAS).replace("export const MOLDURA_TOPO_ROTAS: readonly string[] = ['/library']", "export const MOLDURA_TOPO_ROTAS: readonly string[] = ['/library', '/images']")],
+  ['Conta volta para a lateral', ROTAS, r(ROTAS).replace("'/library', '/account'", "'/library'")],
+  ['Library volta para a casca velha', ROTAS, r(ROTAS).replace("export const MOLDURA_TOPO_ROTAS: readonly string[] = ['/library', '/account']", 'export const MOLDURA_TOPO_ROTAS: readonly string[] = []')],
+  ['C sem decisão do dono (Images também)', ROTAS, r(ROTAS).replace("export const MOLDURA_TOPO_ROTAS: readonly string[] = ['/library', '/account']", "export const MOLDURA_TOPO_ROTAS: readonly string[] = ['/library', '/account', '/images']")],
   ['aba Film marcada na Library', TOPO, r(TOPO).replace('<CreateTabs active={active}', "<CreateTabs active={'film'}")],
   ['assinante perde o Buy credits', TOPO, r(TOPO).replace(/<BuyCreditsLink surface=\{surface\}[^>]*\/>/, '')],
   ['ramo monta a lateral', SHELL, r(SHELL).replace('<CreateMolduraTopo showRecreate', '<Sidebar /><CreateMolduraTopo showRecreate')],

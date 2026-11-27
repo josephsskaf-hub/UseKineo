@@ -1,5 +1,6 @@
 'use client'
 
+import './account.css'
 import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 
 import KineoBolt, { KineoBoltText } from '@/components/KineoBolt'
@@ -150,6 +151,7 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
   // videos now cost 120 universal video_credits; the avatar-credit add-on packs
   // are retired. The /api/credits endpoint still returns avatarCredits for any
   // legacy balance, but the account UI no longer surfaces or sells it.
+  const [creditsFailed, setCreditsFailed] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const [portalLoading, setPortalLoading] = useState(false)
   const [portalError, setPortalError] = useState<string | null>(null)
@@ -196,14 +198,18 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
   useEffect(() => {
     let cancelled = false
     fetch('/api/credits', { cache: 'no-store' })
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error('Credits unavailable')
+        return r.json()
+      })
       .then((data) => {
         if (cancelled) return
-        setCredits(typeof data.credits === 'number' ? data.credits : 0)
+        if (typeof data.credits !== 'number' || !Number.isFinite(data.credits)) throw new Error('Invalid balance')
+        setCredits(data.credits)
         // KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — avatar credits no longer read
         // into UI state (the balance rows + buy link were removed).
       })
-      .catch(() => { if (!cancelled) { setCredits(0) } })
+      .catch(() => { if (!cancelled) setCreditsFailed(true) })
     return () => { cancelled = true }
   }, [])
 
@@ -246,41 +252,9 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
     }
   }
 
-  const creditsRemaining = credits ?? 0
-  const usedThisCycle = Math.max(0, planLimit - creditsRemaining)
-  const usagePct = planLimit > 0 ? Math.min(100, (usedThisCycle / planLimit) * 100) : 0
-
-  // SVG ring for usage visualization
-  const ringR = 36
-  const ringCirc = 2 * Math.PI * ringR
-  const ringDash = ((100 - usagePct) / 100) * ringCirc
-
   return (
-    <div className="px-4 sm:px-6 py-7 pb-20">
+    <div className="account-workspace">
       <style>{`
-        .acc-tab {
-          transition: all var(--dur-fast) var(--ease-swift);
-        }
-        .acc-tab:hover {
-          color: var(--text) !important;
-        }
-        .acc-card {
-          transition: border-color var(--dur-fast) var(--ease-swift), box-shadow var(--dur-fast) var(--ease-swift);
-        }
-        .acc-row-btn {
-          transition: all var(--dur-fast) var(--ease-swift);
-        }
-        .acc-row-btn:hover {
-          background: rgba(41,151,255,.12) !important;
-          transform: translateY(-1px);
-        }
-        @keyframes ring-fill {
-          from { stroke-dashoffset: ${ringCirc}; }
-          to   { stroke-dashoffset: ${ringDash}; }
-        }
-        .credit-ring {
-          animation: ring-fill 1s ease-out forwards;
-        }
         .avatar-ring {
           animation: pulse-ring 3s ease-in-out infinite;
         }
@@ -290,37 +264,15 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
         }
       `}</style>
 
-      {/* ── Header ── */}
-      <div className="mb-7">
-        <div
-          className="font-black uppercase tracking-[.18em] mb-2 flex items-center gap-2"
-          style={{ fontSize: '0.65rem', color: '#2997ff' }}
-        >
-          <span style={{ display: 'inline-block', width: 18, height: 1, background: '#2997ff', verticalAlign: 'middle' }} />
-          My Account
-          <span style={{ display: 'inline-block', width: 18, height: 1, background: '#2997ff', verticalAlign: 'middle' }} />
+      <header className="account-heading">
+        <div>
+          <h1>Account settings</h1>
+          <p data-clarity-mask="true">{email}</p>
         </div>
-        <h1
-          className="font-black tracking-tight mb-1"
-          style={{ fontSize: 'clamp(1.55rem, 4vw, 2rem)', color: 'var(--text)', lineHeight: 1.1 }}
-        >
-          Account{' '}
-          <span style={{ background: 'linear-gradient(180deg,var(--text) 35%,var(--muted))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-            Settings
-          </span>
-        </h1>
-        <p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
-          Signed in as <span data-clarity-mask="true" style={{ color: 'var(--text2)' }}>{email}</span>
-        </p>
-      </div>
+        <AppearanceSettingsButton compact={false} />
+      </header>
 
-      <div style={{ maxWidth: 340, marginBottom: 20 }}><AppearanceSettingsButton compact={false} /></div>
-
-      {/* ── Tabs ── */}
-      <div
-        className="flex gap-1 mb-6 rounded-2xl p-1 overflow-x-auto"
-        style={{ background: 'var(--card2)', border: '1px solid var(--border)', maxWidth: 640 }}
-      >
+      <nav className="account-tabs" aria-label="Account settings">
         {TABS.map((t) => {
           const active = t.key === activeTab
           return (
@@ -328,24 +280,16 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
               key={t.key}
               href={`/account?tab=${t.key}`}
               scroll={false}
-              className="acc-tab flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold flex-shrink-0"
-              style={{
-                background: active
-                  ? 'rgba(41,151,255,.16)'
-                  : 'transparent',
-                border: active ? '1px solid rgba(41,151,255,.3)' : '1px solid transparent',
-                color: active ? '#2997ff' : 'var(--muted2)',
-                textDecoration: 'none',
-                boxShadow: active ? '0 0 14px rgba(41,151,255,.12)' : 'none',
-              }}
+              className="account-tab"
+              aria-current={active ? 'page' : undefined}
             >
               <span>{t.label}</span>
             </Link>
           )
         })}
-      </div>
+      </nav>
 
-      <div style={{ maxWidth: 640 }}>
+      <div className="account-section">
 
         {/* Settings v3 — the old "Members" placeholder tab was removed: it
             promised a team feature that doesn't exist. Billing (below)
@@ -355,7 +299,7 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
         {activeTab === 'profile' && (
           <div
             className="acc-card rounded-2xl p-6"
-            style={{ background: 'rgba(11,17,32,0.85)', border: '1px solid rgba(255,255,255,.07)', backdropFilter: 'blur(12px)' }}
+            style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
           >
             <h2 className="font-bold mb-5" style={{ color: 'var(--muted2)', textTransform: 'uppercase', letterSpacing: '0.12em', fontSize: '0.63rem' }}>
               Profile
@@ -460,7 +404,7 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
             {tier !== 'free' && <Month2AnnualOffer variant="card" surface="account_billing" />}
             <div
               className="acc-card rounded-2xl p-6"
-              style={{ background: 'rgba(11,17,32,0.85)', border: '1px solid rgba(255,255,255,.07)', backdropFilter: 'blur(12px)' }}
+              style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
             >
               <h2 className="font-bold mb-4" style={{ color: 'var(--muted2)', textTransform: 'uppercase', letterSpacing: '0.12em', fontSize: '0.63rem' }}>
                 Plan
@@ -587,7 +531,7 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
           <div className="flex flex-col gap-4">
             <div
               className="acc-card rounded-2xl p-6"
-              style={{ background: 'rgba(11,17,32,0.85)', border: '1px solid rgba(255,255,255,.07)', backdropFilter: 'blur(12px)' }}
+              style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
             >
               <h2 className="font-bold mb-5" style={{ color: 'var(--muted2)', textTransform: 'uppercase', letterSpacing: '0.12em', fontSize: '0.63rem' }}>
                 {tier !== 'free' ? 'Credits' : trialActive ? 'Trial credits' : 'Free videos'}
@@ -636,86 +580,16 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
               ) : (
                 <>
               {/* Credit ring + stats */}
-              <div className="flex items-center gap-6 mb-5">
-                {/* Animated ring */}
-                <div style={{ flexShrink: 0 }}>
-                  <svg width={96} height={96} viewBox="0 0 96 96" style={{ transform: 'rotate(-90deg)' }}>
-                    {/* Track */}
-                    <circle cx={48} cy={48} r={ringR} fill="none" stroke="rgba(255,255,255,.06)" strokeWidth={7} />
-                    {/* Fill */}
-                    <circle
-                      className="credit-ring"
-                      cx={48} cy={48} r={ringR}
-                      fill="none"
-                      stroke={usagePct >= 90 ? '#EF4444' : '#2997ff'}
-                      strokeWidth={7}
-                      strokeLinecap="round"
-                      strokeDasharray={ringCirc}
-                      strokeDashoffset={ringDash}
-                    />
-                  </svg>
-                  <div
-                    style={{
-                      position: 'absolute',
-                      // We'll use a different approach: center content over the SVG using margin trick
-                    }}
-                  />
+              <dl className="account-credit-metrics">
+                <div>
+                  <dt>Available balance</dt>
+                  <dd aria-live="polite">{credits === null ? (creditsFailed ? 'Unavailable' : 'Loading…') : credits.toLocaleString('en-US')}</dd>
                 </div>
-
-                <div className="flex flex-col gap-3 flex-1">
-                  <div>
-                    <div
-                      className="font-black"
-                      style={{
-                        fontSize: '2.2rem',
-                        lineHeight: 1,
-                        background: usagePct >= 90
-                          ? 'linear-gradient(135deg,#EF4444,#f87171)'
-                          : '#2997ff',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text',
-                      }}
-                    >
-                      {creditsRemaining}
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 2 }}>credits remaining</div>
-                  </div>
-                  <div>
-                    <div className="font-black text-lg" style={{ color: 'var(--text2)', lineHeight: 1 }}>{planLimit}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 2 }}>
-                      monthly included
-                    </div>
-                  </div>
-                  {/* KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — avatar-credit usage
-                      stat removed (packs retired; avatar uses universal credits). */}
+                <div>
+                  <dt>Monthly allowance</dt>
+                  <dd>{planLimit.toLocaleString('en-US')}</dd>
                 </div>
-              </div>
-
-              {/* Progress bar */}
-              <div className="rounded-xl overflow-hidden mb-4" style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)' }}>
-                <div className="px-4 py-2 flex items-center justify-between">
-                  <span style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>
-                    This cycle
-                  </span>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text2)' }}>
-                    {creditsRemaining} / {planLimit} left
-                  </span>
-                </div>
-                <div style={{ height: 5, background: 'rgba(255,255,255,.06)' }}>
-                  <div
-                    style={{
-                      height: '100%',
-                      width: `${100 - usagePct}%`,
-                      background: usagePct >= 90
-                        ? 'linear-gradient(90deg,#ef4444,#dc2626)'
-                        : '#2997ff',
-                      transition: 'width 1s ease',
-                      borderRadius: '0 4px 4px 0',
-                    }}
-                  />
-                </div>
-              </div>
+              </dl>
 
               <ul style={{ fontSize: '0.77rem', color: 'var(--muted2)', listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {/* KINEO-PRICING-V6-2026-08-19 — 25/150/200 eram literais da V3.
@@ -738,19 +612,6 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
               )}
             </div>
 
-            {[
-              { title: 'Stock library', text: 'Stock usage tracking coming soon.' },
-              { title: 'Storage', text: 'Storage tracking coming soon.' },
-            ].map((item) => (
-              <div
-                key={item.title}
-                className="rounded-2xl p-5"
-                style={{ background: 'rgba(11,17,32,0.7)', border: '1px dashed rgba(255,255,255,.07)' }}
-              >
-                <div className="text-xs font-bold mb-1" style={{ color: 'var(--text2)' }}>{item.title}</div>
-                <p className="text-xs" style={{ color: 'var(--muted)' }}>{item.text}</p>
-              </div>
-            ))}
           </div>
         )}
       </div>
