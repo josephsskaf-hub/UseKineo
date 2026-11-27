@@ -598,6 +598,16 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
           {params.niche === 'horror' ? <CitationDirectAnswer page="horror" /> : <p style={{ fontSize: '1.02rem', color: '#2A2F37', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 620 }}>
             {n.intro}
           </p>}
+          {params.niche === 'cartoon' && (
+            <OrganicCtaLink
+              href={`/create/cartoon?example=raposa-lanterna&intent_campaign=${campaign}`}
+              source={campaign}
+              placement="hero_cartoon_editor"
+              style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, marginTop: 12, fontWeight: 700, color: 'var(--kpl-accent)', textDecoration: 'underline', textUnderlineOffset: '3px' }}
+            >
+              Try the fox and lantern story in the Cartoon editor →
+            </OrganicCtaLink>
+          )}
           <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
           <p style={{ fontSize: '0.85rem', color: '#5A5F67', margin: '10px 0 0' }}>
             Script • Voiceover • Captions • AI-generated scenes • {params.niche === 'horror' ? 'Generation time varies by film and queue' : 'Ready in about 6 minutes'} · <b style={{ color: '#0A5CFF' }}>{ft(OFFER, 'up to 3 watermarked Fast videos / 24h', OFFER.copy.chipLower)}</b>, no card
