@@ -8,6 +8,7 @@ import { TRIAL_GRANT_CREDITS_COPY, GRANT_COUNTRY_CLAUSE } from '@/lib/freeTierOf
 import Link from 'next/link'
 import Footer from '@/components/Footer'
 import { buildProductSurfaceSignupHref } from '@/lib/growth/productSurfaceIntent'
+import { publicCreateCtaHref } from '@/lib/create/entry'
 // KINEO-PRICING-V6-2026-08-19 — preço E grant derivados de TIER_PRICES/
 // TIER_CREDITS. Esta linha errava os DOIS ($9.90 e 60 créditos) porque foram
 // digitados juntos: quando a escada desceu para $7/40, nada aqui apontava
@@ -85,7 +86,7 @@ export default function AiImageGeneratorPage() {
         </p>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 40 }}>
           <Link
-            href={IMAGE_SIGNUP_HREF}
+            href={publicCreateCtaHref(IMAGE_SIGNUP_HREF, 'image')}
             style={{ background: '#2997ff', color: '#fff', fontWeight: 800, padding: '13px 22px', borderRadius: 12, textDecoration: 'none', boxShadow: '0 8px 24px rgba(41,151,255,.35)' }}
           >
             {CARD_ENTRY_COPY.ctaLong}

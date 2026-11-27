@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const requireFromRepo = createRequire(join(root, 'package.json'))
@@ -66,10 +67,26 @@ const pages = {
   talking: source('app/ai-video-with-talking-characters/page.tsx'),
 }
 
-ok(pages.images.includes('href={IMAGE_SIGNUP_HREF}'), 'image CTA uses bounded handoff')
+ok(pages.images.includes("href={publicCreateCtaHref(IMAGE_SIGNUP_HREF, 'image')}"), 'image creation CTA uses the bounded, attributed intent')
+const imageSignup = intent.buildProductSurfaceSignupHref({
+  surface: 'images', campaign: 'seo_image_studio', utmSource: 'img_seo',
+})
+const openCta = createOfflineLoader()('@/lib/create/entry').publicCreateCtaHref
+const imageCta = new URL(openCta(imageSignup, 'image'), 'https://kineo.test')
+equal(imageCta.pathname, '/create/image', 'SEO visitor reaches Image before registration')
+equal(Object.fromEntries(imageCta.searchParams), {
+  intent_campaign: 'seo_image_studio', utm_source: 'img_seo', utm_medium: 'organic', utm_campaign: 'seo_image_studio',
+}, 'all image acquisition fields reach the editor intact')
+equal(openCta('/images', 'image'), '/create/image', 'portfolio opens the public image editor')
+equal(openCta('/ads', 'ads'), '/create/ads', 'portfolio opens the public ad editor')
+equal(openCta('/spaces'), '/spaces', 'Spaces retains its own workspace')
+const closedCta = createOfflineLoader({
+  source: (file, src) => file === 'lib/create/publicEditorRelease.ts' ? src.replace('= true', '= false') : src,
+})('@/lib/create/entry').publicCreateCtaHref
+equal(closedCta(imageSignup, 'image'), imageSignup, 'closing public entry restores the attributed signup')
 ok(pages.audio.includes('href={VOICE_SIGNUP_HREF}'), 'voice CTA uses bounded handoff')
 ok(pages.engine.includes('href={ENGINE_HUB_SIGNUP_HREF}'), 'engine hub CTA uses bounded handoff')
-ok(pages.upscaler.includes('href={UPSCALER_SIGNUP_HREF}'), 'upscaler CTA uses bounded handoff')
+ok(pages.upscaler.includes('href={publicCreateCtaHref(UPSCALER_SIGNUP_HREF)}'), 'upscaler creation CTA uses the bounded handoff')
 equal((pages.talking.match(/href=\{TALKING_CHARACTERS_SIGNUP_HREF\}/g) ?? []).length, 2, 'both talking-character CTAs use H3 handoff')
 ok(!pages.talking.includes('Make one free'), 'talking-character CTA no longer promises an unaffordable free render')
 // The approved FAQ now describes the credit grant in plural; bind the

@@ -28,7 +28,8 @@ function check(replacements = {}) {
     const models = [...html.matchAll(/data-bf-template="([^"]+)"/g)].map(m => m[1])
     assert.deepEqual(models, [...C.BF_TEMPLATE_IDS])
     for (const id of C.BF_TEMPLATE_IDS) {
-      const destination = C.bfTemplateHref(lang, id)
+      const template = new URL(C.bfTemplateHref(lang, id), 'https://kineo.test')
+      const destination = '/create/ads' + template.search
       assert.equal(clean(html).split(`href="${destination}"`).length - 1, 1, `one direct handoff for ${lang}/${id}`)
       assert.ok(visible.includes(C.bfTemplate(lang, id).title))
     }

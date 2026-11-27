@@ -333,7 +333,7 @@ function casosD(o) {
     }
   }
   return [
-    ['D1 abas Film · Clip · Cartoon · Ads, Clip ativa, sem Recreate', abas(sem.html) === 'film,clip,cartoon,ads' && sem.html.includes('aria-current="page" data-create-tab="clip"') && abas(com.html) === 'film,clip,cartoon,ads'],
+    ['D1 abas Film · Clip · Cartoon · Ads · Image, Clip ativa, sem Recreate', abas(sem.html) === 'film,clip,cartoon,ads,image' && sem.html.includes('aria-current="page" data-create-tab="clip"') && abas(com.html) === 'film,clip,cartoon,ads,image'],
     ['D2 sem modelo: a caixa do Clips à esquerda, o modelo tocando à direita, a grade dos modelos embaixo e depois os efeitos e My clips', sem.html.includes('ct-juntos-clip') && ordem(sem.html, 'data-peca="clip-estilos"', 'data-peca="clip-caixa"', 'data-juntos-palco', 'data-peca="rc-grade"', 'data-peca="clip-tendencias"', 'data-peca="clip-efeitos"', 'data-peca="clip-meus"') && !sem.html.includes('data-peca="rc-painel"')],
     ['D3 o modelo que toca por padrão é o 1º com link público (nunca um molde só da casa)', palco?.props['data-juntos-palco'] === pub[0].id && sem.M.palcoPadrao(catalogo)?.id === pub[0].id && sem.M.palcoPadrao([])  === null],
     // KINEO-PALCO-INVADER-1611 [dono 16/11 ~01:55] — o molde ABERTO mais novo da máquina de trechos (palco: true, marcado pelo servidor) abre o palco, antes da regra de sempre; sem ele, a de sempre.

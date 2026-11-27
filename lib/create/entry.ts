@@ -5,7 +5,7 @@ import { PUBLIC_CREATE_EDITORS } from './publicEditorRelease'
 import type { InternalRelease } from '@/lib/recreate/release'
 
 export type CreateEntryKind = 'film' | 'cartoon' | 'ads'
-type PublicProduct = CreateEntryKind | 'clip' | 'recreate'
+type PublicProduct = CreateEntryKind | 'clip' | 'recreate' | 'image'
 export const LEGACY_ENTRY_PATH: Readonly<Record<CreateEntryKind, string>> = { film: '/studio', cartoon: '/kids-cartoon', ads: '/ads/new' }
 export const STUDIO_BOX_DEFAULT_CAMPAIGN = 'studio_simple'
 export const FILM_DEFAULT_ENGINE = 'seedance'
@@ -153,6 +153,7 @@ export function createEntryForContentHref(kind: CreateEntryKind, contentHref: st
 function direct(href: string, opts: CreateEntryOpts, explicit: boolean): string | null {
   const u = parse(href)
   if (!u) return null
+  if (u.pathname === '/images' && PUBLIC_CREATE_EDITORS && publicEntry('image', opts)) return '/create/image' + u.search
   if (explicit && ['/studio/create', '/generate'].includes(u.pathname)) {
     const film = productHref('film', href, opts, true)
     return film !== href ? film : null
@@ -211,9 +212,9 @@ export function publicCreateCtaHref(href: string, kind: PublicProduct = 'film', 
   if (u.searchParams.has('redirect')) return destinationFromSignup(u, opts, true) ?? href
   const q = singleParams(u.searchParams)
   if (!q) return href
-  if (kind === 'clip' || kind === 'recreate') {
+  if (kind === 'clip' || kind === 'recreate' || kind === 'image') {
     if (!Array.from(q.keys()).every(k => TRACKING.test(k))) return href
-    return pathWithQuery(kind === 'clip' ? '/create/clip' : '/recreate', q)
+    return pathWithQuery(kind === 'recreate' ? '/recreate' : `/create/${kind}`, q)
   }
   if (q.get('create_intent') === 'fast' || q.get('create_intent') === 'trial_best') q.delete('create_intent')
   if (q.has('lang') && !q.has('language')) { q.set('language', q.get('lang')!); q.delete('lang') }

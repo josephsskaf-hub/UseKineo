@@ -70,7 +70,7 @@ async function all(o = {}) {
     const serverFlags = { showClip: clipAccess.clipNaMolduraVisivel(email), showRecreate: recreateAccess.abaRecreateVisivel(email) }
     const actualHtml = renderToStaticMarkup(React.createElement(T.default, flags))
     const actualTabs = [...actualHtml.matchAll(/data-create-tab="([^"]+)"/g)].map(m => m[1])
-    const expectedTabs = ['film', ...(showClip ? ['clip'] : []), 'cartoon', 'ads', ...(showRecreate ? ['recreate'] : [])]
+    const expectedTabs = ['film', ...(showClip ? ['clip'] : []), 'cartoon', 'ads', 'image', ...(showRecreate ? ['recreate'] : [])]
     return flags.showClip === showClip && flags.showRecreate === showRecreate &&
       serverFlags.showClip === showClip && serverFlags.showRecreate === showRecreate &&
       JSON.stringify(actualTabs) === JSON.stringify(expectedTabs)

@@ -273,7 +273,7 @@ async function priceChecks(o) {
     ok(!ENGINE_NAMES.test(text + visibleText(b)), `${d} s: nenhum nome de motor (${((text + visibleText(b)).match(ENGINE_NAMES) || [])[0]})`)
     ok(/disabled=""/.test(b) && html.includes('Write your idea to continue.'), `${d} s: Generate desabilitado sem ideia, com o motivo`)
     ok(t.log.pushes.length === 0 && JSON.stringify(t.log.fetches) === JSON.stringify([['/api/credits', 'GET'], BADGE_FETCH]) && !/autofocus/i.test(html), `${d} s: nada começa sozinho (só a leitura de saldo de sempre, sem navegação, sem autofoco)`)
-    ok((html.match(/data-create-tab=/g) || []).length === 4 && html.includes('aria-current="page" data-create-tab="film"'), `${d} s: abas no topo, Film ativa`)
+    ok([...html.matchAll(/data-create-tab="([^"]+)"/g)].map(x => x[1]).join() === 'film,cartoon,ads,image,recreate' && html.includes('aria-current="page" data-create-tab="film"'), `${d} s: abas no topo, Film ativa`)
     ok((html.match(/class="rc-step /g) || []).length === 3 && html.includes('<details class="rc-adjustments">') && !html.includes('<details class="rc-adjustments" open'), `${d} s: 3 passos; Details recolhido`)
     ok(html.includes('class="rc-player"') && (html.match(/data-create-example=/g) || []).length >= 3, `${d} s: exemplo grande + Film examples`)
     const v = await frameWith(o, { cookie: SESSION, credits: PAID }, t => { if (d !== 60) t.click(p => p['data-studio-duration'] === d, 'duração'); t.type(p => p.type === 'checkbox', true, 'palavra por palavra') })

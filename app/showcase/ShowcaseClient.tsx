@@ -30,7 +30,7 @@ function PublicProductStage({ section, copy, index }: { section: ShowcaseSection
           <span className="sc-index" aria-hidden="true">0{index + 1} / KINEO</span>
           <h2 id={`${section}-heading`}>{copy[section]}</h2>
           <p>{copy[`${section}Desc`]}</p>
-          <Link className="sc-cta sc-section-cta" data-showcase-action={section} href={publicCreateCtaHref(SHOWCASE_DESTINATIONS[section])} prefetch={false}>{copy[`${section}Cta`]} <span aria-hidden="true">↗</span></Link>
+          <Link className="sc-cta sc-section-cta" data-showcase-action={section} href={publicCreateCtaHref(SHOWCASE_DESTINATIONS[section], section === 'images' ? 'image' : section === 'ads' ? 'ads' : 'film')} prefetch={false}>{copy[`${section}Cta`]} <span aria-hidden="true">↗</span></Link>
           <div className="sc-selected" aria-live="polite" aria-atomic="true">
             <span className="sc-eyebrow">{copy.house}</span>
             <h3>{title}</h3>

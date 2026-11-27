@@ -23,6 +23,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import vm from 'node:vm'
 import * as crypto from 'node:crypto'
+import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+const editorEntries = createOfflineLoader()('@/lib/create/entry')
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 
@@ -244,6 +246,7 @@ async function problems(over = {}) {
       '@/lib/referralLanding': { findReferrerIdByCode: async () => null, recordReferralLanding: async () => null, normalizeReferralCode: () => null, REFERRAL_COOKIE: 'sf_ref', REFERRAL_COOKIE_MAX_AGE: 1 },
     })
     mw = compile(S('middleware'), {
+      '@/lib/create/entry': editorEntries,
       '@/lib/growth/citationPagesRelease': pure(S('citationRelease'), F.citationRelease),
       'next/server': { NextResponse: { redirect: mkRedirect } },
       '@/lib/growth/visitanteEscreveAntes': { destinoDoVisitanteQueEscreve: () => null }, // KINEO-ESCREVE-ANTES-DO-LOGIN-0411 — este guardião não passa por /signup
