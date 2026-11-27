@@ -89,9 +89,10 @@ async function casosA(o) {
     return navigationHook.useCreateNavigationVisibility(CUSTOMER)
   }
   const libraryUsesSameRule =
-    (dashboard.includes('<CreateMolduraTopo showRecreate={abaRecreateVisivel(userEmail)} showClip={clipNaMolduraVisivel(userEmail)} />') ||
-      (dashboard.includes('useCreateNavigationVisibility(userEmail)') && dashboard.includes("<CreateMolduraTopo showRecreate={navigation.showRecreate} showClip={navigation.showClip} surface={pathname === '/account' ? 'account_top' : 'library_top'} />") &&
-        dashboardHook.includes("readServerVisibility('/api/account/create-visibility')") && visibilityRoute.includes('abaRecreateVisivel(user?.email)')))
+    dashboard.includes('useCreateNavigationVisibility(userEmail)') &&
+    dashboard.includes("<CreateMolduraTopo showRecreate={navigation.showRecreate} showClip={navigation.showClip} surface={pathname === '/account' ? 'account_top' : 'library_top'} />") &&
+    dashboardHook.includes("readServerVisibility('/api/account/create-visibility')") &&
+    visibilityRoute.includes('abaRecreateVisivel(user?.email)')
   const adsUsesSameRule = adsWorkspace.includes('showRecreate: abaRecreateVisivel(user?.email)') && adsWorkspace.includes('{...navigation}')
   const privateHookFlags = await readHookFlags()
   return [
@@ -391,6 +392,7 @@ const MUTANTES = [
   ['M19 o efeito repetido volta (a grade e as fileiras do Clips mostram o mesmo)', mut(JUNTOS, 'semRepetir={semRepetir} moldura=', 'moldura=')],
   ['M20 o filtro some sem a lista (esconde efeito na /clips de sempre)', mut(CLIPS, '.filter((fx) => !semRepetir?.has(fx.title.trim().toLowerCase())).map((fx) => ( // KINEO-CLIP-RECREATE-JUNTOS-1511 sem repetir', '.filter((fx) => !semRepetir || !semRepetir.has(fx.title.trim().toLowerCase())).map((fx) => ( // KINEO-CLIP-RECREATE-JUNTOS-1511 sem repetir')],
   ['M17 preço escrito na casca', mut(JUNTOS, "recriar: 'Recreate this ↗'", "recriar: 'Recreate this · ✦ 40 ↗'")],
+  ['A7 cabeçalho legado perde a origem da Conta', mut('app/(dashboard)/DashboardShell.tsx', "<CreateMolduraTopo showRecreate={navigation.showRecreate} showClip={navigation.showClip} surface={pathname === '/account' ? 'account_top' : 'library_top'} />", "<CreateMolduraTopo showRecreate={abaRecreateVisivel(userEmail)} showClip={clipNaMolduraVisivel(userEmail)} />"), 'A7'],
   ['M21 A7 Library usa showClip como showRecreate', mut('lib/create/useCreateNavigationVisibility.ts', 'showRecreate: result?.showRecreate === true', 'showRecreate: result?.showClip === true'), 'A7'],
 ]
 for (const [nome, o, expectedCase] of MUTANTES) {
