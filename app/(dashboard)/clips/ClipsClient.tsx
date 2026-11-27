@@ -1039,7 +1039,11 @@ export default function ClipsClient({ publicEditorGuest, measurementActor = null
         ) : (<>
         <div className="card creation-input">
           <div className="lab">{t('yourClip')}</div>{/* KINEO-CLIPS-TELA-0511 — um passo só: sem número */}
-          <textarea aria-label={t('yourClip')} value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={5} maxLength={1000}
+          <textarea aria-label={t('yourClip')} value={prompt} onChange={(e) => {
+            // Typing (including clearing the box) takes precedence over a pending gallery prefill.
+            promptFromUrlRef.current = true
+            setPrompt(e.target.value)
+          }} rows={5} maxLength={1000}
             placeholder={withPhoto ? t('placeholderMotion') : t('placeholder')} />
           {photoRow}
           {roteiroDeFilme && ( /* KINEO-CENA-PEDIDO-3010 — roteiro de filme na tela do Clipe: aviso honesto + a porta do Filme narrado com o texto preenchido */

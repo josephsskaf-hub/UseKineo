@@ -153,7 +153,7 @@ export function createEntryForContentHref(kind: CreateEntryKind, contentHref: st
 function direct(href: string, opts: CreateEntryOpts, explicit: boolean): string | null {
   const u = parse(href)
   if (!u) return null
-  if (u.pathname === '/images' && PUBLIC_CREATE_EDITORS && publicEntry('image', opts)) return '/create/image' + u.search
+  if (explicit && u.pathname === '/images' && PUBLIC_CREATE_EDITORS && publicEntry('image', opts)) return '/create/image' + u.search
   if (explicit && ['/studio/create', '/generate'].includes(u.pathname)) {
     const film = productHref('film', href, opts, true)
     return film !== href ? film : null
