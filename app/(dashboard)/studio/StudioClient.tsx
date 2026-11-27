@@ -41,6 +41,8 @@ import { ESTRELA_PUBLIC } from '@/lib/engineLaunch'
 import { H3MAX_PUBLIC } from '@/lib/engineLaunch' // KINEO-H3MAX-2026-10-13
 import { estrelaDisponivelNoMotor, estrelaSobretaxa } from '@/lib/estrelaDoFilme'
 import { estrelaCopy } from '@/lib/estrelaCopy'
+import { CAMERA_PRESETS } from '@/lib/create/filmCameraPresets'
+import { uploadFilmStarReference } from '@/lib/create/uploadFilmStarReference'
 import BrandLogoPicker from '@/components/BrandLogoPicker' // KINEO-LOGO-DA-MARCA-2026-10-01
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
@@ -212,16 +214,7 @@ const ADS_TILE_DOOR_HREF = '/ads?from=studio&utm_source=studio&utm_medium=tile&u
 const ADS_TILE_POSTER = '/og/ads-for-local-services.png'
 
 
-const CAMERA_PRESETS: { key: string; label: string; emoji: string; prompt: string }[] = [
-  { key: 'dolly', label: 'Slow Dolly-In', emoji: '🎥', prompt: 'slow cinematic dolly-in toward the subject' },
-  { key: 'crash', label: 'Crash Zoom', emoji: '⚡', prompt: 'sudden dramatic crash zoom onto the focal point' },
-  { key: 'orbit', label: 'Orbit', emoji: '🌀', prompt: 'smooth 180-degree orbital camera move around the subject' },
-  { key: 'fpv', label: 'FPV Drone', emoji: '🚁', prompt: 'fast FPV drone fly-through shot' },
-  { key: 'crane', label: 'Crane Up', emoji: '🏗️', prompt: 'majestic crane shot rising to reveal the scene' },
-  { key: 'handheld', label: 'Handheld', emoji: '🎬', prompt: 'gritty handheld documentary camera with subtle shake' },
-  { key: 'macro', label: 'Macro Detail', emoji: '🔬', prompt: 'extreme macro close-up with shallow depth of field' },
-  { key: 'static', label: 'Locked Tripod', emoji: '🗿', prompt: 'perfectly static tripod shot, movement inside the frame' },
-]
+
 
 // KINEO-STUDIO-KIT-2026-08-17 — o CSS local virou o kit compartilhado
 // (components/studioKit) que veste TODOS os ambientes. Ajuste aprovado pelo
@@ -929,24 +922,8 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [], initia
       const preview = URL.createObjectURL(file)
       setEstrelaFotos((xs) => [...xs, { key, path: null, preview, uploading: true }])
       try {
-        let blob: Blob = file
-        try {
-          const bmp = await createImageBitmap(file)
-          const scale = Math.min(1, 2048 / Math.max(bmp.width, bmp.height))
-          const canvas = document.createElement('canvas')
-          canvas.width = Math.max(1, Math.round(bmp.width * scale))
-          canvas.height = Math.max(1, Math.round(bmp.height * scale))
-          canvas.getContext('2d')?.drawImage(bmp, 0, 0, canvas.width, canvas.height)
-          bmp.close()
-          blob = (await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9))) ?? file
-        } catch {}
-        const form = new FormData()
-        form.append('file', blob, blob === file ? file.name : 'reference.jpg')
-        form.append('rights', 'true')
-        const res = await fetch('/api/images/reference', { method: 'POST', body: form })
-        const data = await res.json().catch(() => null)
-        if (!res.ok || typeof data?.path !== 'string') throw new Error(typeof data?.error === 'string' ? data.error : estrelaCopy(idiomaDaTela, 'uploadFailed'))
-        setEstrelaFotos((xs) => xs.map((x) => (x.key === key ? { ...x, path: data.path as string, uploading: false } : x)))
+        const path = await uploadFilmStarReference(file, estrelaCopy(idiomaDaTela, 'uploadFailed'))
+        setEstrelaFotos((xs) => xs.map((x) => (x.key === key ? { ...x, path, uploading: false } : x)))
         void trackEvent('studio_estrela_photo_added', { count: estrelaFotos.length + 1 })
       } catch (e) {
         URL.revokeObjectURL(preview)

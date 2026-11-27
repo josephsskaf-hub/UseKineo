@@ -19,10 +19,12 @@ export interface ChipDaCaixa {
   valor: string
   /** O conteúdo do menu pequeno. Recebe `fechar` para quem fecha ao escolher. */
   menu: (fechar: () => void) => ReactNode
+  inline?: boolean
   aoAbrir?: () => void
 }
 
 export type FotoDaCaixa =
+  | { tipo: 'settings'; rotulo: string; dica: string }
   | { tipo: 'link'; href: string; rotulo: string; dica: string }
   | { tipo: 'upload'; previa: string | null; enviando: boolean; rotulo: string; aceita: string; aoEscolher: (f: File) => void; aoRemover: () => void }
 
@@ -38,7 +40,7 @@ export interface CaixaDeCriarProps {
   limiteMax: number
   foto: FotoDaCaixa | null
   chips: readonly ChipDaCaixa[]
-  gerar: { aoClicar: () => void; custo: number | null; label?: string; checking?: boolean; testId: string }
+  gerar: { disabled?: boolean; aoClicar: () => void; custo: number | null; label?: string; checking?: boolean; testId: string }
   confianca: readonly string[]
   /** Linha logo abaixo da caixa (ex.: o filme grátis) — só quando o servidor provou. */
   nota?: ReactNode
@@ -57,7 +59,7 @@ export default function CaixaDeCriar(p: CaixaDeCriarProps) {
   const caixaDeFora = useRef<HTMLDivElement>(null)
   const [aberto, setAberto] = useState<string | null>(null)
   const [posicao, setPosicao] = useState(0)
-  const temTexto = p.texto.trim().length > 0
+  const temTexto = p.texto.trim().length > 0 && !p.gerar.disabled
   const { caixaRef, texto } = p
 
   // O texto cresce com o que se escreve (e com o exemplo escolhido), até ALTURA_MAX; depois rola por dentro.
@@ -100,10 +102,19 @@ export default function CaixaDeCriar(p: CaixaDeCriarProps) {
     <h1 id="cx-titulo" className="cx-titulo">{p.titulo}</h1>
     <div className="cx-caixa" ref={caixaDeFora} data-caixa-nova="">
       <div className="cx-corpo">
-        {p.foto ? <Foto foto={p.foto} /> : null}
+        {p.foto ? <Foto foto={p.foto} onSettings={() => {
+          if (aberto === 'mais') { fechar(); return }
+          setAberto('mais')
+          p.chips.find(chip => chip.id === 'mais')?.aoAbrir?.()
+          requestAnimationFrame(() => {
+            const photos = caixaDeFora.current?.querySelector<HTMLDetailsElement>('[data-film-star-details]')
+            if (photos) { photos.open = true; photos.querySelector('summary')?.focus() }
+            else caixaDeFora.current?.querySelector<HTMLSelectElement>('[data-film-camera]')?.focus()
+          })
+        }} /> : null}
         <textarea id="cx-ideia" ref={p.caixaRef} className="cx-texto" data-testid="caixa-nova-idea" rows={3} value={p.texto} aria-label="Your idea" placeholder={p.placeholder}
           onChange={e => p.aoEscrever(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && temTexto) { e.preventDefault(); p.gerar.aoClicar() } }} />
+          onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && temTexto && !p.gerar.checking) { e.preventDefault(); p.gerar.aoClicar() } }} />
       </div>
       {p.filmStylePicker}
       {p.filmVoicePicker}
@@ -120,8 +131,8 @@ export default function CaixaDeCriar(p: CaixaDeCriarProps) {
           <span>{p.gerar.label ?? 'Generate'}</span>{p.gerar.custo !== null ? <span className="cx-custo" aria-label={`${p.gerar.custo} credits`}>✦ {p.gerar.custo}</span> : null}
         </button>
       </div>
-      {chipAberto ? <div className="cx-menu" role="dialog" aria-label={chipAberto.nome} style={{ left: posicao }} data-cx-menu={chipAberto.id}>
-        <p className="cx-menu-nome">{chipAberto.nome}</p>
+      {chipAberto ? <div className={chipAberto.inline ? "cx-inline-settings" : "cx-menu"} role="dialog" aria-label={chipAberto.nome} style={chipAberto.inline ? undefined : { left: posicao }} data-cx-menu={chipAberto.id}>
+        {chipAberto.inline ? <header><h2>{chipAberto.nome}</h2><button type="button" onClick={() => { fechar(); caixaDeFora.current?.querySelector<HTMLButtonElement>('[data-cx-chip="mais"]')?.focus() }}>Done</button></header> : <p className="cx-menu-nome">{chipAberto.nome}</p>}
         {chipAberto.menu(fechar)}
       </div> : null}
     </div>
@@ -138,9 +149,10 @@ export default function CaixaDeCriar(p: CaixaDeCriarProps) {
   </section>
 }
 
-function Foto({ foto }: { foto: FotoDaCaixa }) {
+function Foto({ foto, onSettings }: { foto: FotoDaCaixa; onSettings: () => void }) {
   const arquivo = useRef<HTMLInputElement>(null)
   const mais = <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+  if (foto.tipo === 'settings') return <button type="button" className="cx-foto" aria-label={foto.rotulo} title={foto.dica} data-kineo="caixa-nova-foto" onClick={onSettings}>{mais}</button>
   if (foto.tipo === 'link') return <a className="cx-foto" href={foto.href} title={`${foto.rotulo} · ${foto.dica}`} aria-label={`${foto.rotulo}. ${foto.dica}`} data-kineo="caixa-nova-foto">{mais}</a>
   if (foto.previa) return <div className="cx-foto cx-foto-cheia">
     {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -118,3 +118,66 @@
 .kx-social svg{width:13px;height:13px;flex:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.55))}
 .kx-social-sobre{position:absolute;left:10px;top:10px;z-index:3}
 .cx-exemplo-nome .kx-social,.rc-card-bottom .kx-social{display:flex;margin-bottom:6px}
+
+.cx-inline-settings {
+  margin-top: 16px;
+  padding: 16px;
+  color: var(--rc-text);
+  background: color-mix(in srgb, var(--rc-card) 70%, var(--rc-bg));
+  border: 1px solid var(--rc-line);
+  border-radius: 16px;
+}
+.cx-inline-settings > header {display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px}
+.cx-inline-settings h2 {margin:0; font-size:18px; font-weight:700; letter-spacing:-.025em}
+.cx-inline-settings header button {min-height:44px; padding:0 14px; border:0; border-radius:10px; background:transparent; color:var(--rc-accent); font:inherit; font-weight:650; cursor:pointer}
+.cx-inline-settings header button:hover {background:var(--rc-soft)}
+.film-more-panel {display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; gap:8px; font-size:15px}
+.film-more-row,.film-more-section {min-width:0; border:1px solid var(--rc-line); border-radius:12px; background:var(--rc-card)}
+.film-more-row {grid-column:1/-1; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; padding:8px 12px}
+.film-more-row label,.film-more-section summary {display:flex; align-items:center; gap:10px; font-weight:650}
+.film-setting-icon {flex:none; display:grid; place-items:center; width:32px; height:32px; border-radius:9px; background:var(--rc-input); color:var(--rc-body)}
+.film-more-row select {max-width:100%; min-height:44px; padding:0 8px; border:1px solid var(--rc-line); border-radius:8px; font:inherit; background:var(--rc-input); color:var(--rc-text)}
+.film-more-section summary {min-height:62px; padding:8px 12px; list-style:none; cursor:pointer; border-radius:11px}
+.film-more-section summary::-webkit-details-marker {display:none}
+.film-more-section summary::after {content:''; flex:none; margin-left:auto; width:6px; height:6px; border-right:1.5px solid currentColor; border-bottom:1.5px solid currentColor; color:var(--rc-muted); transform:rotate(45deg)}
+.film-more-section[open] summary::after {transform:rotate(225deg)}
+.film-more-section[open] .film-setting-icon {background:var(--rc-soft); color:var(--rc-accent)}
+.film-setting-name {min-width:0; line-height:1.35}
+.film-setting-name small {display:block; color:var(--rc-muted); font-size:13px; font-weight:500}
+.film-setting-content {padding:4px 12px 12px}
+.film-more-panel p {color:var(--rc-body); margin:4px 0 8px}
+.film-more-row p {flex-basis:100%}
+.film-more-consent {display:flex; align-items:center; gap:8px; min-height:44px; font-size:14px}
+.film-more-upload {position:relative; display:inline-flex; align-items:center; gap:6px; padding:0 12px; min-height:44px; margin-top:8px; border:1px dashed var(--rc-line); border-radius:9px; background:var(--rc-input); font-weight:650; cursor:pointer}
+.film-more-upload:has(input:disabled) {color:var(--rc-muted); cursor:default}
+.film-more-upload input {position:absolute; inset:0; opacity:0; width:100%; height:100%; cursor:inherit}
+.film-more-photos {display:flex; gap:8px; flex-wrap:wrap}
+.film-more-photos > div {position:relative}
+.film-more-photos img {width:72px; height:72px; display:block; object-fit:cover; border-radius:9px}
+.film-more-photos button {position:absolute; top:0; right:0; width:44px; height:44px; border:0; background:linear-gradient(225deg,rgba(0,0,0,.85),transparent 75%); color:white; border-radius:0 9px 0 0; font-size:20px; cursor:pointer}
+.cx-inline-settings :is(button,select,summary):focus-visible,.film-more-upload:focus-within {outline:2px solid var(--rc-accent); outline-offset:2px}
+@media (max-width:600px) {
+  .cx-inline-settings {padding:10px; border-radius:14px}
+  .cx-inline-settings > header {margin-bottom:6px; padding-left:4px}
+  .film-more-panel {grid-template-columns:minmax(0,1fr)}
+  .film-more-row {display:grid; grid-template-columns:minmax(0,1fr) minmax(112px,48%); padding:8px}
+  .film-more-row select {width:100%; text-overflow:ellipsis}
+  .film-more-row p {grid-column:1/-1}
+  .film-more-row label {gap:6px}
+  .film-more-section summary {min-height:56px; padding:8px}
+}
+
+@media (max-width:350px) {
+  .film-more-row {grid-template-columns:1fr}
+}
+
+/* Film: one continuous settings surface inside the composer. */
+.cx-inline-settings{padding:12px 0 0;border:0;border-top:1px solid var(--rc-line);border-radius:0;background:transparent}
+.cx-inline-settings>header{margin:0 0 4px;padding:0 6px}
+.film-more-panel{gap:0 20px}
+.film-more-row,.film-more-section{background:transparent;border:0;border-radius:0}
+.film-more-row{padding:6px;border-bottom:1px solid var(--rc-line)}
+.film-more-section summary{padding:8px 6px}
+.film-setting-icon{color:var(--rc-accent);background:transparent}
+.film-more-section summary:hover{background:var(--rc-input)}
+@media(max-width:600px){.film-more-row{grid-template-columns:minmax(0,1fr) minmax(115px,44%)}.film-more-section+.film-more-section{border-top:1px solid var(--rc-line)}}

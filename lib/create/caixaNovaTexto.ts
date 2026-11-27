@@ -19,5 +19,5 @@ export const CAIXA_NOVA_CONFIANCA: readonly string[] = [
 ]
 export const CAIXA_NOVA_EXEMPLOS_TITULO = 'Try one'
 export const CAIXA_NOVA_EXEMPLOS_DICA = 'Tap to use the idea. Nothing starts on its own.'
-/** O "+" da aba Film: a caixa curta não sobe foto (o pedido do StudioSimples não leva imagem). A foto de quem estrela mora no Studio completo. */
-export const CAIXA_NOVA_FOTO_FILME = { rotulo: 'Add a photo of who stars', dica: 'Opens the full studio with your idea' } as const
+/** Both shortcuts open setup in the current editor. */
+export const CAIXA_NOVA_FOTO_FILME = { rotulo: 'Advanced film settings', dica: 'Open settings here' } as const

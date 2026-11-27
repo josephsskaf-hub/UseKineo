@@ -18,6 +18,7 @@ export default function PreviaDaCaixa({ contaPaga, ideia, aviso, gratis, tema }:
   const c: CaixaNaMoldura = {
     motor: MOTOR_PADRAO, texto, escrever: setTexto, caixa, aviso: aviso ? 'This text is too long. Shorten it a little and try again.' : null, limiteMax: 2000,
     duracao, opcoesDuracao, setDuracao, formato, formatos: ['9:16', '16:9', '1:1', '4:5'], setFormato, lingua, setLingua, palavraPorPalavra, setPalavraPorPalavra,
+    camera: '', setCamera: () => {}, gerarComReferencias: () => {},
     maisOpcoes: '/studio?avancado=1', temFilmeGratis: gratis, gerar: () => console.info('[dev caixa-nova] Generate (prévia: nada é enviado)'),
     contaPaga, motores: [], motoresEstado: 'falhou', abrirMotores: () => {}, escolherMotor: () => {}, kling4: null,
   }

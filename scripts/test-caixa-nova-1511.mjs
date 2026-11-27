@@ -18,7 +18,7 @@ const { aba, React, read, ROOT } = R
 const BASE = 'ec6348f4b7beafa640bc3fb5d9dc5da3b7ce7b0b'
 // SHA-256 das duas fontes do pedido após acrescentar a escolha de voz. O guardião de voz também compara OFF com eb07dbd73.
 const ESTILO = {
-  'components/studio/StudioSimples.tsx': '9518c95e052d7b362463ca48a20bc2996b3fd79cebe142fd3f0f0ba7c15331e8',
+  'components/studio/StudioSimples.tsx': 'b84e008ea97414359dc6df819a2d489b2191b95db1ce6270d498ca86475f0b96',
   'lib/growth/studioSimples.ts': 'bf3f49f0027fceec38ea7aea036220abd91586ece64d2d66392412f8b12dee5d',
   'lib/create/filmNaMoldura.ts': '3a772f79f8442a77a7e7125dcf8f1397620c0e3db1a766131aec399fd4ac5547',
 }
@@ -60,7 +60,7 @@ function casosB(o) {
 }
 
 // ─── C. Mesmo pedido pelos dois caminhos ───────────────────────────────────────────────────────────────────────────────
-function caminho(o, nova, { duracao, formato }) {
+function caminho(o, nova, { duracao, formato, camera }) {
   const t = aba(o)
   const caixa = t.m('lib/growth/studioSimples'), tabs = t.m('lib/create/tabs')
   t.mount(React.createElement(t.m('components/create/StudioNaMoldura').default, { showRecreate: true, motor: caixa.motorDaCaixa(undefined), campanha: tabs.CREATE_FILM_CAMPAIGN, caixaNova: nova }))
@@ -70,6 +70,10 @@ function caminho(o, nova, { duracao, formato }) {
   if (nova && formato) { t.click(p => p['data-cx-chip'] === 'formato', 'chip formato'); t.click(p => p['data-studio-format'] === formato, 'formato') }
   if (!nova && duracao) t.click(p => p['data-studio-duration'] === duracao, 'duração')
   if (!nova && formato) t.click(p => p['data-studio-format'] === formato, 'formato')
+  if (camera) {
+    t.click(p => p['data-cx-chip'] === 'mais', 'More')
+    t.select(p => p.id === 'film-more-camera', camera, 'Camera movement')
+  }
   const navegouAntes = t.log.pushes.length
   t.click(isGen, 'Generate')
   const gen = t.log.events.filter(([n]) => ['mrr_generate_clicked', 'studio_simple_generate_clicked'].includes(n))
@@ -98,6 +102,10 @@ function casosC(o) {
       out.push([`C8 ${n}: o pedido de cada caixa leva a duração escolhida`, [a, b].every(v => duration(v.pushes[0]) === String(op.duracao))])
     }
   }
+  const dirigido = caminho(o, true, { camera: 'orbit' })
+  const pedido = new URL(dirigido.pushes[0], 'https://fixture.invalid')
+  const esperado = IDEA + '\n\n[camera: smooth 180-degree orbital camera move around the subject]'
+  out.push(['C9 More edits the same draft and Generate carries the camera direction', dirigido.navegouAntes === 0 && pedido.searchParams.get('prompt') === esperado && JSON.parse(new Map(dirigido.storage).get('kineo:studio:go:v1')).prompt === esperado])
   const ex = exemploSoPreenche(o)
   out.push(['C5 o exemplo só PREENCHE a caixa (nunca gera)', ex.pushes === 0 && ex.preenchido])
   const cards = [...novo.antes.matchAll(/<button[^>]*data-cx-exemplo[^>]*>([\s\S]*?)<\/button>/g)]
@@ -145,7 +153,7 @@ const MUTANTES = [
   ["M1 interruptor fechado por engano", mut('lib/create/release.ts', "CAIXA_NOVA_RELEASE: InternalRelease = 'public'", "CAIXA_NOVA_RELEASE: InternalRelease = 'off'")],
   ['M2 régua ignora a allowlist', mut('lib/create/access.ts', "release: InternalRelease = CAIXA_NOVA_RELEASE): boolean {\n  return !!email && releaseVisible(email, release)", "release: InternalRelease = CAIXA_NOVA_RELEASE): boolean {\n  return !!email")],
   ['M3 página sem a régua da caixa nova', mut(PAGE, ' && caixaNovaVisivel(user?.email)) return', ') return')],
-  ['M4 Generate que não é o gerar() do Studio', mut('components/create/CaixaNovaDoFilme.tsx', 'aoClicar: c.gerar,', 'aoClicar: () => c.setDuracao(60),')],
+  ['M4 Generate que não é o gerar() do Studio', mut('components/create/CaixaNovaDoFilme.tsx', 'aoClicar: advanced.generate,', 'aoClicar: () => c.setDuracao(60),')],
   ['M5 o exemplo gera sozinho', mut('components/create/CaixaNovaDoFilme.tsx', '// só PREENCHE: o filme nunca começa sozinho', '; c.gerar()')],
   ['M6 o pedido mudou no StudioSimples', mut('components/studio/StudioSimples.tsx', 'router.push(pedidoDoStudioSimples({ motor, texto: t, duracao, formato, lingua, palavraPorPalavra, campanha', 'router.push(pedidoDoStudioSimples({ motor, texto: t, duracao: 90, formato, lingua, palavraPorPalavra, campanha'), 'C8 35 s'],
   ['M7 estorno sumiu do filme', mut('app/api/generate-video-cinematic/route.ts', 'await refundRenderCredits(billingReference)', 'await Promise.resolve(0)')],

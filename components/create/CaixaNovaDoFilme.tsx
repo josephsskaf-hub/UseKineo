@@ -1,13 +1,7 @@
 'use client'
 
-// KINEO-CAIXA-NOVA-1511 — a aba Film com a CAIXA NOVA (interruptor CAIXA_NOVA_RELEASE, lib/create/release.ts; hoje 'internal' = só a casa).
-// Liga as peças do Studio real (CaixaNaMoldura, components/studio/StudioSimples.tsx: mesmo estado, mesmas recusas, mesmo gerar(), mesmo pedido)
-// à CaixaDeCriar. Este arquivo NÃO tem estado de pedido, não chama rede, não cobra:
-//   · o Generate É c.gerar (o pedido continua o pedidoDoStudioSimples de sempre);
-//   · o número do botão é `preco`, calculado por precoDoGenerate (a função que cobra) em StudioNaMoldura;
-//   · os chips mexem nos MESMOS setters do passo "Details" de hoje (duração, formato, narração, palavra por palavra, motor opcional);
-//   · o "+" leva ao Studio completo com a ideia (c.maisOpcoes), onde mora a foto de quem estrela: a caixa curta não sobe imagem.
-// Exemplos: CREATE_EXAMPLES.film (os mesmos clipes da home, lib/clipesNos2Lugares.ts). O clique só PREENCHE a caixa.
+// The Film box uses the same Studio draft and generation handoff. More edits optional settings in place.
+import { useFilmAdvanced } from './FilmAdvancedSettings'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import type { CaixaNaMoldura } from '@/components/studio/StudioSimples'
@@ -36,7 +30,7 @@ const ICONE = {
 
 const linguaCurta = (l: string) => l === 'auto' ? 'Auto voice' : NARRATION_LANGUAGES.find(x => x.code === l)?.native ?? l
 
-export function chipsDoFilme(c: CaixaNaMoldura): ChipDaCaixa[] {
+export function chipsDoFilme(c: CaixaNaMoldura, advanced: ReturnType<typeof useFilmAdvanced>): ChipDaCaixa[] {
   const opcao = (pressed: boolean, rotulo: string, aoClicar: () => void, dado: Record<string, string>) =>
     <button key={rotulo} type="button" className="cx-opcao" aria-pressed={pressed} onClick={aoClicar} {...dado}>{rotulo}</button>
   return [
@@ -67,12 +61,12 @@ export function chipsDoFilme(c: CaixaNaMoldura): ChipDaCaixa[] {
         {c.motor === 'hollywood' && kling4AoVivo(c.kling4) ? <p className="cx-nota-menu" data-kling4-film-limits="">{KLING4_PAID_COPY.limits}</p> : null}
         {c.motores ? <p className="cx-nota-menu">The cost of your choice shows on the Generate button.</p> : null}
       </div> },
-    { id: 'mais', nome: 'More', icone: ICONE.mais, valor: 'More',
-      menu: () => <div className="cx-pilha"><a className="cx-link" href={c.maisOpcoes} data-kineo="studio-advanced">Advanced studio ↗</a><p className="cx-nota-menu">Logo, camera and the star of the film. Your idea goes with you.</p></div> },
+    { id: 'mais', nome: 'Advanced setup', icone: ICONE.mais, valor: 'More', inline: true, aoAbrir: advanced.open, menu: () => advanced.panel },
   ]
 }
 
 export default function CaixaNovaDoFilme({ c, preco, showRecreate, showClip }: { c: CaixaNaMoldura; preco: number | null; showRecreate: boolean; showClip: boolean }) {
+  const advanced = useFilmAdvanced(c)
   const exemplos = CREATE_EXAMPLES.film
   const [ativo, setAtivo] = useState<ExemploDaCaixa | null>(null)
   const palco = ativo ?? exemplos[0] ?? null
@@ -96,9 +90,9 @@ export default function CaixaNovaDoFilme({ c, preco, showRecreate, showClip }: {
           filmStylePicker={c.filmStylePicker}
           filmVoicePicker={c.filmVoicePicker}
           texto={c.texto} aoEscrever={c.escrever} caixaRef={c.caixa} placeholder={CAIXA_NOVA_PLACEHOLDER} aviso={c.aviso} limiteMax={c.limiteMax}
-          foto={{ tipo: 'link', href: c.maisOpcoes, rotulo: CAIXA_NOVA_FOTO_FILME.rotulo, dica: CAIXA_NOVA_FOTO_FILME.dica }}
-          chips={chipsDoFilme(c)}
-          gerar={{ aoClicar: c.gerar, custo: c.firstFilmFree || c.checkingAccount ? null : preco, label: c.firstFilmFree ? 'First film free' : c.checkingAccount ? 'Checking credits…' : undefined, checking: c.checkingAccount, testId: 'studio-simple-generate' }}
+          foto={{ tipo: 'settings', rotulo: CAIXA_NOVA_FOTO_FILME.rotulo, dica: CAIXA_NOVA_FOTO_FILME.dica }}
+          chips={chipsDoFilme(c, advanced)}
+          gerar={{ aoClicar: advanced.generate, disabled: advanced.blocked, custo: c.checkingAccount || (c.firstFilmFree && !advanced.surcharge) || preco === null ? null : preco + advanced.surcharge, label: c.firstFilmFree && !advanced.surcharge ? 'First film free' : c.checkingAccount ? 'Checking credits…' : undefined, checking: c.checkingAccount, testId: 'studio-simple-generate' }}
           confianca={CAIXA_NOVA_CONFIANCA}
           nota={c.temFilmeGratis ? <p className="cx-gratis" data-testid="studio-free-film-line">{LINHA_DO_FILME_GRATIS}</p> : null}
           exemplos={exemplos} exemplosTitulo={CAIXA_NOVA_EXEMPLOS_TITULO} exemplosDica={CAIXA_NOVA_EXEMPLOS_DICA}

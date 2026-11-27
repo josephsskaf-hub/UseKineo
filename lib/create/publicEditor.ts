@@ -32,7 +32,7 @@ export function filmEntry(query: Query, visitor: boolean, confirmedCountry: bool
 }
 export type FilmEntry = ReturnType<typeof filmEntry>
 export type GuestFilmDraft = {
-  text: string; duration: number; language: string; aspect: string; verbatim: boolean; engine: string; look?: FilmLook
+  camera?: string; text: string; duration: number; language: string; aspect: string; verbatim: boolean; engine: string; look?: FilmLook
   dialogue: null | { duration: number; language: string; aspect: string; engine: string; look?: FilmLook }
 }
 const prefix = 'kineo:guest-film:'

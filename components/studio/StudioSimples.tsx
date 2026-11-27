@@ -3,8 +3,9 @@
 //
 // Olhando a Higgsfield: "a gente não deixa ele chegar na parte onde pode escrever a história dele"; "tem muito conteúdo a página"; "o motor está muito em
 // evidência". O Generate monta o MESMO pedido do Studio completo e cai no /studio/create, que confere saldo e motor e, sem conta, manda ao cadastro e devolve
-// ao mesmo pedido. Nada é cobrado aqui. O Studio completo segue vivo em "More options" (motor, estrela, logo, referências, clipe).
+// ao mesmo pedido. A moldura Film oferece os ajustes de câmera e referências no próprio editor.
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { CAMERA_PRESETS } from '@/lib/create/filmCameraPresets'
 import { useRouter } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics'
 import { useMrrStudioFunnel } from '@/lib/growth/useMrrStudioFunnel'
@@ -114,6 +115,7 @@ export interface CaixaNaMoldura {
   motores: OpcaoDeMotor[] | null; motoresEstado: 'fechado' | 'lendo' | 'pronto' | 'falhou'; abrirMotores: () => void; escolherMotor: (k: string) => void
   /** KINEO-MOTOR-OPCIONAL-1011 — a leitura do Kling 4.0 pago (GET /api/kling4-paid/availability), feita junto com as flags; null = não lida. */
   kling4: unknown
+  camera: string; setCamera: (value: string) => void; gerarComReferencias: (paths: string[]) => void
   visitor?: boolean; firstFilmFree?: boolean; checkingAccount?: boolean
   filmStylePicker?: ReactNode
   filmVoicePicker?: ReactNode
@@ -127,6 +129,7 @@ export default function StudioSimples({ entry, filmes, motor: motorDoLink, campa
   const [styleChoice, setStyleChoice] = useState<{ initial: FilmLook; chosen: FilmLook; changed: boolean } | null>(() =>
     initialFilmLook ? { initial: initialFilmLook, chosen: initialFilmLook, changed: false } : null,
   )
+  const [camera, setCamera] = useState('')
   const [voiceMode, setVoiceMode] = useState<FilmVoiceMode>(initialVoiceMode ?? 'narrator')
   const [beforeDialogue, setBeforeDialogue] = useState<{
     duration: number; language: string; style: typeof styleChoice; aspect: string; engine: string; voice: FilmVoiceMode
@@ -244,6 +247,7 @@ export default function StudioSimples({ entry, filmes, motor: motorDoLink, campa
     touched.current = true
     const allowedEngine = (key: string) => motoresCandidatos().includes(key) ? key : 'seedance'
     setEscolhido(allowedEngine(saved.engine))
+    setCamera(CAMERA_PRESETS.find(item => item.key === saved.camera)?.key ?? '')
     setTexto(saved.text); setFormato(saved.aspect); setDuracao(saved.duration); setLingua(saved.language)
     setPalavraPorPalavra(saved.verbatim)
     if (showFilmStyle && ['photoreal', 'animated3d', 'anime'].includes(saved.look ?? '') && saved.look) setStyleChoice({ initial: saved.look, chosen: saved.look, changed: false })
@@ -275,15 +279,19 @@ export default function StudioSimples({ entry, filmes, motor: motorDoLink, campa
     motor === 'seedance' && !palavraPorPalavra && (!requestedDuration || requestedDuration === 15))
   const verifyingOffer = useRef(false)
   const currentOrder = useRef('')
-  const order = JSON.stringify([texto, motor, duracao, formato, lingua, palavraPorPalavra, selectedLook, effectiveVoice])
+  const order = JSON.stringify([texto, motor, duracao, formato, lingua, palavraPorPalavra, selectedLook, effectiveVoice, camera])
   currentOrder.current = order
   useEffect(() => () => { currentOrder.current = '' }, [])
-  async function gerar() {
-    const t = entry && palavraPorPalavra ? texto : texto.trim()
+  function gerar() { return gerarComReferencias([]) }
+  async function gerarComReferencias(paths: string[]) {
+    const idea = entry && palavraPorPalavra ? texto : texto.trim()
+    const direction = !palavraPorPalavra && CAMERA_PRESETS.find(p => p.key === camera)
+    const t = direction ? idea + '\n\n[camera: ' + direction.prompt + ']' : idea
     const recusar = (m: string) => { setAviso(m); caixa.current?.focus() }
-    if (!t.trim()) { caixa.current?.focus(); return }
-    if (isStandaloneHttpUrl(t)) return recusar(CHATGPT_LINK_MESSAGE)
+    if (!idea.trim()) { caixa.current?.focus(); return }
+    if (isStandaloneHttpUrl(idea)) return recusar(CHATGPT_LINK_MESSAGE)
     if (limite.over) return recusar('This text is too long. Shorten it a little and try again.')
+    if (direction && promptLimitState(t, limite.max).over) return recusar('Shorten your idea or set camera movement to Automatic.')
     const sexual = decideSexualContentRefusal(t)
     if (sexual.refuse) {
       void trackEvent('sexual_content_refused_client', { version: sexual.version, named_person: sexual.namedPerson, surface: 'studio_simple' })
@@ -292,7 +300,7 @@ export default function StudioSimples({ entry, filmes, motor: motorDoLink, campa
     if (checkingAccount) return
     if (entry?.visitor) {
       try {
-        const next = filmSignup({ text: texto, look: styleChoice?.chosen ?? entry.look, engine: motor, duration: duracao, aspect: formato, language: lingua, verbatim: palavraPorPalavra,
+        const next = filmSignup({ text: texto, ...(camera ? { camera } : {}), look: styleChoice?.chosen ?? entry.look, engine: motor, duration: duracao, aspect: formato, language: lingua, verbatim: palavraPorPalavra,
           dialogue: dialoguePreset && beforeDialogue ? { look: beforeDialogue.style?.chosen ?? entry.look, engine: beforeDialogue.engine, duration: beforeDialogue.duration, aspect: beforeDialogue.aspect, language: beforeDialogue.language } : null })
         router.push(next)
       } catch { recusar('Your browser could not save this draft. Allow session storage and try again.') }
@@ -329,6 +337,10 @@ export default function StudioSimples({ entry, filmes, motor: motorDoLink, campa
         setCheckingAccount(false)
       }
     }
+    try {
+      if (paths.length) sessionStorage.setItem('kineo:studio:estrela:v1', JSON.stringify({ t: Date.now(), engine: motor, duration: duracao, prompt: t, paths, consent: true }))
+      else sessionStorage.removeItem('kineo:studio:estrela:v1')
+    } catch { if (paths.length) return recusar('Your photo selection could not be saved. Please try again.') }
     setAviso(null)
     registrar('mrr_generate_clicked')
     void trackEvent('studio_simple_generate_clicked', { engine: motor, duration: duracao, aspect: formato, language: lingua, verbatim: palavraPorPalavra, chars: t.length, page_idea_kept: ideiaInicial !== '' && t === ideiaInicial.trim() })
@@ -369,7 +381,7 @@ export default function StudioSimples({ entry, filmes, motor: motorDoLink, campa
       void trackEvent('create_engine_chosen', { engine: k, from: motor })
     }
 
-    return <>{moldura({ ...(entry ? { visitor: entry.visitor, firstFilmFree, checkingAccount } : {}), motor, texto, escrever, caixa, aviso, limiteMax: limite.max, duracao, opcoesDuracao,
+    return <>{moldura({ camera, setCamera, gerarComReferencias, ...(entry ? { visitor: entry.visitor, firstFilmFree, checkingAccount } : {}), motor, texto, escrever, caixa, aviso, limiteMax: limite.max, duracao, opcoesDuracao,
       setDuracao: d => { touched.current = true; if (d !== 15) useNarration('Narrator selected because dialogue needs 15 s.'); setDuracao(d) },
       formato, formatos: FORMATOS, setFormato: f => { touched.current = true; if (f !== '9:16') useNarration('Narrator selected because dialogue needs vertical video.'); setFormato(f) },
       lingua, setLingua: l => { touched.current = true; if (l !== 'en') useNarration('Narrator selected because dialogue needs English.'); setLingua(l) },
