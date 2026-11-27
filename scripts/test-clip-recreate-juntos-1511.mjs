@@ -90,7 +90,7 @@ async function casosA(o) {
   }
   const libraryUsesSameRule =
     (dashboard.includes('<CreateMolduraTopo showRecreate={abaRecreateVisivel(userEmail)} showClip={clipNaMolduraVisivel(userEmail)} />') ||
-      (dashboard.includes('useCreateNavigationVisibility(userEmail)') && dashboard.includes('<CreateMolduraTopo showRecreate={navigation.showRecreate} showClip={navigation.showClip} />') &&
+      (dashboard.includes('useCreateNavigationVisibility(userEmail)') && dashboard.includes("<CreateMolduraTopo showRecreate={navigation.showRecreate} showClip={navigation.showClip} surface={pathname === '/account' ? 'account_top' : 'library_top'} />") &&
         dashboardHook.includes("readServerVisibility('/api/account/create-visibility')") && visibilityRoute.includes('abaRecreateVisivel(user?.email)')))
   const adsUsesSameRule = adsWorkspace.includes('showRecreate: abaRecreateVisivel(user?.email)') && adsWorkspace.includes('{...navigation}')
   const privateHookFlags = await readHookFlags()
