@@ -285,6 +285,8 @@ export default function ClipsClient({ publicEditorGuest, measurementActor = null
   const [seconds, setSeconds] = useState<number>(5)
   const [aspect, setAspect] = useState<string>('9:16')
   const [prompt, setPrompt] = useState('')
+  // URL suggestions belong to the initial field. A later edit or deliberate template choice wins.
+  const promptRevision = useRef(0)
   const localImage = useRef<File | null>(null)
   const localPreview = useRef<string | null>(null)
   function keepPhoto(file: File) {
@@ -300,7 +302,11 @@ export default function ClipsClient({ publicEditorGuest, measurementActor = null
     void readMediaDraft('clip').then(d => {
       if (!mounted) return
       if (!d) { setError({ text: 'Draft unavailable in this tab.', credits: false }); return }
-      setPrompt(d.fields.prompt); setEngineKey(d.fields.engine); setSeconds(Number(d.fields.seconds))
+      if (promptRevision.current === 0) {
+        promptRevision.current++
+        setPrompt(d.fields.prompt)
+      }
+      setEngineKey(d.fields.engine); setSeconds(Number(d.fields.seconds))
       setAspect(d.fields.aspect); setEffectKey(d.fields.effect || null); setRemixId(d.fields.remix || null)
       setRemixConsent(d.fields.consent === 'true')
       if (d.photos[0]) keepPhoto(d.photos[0])
@@ -376,13 +382,17 @@ export default function ClipsClient({ publicEditorGuest, measurementActor = null
   // ideia, e leva o olho ao botão de gerar — nada dispara sozinho. Motor fora do catálogo da conta: o primeiro que faz texto
   // na duração da ideia.
   const [freeClipPending, setFreeClipPending] = useState(false)
+  const freePromptRevision = useRef(0)
   const freeClipOriginRef = useRef(false)
   const freeClipFocusRef = useRef(false)
   const markTestRef = useRef(false) // KINEO-MARCA-TESTE-INTERNO-2026-10-06 — ?marca=1 (clipe de prova da marca; só vale para conta da casa)
   useEffect(() => {
     markTestRef.current = new URLSearchParams(window.location.search).get(FREE_CLIP_MARK_TEST_PARAM) === '1'
     if (new URLSearchParams(window.location.search).get(FREE_CLIP_NOTICE_PARAM) === '1') setFreeClipPending(true)
-    const onApply = () => setFreeClipPending(true)
+    const onApply = () => {
+      freePromptRevision.current = ++promptRevision.current
+      setFreeClipPending(true)
+    }
     window.addEventListener(FREE_CLIP_APPLY_EVENT, onApply)
     return () => window.removeEventListener(FREE_CLIP_APPLY_EVENT, onApply)
   }, [])
@@ -399,7 +409,7 @@ export default function ClipsClient({ publicEditorGuest, measurementActor = null
     setEngineKey(target.key)
     setSeconds(FREE_CLIP_IDEA.seconds)
     setAspect(FREE_CLIP_IDEA.aspect)
-    setPrompt(FREE_CLIP_IDEA.prompt)
+    if (freePromptRevision.current === promptRevision.current) setPrompt(FREE_CLIP_IDEA.prompt)
     setError(null)
     freeClipOriginRef.current = true
     freeClipFocusRef.current = true
@@ -407,7 +417,7 @@ export default function ClipsClient({ publicEditorGuest, measurementActor = null
 
   // KINEO-EM-ALTA-2610 — "Fazer este": só PREENCHE motor, duração, formato e ideia (clipe por texto, sem foto). Nada é gerado
   // nem cobrado sem a pessoa apertar Gerar. ?trend=<chave> (link da home/redes) aplica o mesmo, uma vez, quando os motores chegam.
-  function applyTrend(trend: ClipTrend) {
+  function applyTrend(trend: ClipTrend, fromUrl = false) {
     const target = trendTarget(trend, engines)
     if (!target) return
     setEffectKey(null)
@@ -417,7 +427,8 @@ export default function ClipsClient({ publicEditorGuest, measurementActor = null
     setEngineKey(target.key)
     setSeconds(trend.seconds)
     setAspect(trend.aspect)
-    setPrompt(trend.prompt)
+    if (!fromUrl) promptRevision.current++
+    if (!fromUrl || promptRevision.current === 0) setPrompt(trend.prompt)
     setError(null)
     requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>('.creation-input textarea')?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
   }
@@ -426,7 +437,7 @@ export default function ClipsClient({ publicEditorGuest, measurementActor = null
     if (trendFromUrlRef.current || engines.length === 0 || !CLIP_TRENDS_PUBLIC) return
     trendFromUrlRef.current = true
     const wanted = clipTrendByKey(new URLSearchParams(window.location.search).get('trend'))
-    if (wanted) applyTrend(wanted)
+    if (wanted) applyTrend(wanted, true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [engines])
   // KINEO-GALERIA-HOME-2710 — "Make one like this" do Made with Kineo: ?prompt= só PREENCHE a ideia (o motor vem do ?engine= de
@@ -435,6 +446,7 @@ export default function ClipsClient({ publicEditorGuest, measurementActor = null
   useEffect(() => { // KINEO-GALERIA-HOME-2710
     if (promptFromUrlRef.current || engines.length === 0) return // KINEO-GALERIA-HOME-2710
     promptFromUrlRef.current = true // KINEO-GALERIA-HOME-2710
+    if (promptRevision.current !== 0) return
     const sp = new URLSearchParams(window.location.search) // KINEO-GALERIA-HOME-2710
     if (sp.get('trend') || sp.get('effect')) return // KINEO-GALERIA-HOME-2710
     const p = galeriaPromptFromUrl(sp.get('prompt')) // KINEO-GALERIA-HOME-2710
@@ -1040,8 +1052,7 @@ export default function ClipsClient({ publicEditorGuest, measurementActor = null
         <div className="card creation-input">
           <div className="lab">{t('yourClip')}</div>{/* KINEO-CLIPS-TELA-0511 — um passo só: sem número */}
           <textarea aria-label={t('yourClip')} value={prompt} onChange={(e) => {
-            // Typing (including clearing the box) takes precedence over a pending gallery prefill.
-            promptFromUrlRef.current = true
+            promptRevision.current++
             setPrompt(e.target.value)
           }} rows={5} maxLength={1000}
             placeholder={withPhoto ? t('placeholderMotion') : t('placeholder')} />
