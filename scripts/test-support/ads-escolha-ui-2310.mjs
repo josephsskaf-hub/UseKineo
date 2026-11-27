@@ -49,12 +49,13 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
     const states = [], refs = [], effects = [], responses = [], requests = [], timers = new Map()
     const storageKey = `kineo:ads-escolha:v1:${owner}`
     const storage = new Map(saved ? [[storageKey, JSON.stringify(saved)]] : [])
-    let stateIndex = 0, refIndex = 0, effectIndex = 0, pending = [], changed = false, tree, timerId = 0
+    let formIndex = -1, stateIndex = 0, refIndex = 0, effectIndex = 0, pending = [], changed = false, tree, timerId = 0
     const hooks = {
       ...React,
       useState(initial) {
         const index = stateIndex++
-        if (!(index in states)) states[index] = index === 0 && form ? structuredClone(form) : initial // KINEO-ADS-PRODUTO-PRIMEIRO-0411 — form: null = o estado inicial real da tela
+        if (initial && typeof initial === 'object' && 'foto' in initial) formIndex = index
+        if (!(index in states)) states[index] = index === formIndex && form ? structuredClone(form) : initial // KINEO-ADS-PRODUTO-PRIMEIRO-0411 — form: null = o estado inicial real da tela
         return [states[index], value => { const next = typeof value === 'function' ? value(states[index]) : value; if (next !== states[index]) { states[index] = next; changed = true } }]
       },
       useRef(value) { const index = refIndex++; return refs[index] ?? (refs[index] = { current: value }) },
@@ -102,7 +103,7 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
       button.props.onClick(); await settle()
     }
     async function poll() { const callback = [...timers.values()].at(-1); assert.ok(callback, 'UI poll must be scheduled'); callback(); await settle() }
-    return { states, responses, requests, storage, storageKey, timers, render, click, poll, settle, nodes: () => walk(tree) } // KINEO-ADS-PRODUTO-PRIMEIRO-0411 — + settle: o plano e as fotos agora são um clique, a segunda chamada parte do efeito
+    return { get states() { return states.slice(formIndex) }, responses, requests, storage, storageKey, timers, render, click, poll, settle, nodes: () => walk(tree) } // KINEO-ADS-PRODUTO-PRIMEIRO-0411 — + settle: o plano e as fotos agora são um clique, a segunda chamada parte do efeito
   }
 
   if (scenario) return scenario({ client, read, check, nodeText, walk, compile }) // KINEO-ADS-ESCOLHA-PUBLICO-2410 — new raw UI proof reuses only the offline hook boundary.

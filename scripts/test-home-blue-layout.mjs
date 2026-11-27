@@ -1,7 +1,7 @@
 // Actual JSX + synthetic session/source; never calls network, DB or generation.
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs' // KINEO-HOME-MOSAICO-2910
-import {renderPage} from './preview-ux-complete.mjs'
+import {renderPage, setCurrentFilter} from './preview-ux-complete.mjs'
 import { createRequire } from 'node:module' // KINEO-ENTRADAS-TELA-NOVA-1011
 const ENTRADA_FILME=createRequire(import.meta.url)('../docs/recreate-0911/test-recreate.cjs').loader()('lib/create/entry').createEntryHref('film','/studio',true) // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — o Dashboard do logado abre a aba Film (antes /studio)
 let checks=0
@@ -13,7 +13,7 @@ for(const signedIn of [false,true])for(const source of [null,'chatgpt','taaft'])
  // O bloco do título + botão saiu do hero; a ação principal mora no menu ("Start free"/Studio) com a MESMA regra de sessão/origem,
  // e o h1 continua existindo (só para leitor de tela e busca), com o mesmo texto traduzido.
  const nav=html.match(/<nav aria-label="Main">[\s\S]*?<\/nav>/)?.[0]??''
- const target=signedIn?ENTRADA_FILME:source?'#try-kineo':'/signup?utm_source=nav'
+ const target=signedIn?ENTRADA_FILME:'/create/film?utm_source=nav&amp;intent_campaign=studio_simple'
  check(nav.includes(`href="${target}"`),`${language}/${signedIn}/${source}: primary action (menu) preserves session/source routing`)
  check((hero.match(/<h1 /g)||[]).length===1,'one semantic heading')
  check(!hero.includes('class="home-intro"'),'title block removed (founder 30/09)')
@@ -22,9 +22,15 @@ for(const signedIn of [false,true])for(const source of [null,'chatgpt','taaft'])
  // As portas reais seguem: o menu (acima) e a galeria de More tools, que leva a /images.
  check(!html.includes('class="home-start"')&&!html.includes('class="home-create')&&!html.includes('Start with the full toolkit'),'full toolkit block removed (KINEO-HOME-LIMPA-1410)')
  // KINEO-HOME-REMODELA-2010 — reancorado 20/10 (fundador: "more tools a gente vai cancelar"): o menu não leva mais a /images; a porta real é a galeria "Images made by Kineo" (cada foto → /images, provado em scripts/test-home-limpa-1410.mjs e scripts/test-home-remodela-2010.mjs) e o rodapé.
- check(html.includes('<section class="home-more-tools" aria-label="Images made by Kineo">')||(html.includes('<div id="samples">')&&readFileSync(new URL('../components/home/HomeMosaic.tsx', import.meta.url),'utf8').includes('href="/images"')),'home keeps real destination /images (gallery section)') // reancorado KINEO-HOME-MOSAICO-2910 — fundador 29/10 "sem separações": as imagens (cada uma → /images) vivem na vitrine contínua // KINEO-HOME-REMODELA-2010
+ check(html.includes('<section class="home-more-tools" aria-label="Images made by Kineo">')||(html.includes('<div id="samples">')&&readFileSync(new URL('../components/home/HomeMosaic.tsx', import.meta.url),'utf8').includes('href="/create/image"')),'home keeps real destination /images (gallery section)') // reancorado KINEO-HOME-MOSAICO-2910 — fundador 29/10 "sem separações": as imagens (cada uma → /images) vivem na vitrine contínua // KINEO-HOME-REMODELA-2010
 const moreAt = html.indexOf('class="home-more-tools"') > 0 ? html.indexOf('class="home-more-tools"') : html.indexOf('<div id="samples">') // reancorado KINEO-HOME-MOSAICO-2910 — a vitrine contínua ocupa o lugar da galeria
 check(moreAt>0&&moreAt<html.indexOf('class="home-proof"'),'More tools precedes grouped proof')
  check(html.includes('class="kineo-bolt mk"') && html.includes('>ϟ</span>'),'brand mark uses the approved shared lightning')
 }
+// Exercise the same rendered-menu predicate against a desktop CTA that loses its surface.
+setCurrentFilter((text,file) => file === 'app/KineoLanding.tsx' ? text.replace("desktopStart = startHref('nav')","desktopStart = startHref('wrong')") : text)
+try {
+ const nav = renderPage('app/KineoLanding.tsx').match(/<nav aria-label="Main">[\s\S]*?<\/nav>/)[0]
+ check(!nav.includes('href="/create/film?utm_source=nav&amp;intent_campaign=studio_simple"'), 'lost desktop surface is detected')
+} finally { setCurrentFilter(text=>text) }
 console.log(`Home blue: ${checks} rendered session, referral and language checks passed; offline.`)

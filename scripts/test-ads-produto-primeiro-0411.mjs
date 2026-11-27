@@ -112,9 +112,12 @@ checa('a tela de verdade passa em todas as provas', erros.length === 0)
 
 // ── Visitante: botão alcançável sem foto, login antes de qualquer chamada
 const fonte = ler(UI)
-checa('visitante: o botão abre com texto ou link', fonte.includes('const canPlan = guest ? (!!linkUrl.trim() || !!form.frase.trim()) && !busy : https(form.foto)'))
+checa('visitante: o botão abre com texto ou link', fonte.includes('const canPlan = guest ? (!!linkUrl.trim() || !!form.frase.trim()) && !busy : (https(form.foto) || Boolean(localPhoto))'))
 checa('visitante: run pede login antes de tudo', fonte.indexOf('if (guest) return pedirLogin(action)') > 0 && fonte.indexOf('if (guest) return pedirLogin(action)') < fonte.indexOf("fetch('/api/ads/v2/cena'"))
-checa('visitante: link e foto seguem pedindo login', fonte.includes("if (url) pedirLogin('link')") && fonte.includes("if (guest) return pedirLogin('photo')"))
+checa('entrada anterior: link e foto pedem login', fonte.includes("if (url) void pedirLogin('link')") && fonte.includes("if (guest) return pedirLogin('photo')"))
+const conservaEntradaLocal = s => s.includes('if (guest && moldura) { setLinkNote(') && s.includes('if (guest && moldura) { setLocalPhoto(file); return }')
+checa('editor público guarda link e foto antes da conta', conservaEntradaLocal(fonte))
+checa('mutante que pede conta ao escolher a foto é detectado', !conservaEntradaLocal(fonte.replace('setLocalPhoto(file); return', "return pedirLogin('photo')")))
 checa('rascunho antigo não apaga a pessoa padrão', fonte.includes('presenter_id: resto.presenter_id || f.presenter_id'))
 
 // ── Narração forçada para quem não é da casa

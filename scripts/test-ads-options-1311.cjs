@@ -20,15 +20,16 @@ function all(tree, type, predicate = () => true) {
 }
 function fixture({ moldura = false, source, busy = '' } = {}) {
   const values = []
-  let cursor = 0
+  let cursor = 0, formIndex = -1
   const fakeReact = { ...React, useEffect: () => {}, useRef: value => ({ current: value }), useState(initial) {
     const index = cursor++
+    if (initial && typeof initial === 'object' && 'foto' in initial) formIndex = index
     if (!Object.hasOwn(values, index)) {
       values[index] = typeof initial === 'function' ? initial() : initial
       // Initial state sequence is checked below; only the completed hydration and
       // an optional busy request are injected. All editable fields use real defaults.
-      if (index === 11) { assert.equal(initial, false, 'ready fixture anchor'); values[index] = true }
-      if (index === 10) { assert.equal(initial, '', 'busy fixture anchor'); values[index] = busy }
+      if (formIndex >= 0 && index === formIndex + 11) { assert.equal(initial, false, 'ready fixture anchor'); values[index] = true }
+      if (formIndex >= 0 && index === formIndex + 10) { assert.equal(initial, '', 'busy fixture anchor'); values[index] = busy }
     }
     return [values[index], value => { values[index] = typeof value === 'function' ? value(values[index]) : value }]
   } }
@@ -46,7 +47,7 @@ function fixture({ moldura = false, source, busy = '' } = {}) {
   const load = loader(stubs, source ? { [FILE]: source } : {})
   const Component = load(FILE).default
   const render = () => { cursor = 0; const tree = Component({ moldura, lang: 'en', ownerKey: 'fixture-owner', guest: true }); check(all(tree, 'div', p => p['data-kineo'] === 'ads-escolha').length === 1, 'real form rendered after ready'); return tree }
-  return { render, values, load }
+  return { render, get form() { return values[formIndex] }, load }
 }
 function main() {
   const legacy = fixture()
@@ -81,15 +82,22 @@ function main() {
   check(formatButtons.filter(b => b.props['aria-pressed']).map(b => b.props.value).join() === 'product', 'current format marked')
   check(languageButtons.filter(b => b.props['aria-pressed']).map(b => b.props.value).join() === 'en', 'current language marked')
 
-  const initial = { ...framed.values[0] }
+  const initial = { ...framed.form }
   formatButtons.find(b => b.props.value === 'unboxing').props.onClick()
-  assert.deepEqual(framed.values[0], { ...initial, formato: 'unboxing' }, 'real format handler changes only the server-consumed format field'); checks++
+  assert.deepEqual(framed.form, { ...initial, formato: 'unboxing' }, 'real format handler changes only the server-consumed format field'); checks++
   tree = framed.render()
   check(all(tree, 'button', p => p.name === 'formato' && p['aria-pressed']).map(b => b.props.value).join() === 'unboxing', 'format selection updates on rerender')
   all(tree, 'button', p => p.name === 'language' && p.value === 'ja')[0].props.onClick()
-  assert.deepEqual(framed.values[0], { ...initial, formato: 'unboxing', language: 'ja' }, 'real language handler preserves product/person/scene and other fields'); checks++
+  assert.deepEqual(framed.form, { ...initial, formato: 'unboxing', language: 'ja' }, 'real language handler preserves product/person/scene and other fields'); checks++
   tree = framed.render()
   check(all(tree, 'button', p => p.name === 'language' && p['aria-pressed']).map(b => b.props.value).join() === 'ja', 'language selection updates on rerender')
+
+  const raw = fs.readFileSync(path.join(ROOT, FILE), 'utf8')
+  const ignoredFormat = raw.replace('formato: option.id', 'formato: f.formato')
+  assert.notEqual(raw, ignoredFormat)
+  const broken = fixture({moldura:true, source:ignoredFormat})
+  all(broken.render(), 'button', p => p.name === 'formato' && p.value === 'unboxing')[0].props.onClick()
+  assert.notEqual(broken.form.formato, 'unboxing', 'mutant detected: format click is ignored')
 
   const waiting = fixture({ moldura: true, busy: 'plan' }).render()
   check(all(waiting, 'button', p => p.name === 'formato' || p.name === 'language').every(b => b.props.disabled === true), 'in-flight request locks every option')

@@ -37,7 +37,7 @@ function harness(options={},source=raw){
   '@/components/PublicSiteHeader': { __esModule: true, default: stub }, '@/components/KineoBolt':{KineoBrandIcon:stub},'@/components/SiteSettingsMenu':{__esModule:true,default:()=>null},'@/lib/clips/clipCatalog':L('lib/clips/clipCatalog'),'@/lib/recreate/formats':F,'@/lib/recreate/entry':E,'@/lib/recreate/catalogPublic':P,
   '@/lib/recreate/photos':{compressPhoto:prepare,cropFace:prepare,composePairPhoto:async()=>photo('pair')},
   '@/lib/recreate/identityPhotos':L('lib/recreate/identityPhotos'),
-  '@/components/billing/BuyCreditsEntry':{TopupOuRecargaModal:()=>null,BUY_CREDITS_OPENED_EVENT:'buy_credits_entry_opened'},'@/lib/analytics':{trackEvent:async()=>{}}, // KINEO-TELA-RECREATE-1611
+  '@/components/billing/BuyCreditsEntry':{TopupOuRecargaModal:()=>null,BUY_CREDITS_OPENED_EVENT:'buy_credits_entry_opened'},'@/lib/analytics':{publicEditorSignup:L('lib/analytics').publicEditorSignup,trackEvent:async()=>{}}, // KINEO-TELA-RECREATE-1611
   './RecreatePlayer':{__esModule:true,default:'fixture-player',ExampleCover:'fixture-cover'},
   '@/components/create/CreateTabs':{__esModule:true,default:stub},'@/components/create/CreateNavConta':{__esModule:true,default:stub},
   '@/lib/videoDownload':{downloadVideoFile:stub},'@/lib/downloadNosso':{downloadHref:(url)=>'/api/download?url='+encodeURIComponent(url)},
@@ -95,6 +95,19 @@ async function guest(source){
  const failed=harness({saveFails:true},source);await failed.flush();await add(failed);await failed.click(gen(failed));equal(failed.navigations.length,0,'failed draft save never navigates')
  blocked=false;failed.listeners.get('beforeunload')?.({preventDefault(){blocked=true}});ok(blocked,'failed signup save keeps leave protection')
  const production=harness({props:{flowBasePath:'/recreate'}},source);await production.flush();await add(production);await production.click(gen(production));ok(decodeURIComponent(production.navigations[0]).includes('/recreate/passarela?draft='),'auth honors production base path')
+ const login = new URL(production.navigations[0],'https://fixture.invalid')
+ const returned = new URL(login.searchParams.get('redirect'),login)
+ equal(returned.searchParams.get('volta'),'1','return marker reaches selected route')
+ const model = returned.pathname.split('/').pop()
+ const [savedModel,photos,instruction] = production.saves[0]
+ equal(savedModel,model,'saved draft belongs to selected route')
+ const resumed = harness({props:{flowBasePath:'/recreate',initialId:model,signedIn:true,accountKey:ACCOUNT,draftRef:returned.searchParams.get('draft')},restored:{photos,prompt:instruction}},source)
+ await resumed.flush()
+ equal(resumed.loads[0][0],ref,'editor loads the opaque draft from the redirect')
+ equal(resumed.loads[0][1],model,'editor loads the selected template')
+ equal(prompt(resumed).props.value,instruction,'auth keeps edited instruction')
+ equal(posts(resumed).length,0,'resuming from the generated URL never submits')
+ ok(!gen(resumed).props.disabled,'restored draft can be submitted explicitly')
 }
 async function retry(source){
  const h=harness({props:{signedIn:true,accountKey:ACCOUNT},post:[new TypeError('lost response')]},source);await h.flush();await add(h);await h.click(gen(h))
@@ -168,6 +181,7 @@ assert.ok(requested===null||Object.hasOwn(scenarios,requested),'Usage: node test
 for(const [name,run]of Object.entries(scenarios))if(requested===null||requested===name)await run(raw)
 const baseline=checks,replace=(from,to)=>{assert.equal(raw.split(from).length,2,'unique mutant anchor');return raw.replace(from,to)}
 const mutants=[
+ ['wrong template after signup','guest','publicEditorSignup(`${flowBasePath}/${selected.id}`, new URLSearchParams({ draft: ref','publicEditorSignup(`${flowBasePath}/wrong-model`, new URLSearchParams({ draft: ref','auth returns to preview model'],
  ['private guest reads','guest','if (currentFlow && !signedIn) { setQuotes([...guestQuotes]); setFlowQuoteReady(true); return }','if (false) { setQuotes([...guestQuotes]); setFlowQuoteReady(true); return }','guest mount sends no private HTTP'],
  ['upload before auth','guest','if (!signedIn) { await goToSignup(); return }','if (false) { await goToSignup(); return }','guest saves only on Generate'],
  ['save failure ignored','guest',"if (!ref) throw new Error(UNSAVED_MESSAGE)","if (false) throw new Error(UNSAVED_MESSAGE)",'failed draft save never navigates'],

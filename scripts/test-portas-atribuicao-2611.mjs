@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import vm from 'node:vm'
+import { renderPage } from './preview-ux-complete.mjs'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -100,6 +101,40 @@ async function verify(overrides={}){
  const paid=sandbox(overrides);paid.visit('/?utm_source=bing&utm_medium=cpc&utm_campaign=brand&msclkid=abc');paid.visit('/create/film?utm_source=nav',site+'/')
  const attrs=paid.analytics.editorSignupAttribution();assert.equal(attrs.get('msclkid'),'abc');assert.equal(attrs.get('utm_source'),'bing');assert.equal(paid.signupSource().signup_surface,'nav')
 }
+
+const real = createRequire(import.meta.url)('../docs/recreate-0911/test-recreate.cjs').loader()
+const partners = real('lib/affiliateDestinations')
+const partnerLanding = partners.buildAffiliateRouteDestinationUrl(site, partners.defaultAffiliateRouteDestination().key, 'TEST123', 'weekly-film')
+const menuHtml = renderPage('app/KineoLanding.tsx', false, {}, {initialUser:null, initialAcquisitionSource:'chatgpt'})
+const menu = menuHtml.match(/<nav aria-label="Main">[\s\S]*?<\/nav>/)[0]
+const menuCtas = [...menu.matchAll(/<a\b[^>]*class="btn btn-w"[^>]*>/g)].map(m => m[0].match(/href="([^"]+)"/)[1].replaceAll('&amp;', '&'))
+assert.equal(menuCtas.length, 2)
+function verifyMenu(links) {
+  for (const [index,surface] of ['nav','nav-mobile'].entries()) {
+    for (const affiliate of [true,false]) {
+      const browser = sandbox()
+      browser.visit(affiliate ? partnerLanding.href : '/', affiliate ? '' : 'https://chatgpt.com/')
+      browser.visit(links[index], site+'/')
+      assert.equal(browser.window.location.pathname, '/create/film', 'menu opens the editable Film')
+      const href = browser.load(filmPath).filmSignup({text:'Synthetic film for the menu test',duration:15,language:'en',aspect:'9:16',verbatim:false,engine:'seedance',dialogue:null})
+      browser.visit(href)
+      const received = browser.signupSource()
+      assert.equal(received.signup_surface, surface, 'menu surface arrives at signup')
+      if (affiliate) {
+        checkNext(href, '/create/film', Object.fromEntries(partnerLanding.searchParams))
+        assert.equal(received.signup_utm_source, 'affiliate')
+        assert.equal(received.signup_utm_medium, 'partner')
+        assert.equal(received.signup_utm_campaign, partnerLanding.searchParams.get('utm_campaign'))
+      } else {
+        assert.equal(received.signup_utm_source, null)
+        assert.match(received.signup_referrer, /chatgpt\.com/)
+      }
+    }
+  }
+}
+verifyMenu(menuCtas)
+assert.throws(()=>verifyMenu([menuCtas[0],menuCtas[0]]), /menu surface arrives at signup/)
+
 await verify()
 const cases=[
  [analyticsPath, "rememberSignupCampaign(query.get('intent_campaign')!)","void 0",'signup intent_campaign'],

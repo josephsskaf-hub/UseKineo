@@ -138,8 +138,7 @@ async function routeChecks(overrides, expectFlowOn = false) {
   await assert.rejects(idPage({ params: { id: 'outfit-morph' } }), /not-found/); passed++
   // KINEO-ABRE-TUDO-1511 — com a tela única aberta ao público, a conta logada recebe <ClipRecreateJuntos recreate={…}>: as props do RecreateClient
   // vão em `recreate`, iguais uma a uma (scripts/test-clip-recreate-juntos-1511.mjs B2). Quem recebe é a MESMA régua da rota.
-  const juntosCliente = pages('lib/create/clipRecreateJuntos').clipRecreateJuntosVisivel(CUSTOMER)
-  const propsDe = el => (juntosCliente && flowOn ? el.props.recreate : el.props) // a tela única só existe no fluxo novo (RecreateFlowPage); desligado, a página de antes
+  const propsDe = el => el.props.recreate ?? el.props // a tela única só existe no fluxo novo (RecreateFlowPage); desligado, a página de antes
   const listProps = propsDe(await pages('app/recreate/page').default())
   const hidden = swapPublic ? UNAPPROVED : SWAPS
   ok(listProps.formatIds.length > 20 && !listProps.formatIds.some(id => hidden.includes(id)), 'página pública: cartões de troca não liberada fora')
@@ -151,9 +150,9 @@ async function routeChecks(overrides, expectFlowOn = false) {
   await assert.rejects(idPage({ params: { id: 'outfit-morph' } }), /not-found/); passed++ // troca não aprovada nunca convida para cadastro
   if (flowOn) {
     // KINEO-M12-LIGA-1411 — ligado: o visitante abre o molde aprovado no editor, sem conta; o cadastro vem só no Generate (nunca convite para troca não aprovada, abaixo).
-    const guestKiss = (await idPage({ params: { id: 'effect-kiss' } })).props
+    const guestKiss = propsDe(await idPage({ params: { id: 'effect-kiss' } }))
     ok(guestKiss.currentFlow === true && guestKiss.signedIn === false && guestKiss.initialId === 'effect-kiss' && guestKiss.formatIds.every(id => !UNAPPROVED.includes(id)), 'visitante abre o efeito no editor antes da conta, sem troca não aprovada')
-    if (swapPublic) { const g = (await idPage({ params: { id: 'escolha-o-favorito' } })).props; ok(g.currentFlow === true && g.signedIn === false && g.initialId === 'escolha-o-favorito', 'visitante abre a troca aprovada no editor antes da conta') }
+    if (swapPublic) { const g = propsDe(await idPage({ params: { id: 'escolha-o-favorito' } })); ok(g.currentFlow === true && g.signedIn === false && g.initialId === 'escolha-o-favorito', 'visitante abre a troca aprovada no editor antes da conta') }
   } else {
     await assert.rejects(idPage({ params: { id: 'effect-kiss' } }), e => new URL(e.message.slice(9), 'https://fixture').searchParams.get('redirect') === '/recreate/effect-kiss'); passed++
     if (swapPublic) { await assert.rejects(idPage({ params: { id: 'escolha-o-favorito' } }), e => e.message.startsWith('redirect:') && new URL(e.message.slice(9), 'https://fixture').searchParams.get('redirect') === '/recreate/escolha-o-favorito'); passed++ }
@@ -465,6 +464,7 @@ function fakeFetch({ fal = 'ok', vision = null, message = null, hang = false } =
 
 // ─── Mutantes ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 const mutants = [
+  ['app/recreate/RecreateFlowPage.tsx', 'flowBasePath: basePath, initialId: id,', "flowBasePath: basePath, initialId: 'wrong-template',", (o) => routeChecks({ ...release('public', 'internal'), ...o })],
   ['lib/recreate/access.ts', "if (f.swapApproved === true && recreateSwapPriced(f) && releaseVisible(email, RECREATE_SWAP_RELEASE)) return true", 'if (releaseVisible(email, RECREATE_SWAP_RELEASE)) return true', (o) => catalogChecks(o)],
   ['lib/recreate/access.ts', "return f.swapInTest === true && RECREATE_SWAP_RELEASE !== 'off' && releaseVisible(email, 'internal')", "return f.swapInTest === true && RECREATE_SWAP_RELEASE !== 'off'", (o) => catalogChecks(o)],
   ['lib/recreate/entry.ts', "f.type !== 'swap' || (RECREATE_SWAP_RELEASE === 'public' && f.swapApproved === true && recreateSwapPriced(f))", 'true', (o) => catalogChecks(o)], // reancorado KINEO-RECREATE-MOVIMENTO-1411 (o movimento sai antes, em ramo próprio; a troca abre igual)

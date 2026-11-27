@@ -202,11 +202,31 @@ function guestHomeWithFilmMenu(html) {
   assert.deepEqual(seen.sort(), [...expected.keys()].sort(), 'historical home contains both original Films links exactly once')
   return result
 }
-const baseGuest = guestHomeWithFilmMenu(await world({ baseline: true }).render(LANDING))
-const baseAuth = await world({ baseline: true, user: fixtureUser }).render(LANDING, { initialUser: fixtureUser, initialEmail: fixtureUser.email })
+// Apply only these reviewed entry changes to the immutable historical markup.
+function publicEntries(html, guest) {
+  const changes = [
+    ['href="/images"', 'href="/create/image"', 1],
+    ['href="/clips"', 'href="/create/clip"', 1],
+    ['href="/signup" style="color:var(--muted);text-decoration:none">Get started', 'href="/create/film?intent_campaign=studio_simple" style="color:var(--muted);text-decoration:none">Get started', 1],
+  ]
+  if (guest) {
+    html = guestHomeWithFilmMenu(html)
+    changes.push(['href="/ai-kids-cartoon-videos" data-nav-item="more:cartoon"', 'href="/create/cartoon" data-nav-item="more:cartoon"', 2])
+    for (const surface of ['nav','nav-mobile']) {
+      changes.push([`data-auth-modal="signup" href="/signup?utm_source=${surface}"`, `href="/create/film?utm_source=${surface}&amp;intent_campaign=studio_simple"`, 1])
+    }
+  }
+  for (const [before, after, count] of changes) {
+    assert.equal(html.split(before).length - 1, count, 'historical entry count for ' + before)
+    html = html.replaceAll(before, after)
+  }
+  return html
+}
+const baseGuest = publicEntries(await world({ baseline: true }).render(LANDING), true)
+const baseAuth = publicEntries(await world({ baseline: true, user: fixtureUser }).render(LANDING, { initialUser: fixtureUser, initialEmail: fixtureUser.email }), false)
 
-const baseGuestPage = guestHomeWithFilmMenu(await world({ baseline: true, flag: false }).render(HOME, {}))
-const baseAuthPage = await world({ baseline: true, flag: false, user: fixtureUser }).render(HOME, {})
+const baseGuestPage = publicEntries(await world({ baseline: true, flag: false }).render(HOME, {}), true)
+const baseAuthPage = publicEntries(await world({ baseline: true, flag: false, user: fixtureUser }).render(HOME, {}), false)
 
 // Review-only exports use exactly the SSR harness above, without hydration/network.
 if (process.argv.includes('--export-only')) {
@@ -368,6 +388,7 @@ const baseErrors = await problems()
 for (const e of baseErrors) console.error(`FALHA ${e}`)
 assert.deepEqual(baseErrors, [], 'árvore real precisa passar antes dos mutantes')
 const mutations = [
+  ['mobile signup loses menu surface', () => replacement(LANDING, "const mobileStart = startHref('nav-mobile')", "const mobileStart = startHref('nav')"), 'paridade visitante: flag OFF devolve HTML anterior'],
   ['CSS do menu de conta acompanha o interruptor', () => replacement(LANDING, '${ACCOUNT_MENU_MAY_RENDER ? `@media', '${false ? `@media'), 'paridade visitante: flag OFF devolve HTML anterior'],
   ['geração interna recebe cliente público',()=>replacement('lib/home/watchEntry.ts',"SEU_VIDEO_RELEASE === 'public' && ",''),'política interna/off usa catálogo público sem convite de signup: selfie-confete'],
   ['SSR visitante recebe WATCH com chave OFF', () => replacement(HOME, 'watchVisitor={WATCH_HOME_ENABLED && !user}', 'watchVisitor={!user}'), 'SSR visitante: OFF preserva a home aprovada inteira'],

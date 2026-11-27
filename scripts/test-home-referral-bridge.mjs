@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { renderPage, setCurrentFilter } from './preview-ux-complete.mjs'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -99,18 +100,25 @@ check(landing.indexOf('{referralBridge ? (') > landing.indexOf('</header>'), 'br
 // REANCORADO 30/09 — fundador: "tira essa parte" (a grade "Video" com os tiles de motor saiu da home; os motores seguem no mega-menu e no /studio).
 check(!landing.includes('{engineWall.length >= 4 && ('), 'engine grid section removed from the home (founder 30/09)')
 
-const referralAnchors = landing.match(/referralBridge \? '#try-kineo' :/g) ?? []
-// 30/09: o botão do hero saiu com o bloco "Make room…" (fundador) — sobram cinco, todos ainda levando o indicado ao valor primeiro.
-// reancorado KINEO-HOME-LIMPA-1410 — o CTA do bloco "full toolkit" (utm_source=engine_bento) saiu com o bloco (14/10): sobram quatro.
-equal(referralAnchors.length, 2, 'both remaining generic signed-out Start free CTAs point referral visitors to value first')
+for (const channel of [null, 'chatgpt', 'taaft']) {
+  const html = renderPage('app/KineoLanding.tsx', false, {}, {initialUser: null, initialAcquisitionSource: channel})
+  const nav = html.match(/<nav aria-label="Main">[\s\S]*?<\/nav>/)?.[0] ?? ''
+  for (const surface of ['nav', 'nav-mobile']) {
+    const target = '/create/film?utm_source=' + surface + '&amp;intent_campaign=studio_simple'
+    equal(nav.split('href="' + target + '"').length - 1, 1, 'one public Film CTA for ' + surface + ' and ' + channel)
+  }
+}
 check(!landing.includes('utm_source=final_cta'), 'the retired closing CTA does not return')
 check(!landing.includes('utm_source=engine_bento'), 'full toolkit CTA removed from the home (KINEO-HOME-LIMPA-1410)')
-for (const originalDestination of [
-  '/signup?utm_source=nav',
-  '/signup?utm_source=nav-mobile',
-]) {
-  check(landing.includes(originalDestination), `direct homepage keeps ${originalDestination}`)
+function closedReferralTargets(change) {
+  setCurrentFilter((text,file) => file === 'lib/create/publicEditorRelease.ts' ? text.replace('PUBLIC_CREATE_EDITORS = true','PUBLIC_CREATE_EDITORS = false') : file === 'app/KineoLanding.tsx' ? change(text) : text)
+  try {
+    const html = renderPage('app/KineoLanding.tsx', false, {}, { initialUser:null, initialAcquisitionSource:'chatgpt' })
+    return (html.match(/<nav aria-label="Main">[\s\S]*?<\/nav>/)?.[0].match(/href="#try-kineo"/g) ?? []).length
+  } finally { setCurrentFilter(text=>text) }
 }
+equal(closedReferralTargets(text=>text),2,'closed editor retains both value-first referral links')
+equal(closedReferralTargets(text=>text.replace("target === legacy && referralBridge ? '#try-kineo' : target", 'target')),0,'mutant removes the two referral bridges')
 
 check(landing.includes('<HomeFeaturedFilms />'), 'founder-approved September 24 film showcase opens the home')
 // REANCORADO 30/09 — fundador: "tira essa parte" (a grade "Video" com os tiles de motor, e os vídeos do meio dela, saiu da home).

@@ -74,7 +74,7 @@ function problemas(mut = {}) {
   checa('a linha não depende do argumento antigo (país)', ids(R.linhasDoVisitante(false)) === ids(R.linhasDoVisitante(true)) && R.linhasDoVisitante(false)[0].titulo === R.linhasDoVisitante(true)[0].titulo)
   checa('a linha leva a cláusula do país, enquanto a régua de país valer', filmeGratisPermitido('IN') === false && FREE_FILM_COUNTRY_CLAUSE === ' in supported countries' && comFilme[0]?.titulo === 'Your first film is free in supported countries')
   checa('a linha do filme diz a duração que cobra', comFilme[0]?.detalhe === `${TRIAL_FREE_FILM_SECONDS} s, no card`)
-  checa('a linha do filme abre o cadastro no modal', comFilme[0]?.href.startsWith('/signup') && comFilme[0]?.modal === 'signup' && fonte(F.caixa).includes('data-auth-modal={linha.modal}'))
+  checa('a linha do filme abre o editor público com a origem gift_box', comFilme[0]?.href === '/create/film?utm_source=gift_box&intent_campaign=studio_simple' && comFilme[0]?.modal === undefined && fonte(F.caixa).includes('data-auth-modal={linha.modal}'))
   const texto = comFilme.flatMap((l) => [l.titulo, l.detalhe ?? '']).join(' ')
   checa('visitante não vê preço nem desconto do plano', !/\$|\boff\b|annual|anual|Ends in/i.test(texto) && comFilme.every((l) => l.venceEmMs === undefined))
   const caixa = fonte(F.caixa)
@@ -111,6 +111,7 @@ function problemas(mut = {}) {
 
 const troca = (rel, de, para) => { if (!SRC[rel].includes(de)) throw new Error(`mutante não encaixa em ${rel}: ${de}`); return { [rel]: SRC[rel].replace(de, para) } }
 const MUTANTES = {
+  'presente pula o editor e abre cadastro': troca(F.regra, 'const href = publicCreateCtaHref(legacy)', 'const href = legacy'),
   'o seletor volta para a direita': troca(F.home, '<div className="nav-right">\n', '<div className="nav-right">\n          <InterfaceLanguageSelect />\n'),
   'idioma sai das configurações': troca(F.settings, '<InterfaceLanguageSelect />', ''),
   'configurações somem do topo': troca(F.home, '<SiteSettingsMenu signedIn={isSignedIn} />', ''),

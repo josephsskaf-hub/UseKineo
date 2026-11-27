@@ -6,6 +6,11 @@
 // Rodar: node scripts/test-home-mosaico-2910.mjs
 import fs from 'node:fs'
 import path from 'node:path'
+import assert from 'node:assert/strict'
+import { createRequire } from 'node:module'
+import { runInNewContext } from 'node:vm'
+import ts from 'typescript'
+const { loader } = createRequire(import.meta.url)('../docs/recreate-0911/test-recreate.cjs')
 
 const ROOT = path.resolve(import.meta.dirname, '..')
 const rd = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
@@ -33,7 +38,7 @@ function problems(landing, mosaic, fluxo = FLUXO_RECREATE) {
   if (/<i>\s*(<UiLabel>)?\s*(Clip|Multi-camera|Narrated film|Effect|Ad style|Trending format|\{tipo\})/.test(mosaic)) p.push('etiqueta de tipo visível no cartão')
   for (const a of ['— clip`}', "' — multi-camera'}", '— narrated film`}', '— effect`}', '— ad style`}', '— ${tipo}`}']) if (!mosaic.includes(a)) p.push(`tipo fora do aria-label (${a})`)
   // Founder 10/11: prepare public Recreate. Only an approved catalog id can replace the legacy destination.
-  if (!mosaic.includes('new URLSearchParams({ engine: c.engine, prompt: c.prompt })') || !mosaic.includes('publicRecreatePath(c.id) ? recreateEntryHref(c.id, signedIn)! : createEntryForSignupHref(viaSignup(clipeNovoDestino(c), signedIn), signedIn)')) p.push('o link perdeu o motor real ou o fallback do interruptor')
+  if (!mosaic.includes('new URLSearchParams({ engine: c.engine, prompt: c.prompt })') || !mosaic.includes('publicRecreatePath(c.id) ? recreateEntryHref(c.id, signedIn) : null') || !mosaic.includes('createEntryForSignupHref(templateHref ?? viaSignup(clipeNovoDestino(c), signedIn), signedIn)')) p.push('o link perdeu o motor real ou o fallback do interruptor')
   // KINEO-EFEITO-DIRETO-1011 [fundador 10/11: "Tá caindo nessa página aqui, que era anterior"] — o cartão de efeito vai DIRETO ao Recreate (visitante
   // via cadastro); a página do efeito só como volta do interruptor ou fora do catálogo; a medição mosaic_effect_<key> é a mesma (comportamento em test-clipes-nos-2-lugares-0411)
   if (!mosaic.includes('<Link key={e.key} href={effectCardHref(e, signedIn)} className="kmz-t" data-home-cta={`mosaic_effect_${e.key}`}')) p.push('cartão de efeito não usa o destino direto ou mudou a medição')
@@ -51,6 +56,54 @@ const MOSAIC = rd('components/home/HomeMosaic.tsx')
 // KINEO-M12-LIGA-1411 — desde a ligação, o interruptor tem de estar LIGADO (visitante direto ao molde); a regra de volta na função segue conferida.
 const ENTRADA_RECREATE = rd('lib/recreate/entry.ts')
 const FLUXO_RECREATE = rd('lib/recreate/flowRelease.ts')
+
+function verifyClipLinks(overrides = {}) {
+  const load = loader({}, overrides)
+  const Mosaic = load('components/home/HomeMosaic').default
+  const { HOME_NEW_CLIPS } = load('components/home/HomeClipsStrip')
+  const { galeriaPromptFromUrl } = load('lib/homeGaleria')
+  const server = load('lib/clips/clipServer')
+  const file = 'app/(dashboard)/clips/ClipsClient.tsx'
+  const ast = ts.createSourceFile(file, overrides[file] ?? rd(file), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+  const effects = []
+  function collect(node) {
+    if (ts.isCallExpression(node) && node.expression.getText(ast) === 'useEffect') effects.push(node.arguments[0].getText(ast))
+    ts.forEachChild(node, collect)
+  }
+  collect(ast)
+  const consumers = ['setSeconds(first.seconds[0])', 'galeriaPromptFromUrl(sp.get'].map(marker => {
+    const matches = effects.filter(fn => fn.includes(marker))
+    assert.equal(matches.length, 1, 'one reader for ' + marker)
+    return matches[0]
+  })
+  function links(node) {
+    if (Array.isArray(node)) return node.flatMap(links)
+    if (!node?.props) return []
+    return [node.props, ...links(node.props.children)]
+  }
+  for (const signedIn of [false, true]) {
+    const engines = server.clipCatalogFor(server.engineAccessFor({email: null, plan: signedIn ? 'starter' : null, createdAt: new Date().toISOString()}))
+    const cards = links(Mosaic({signedIn, full:true}))
+    const samples = HOME_NEW_CLIPS.filter(c => cards.some(p => p['aria-label'] === c.title + ' — clip'))
+    assert.ok(samples.length >= 2, 'rendered catalog samples required')
+    for (const sample of samples) {
+      const card = cards.find(p => p['aria-label'] === sample.title + ' — clip')
+      const href = new URL(card.href, 'https://fixture.invalid')
+      assert.equal(href.pathname, '/create/clip')
+      const observed = {}
+      const context = { engines, engineKey: '', setEngineKey: key => {observed.key=key}, setSeconds: seconds=>{observed.seconds=seconds},
+        URLSearchParams, window:{location: href}, promptFromUrlRef:{current:false}, promptRevision:{current:0}, galeriaPromptFromUrl, setPrompt:p=>{observed.prompt=p} }
+      for (const effect of consumers) runInNewContext('('+effect+')()', context)
+      assert.equal(observed.key, sample.engine, 'catalog engine reaches editor')
+      assert.equal(observed.prompt, sample.prompt, 'catalog prompt reaches editor')
+      assert.ok(engines.find(e=>e.key===sample.engine).seconds.includes(observed.seconds))
+    }
+  }
+}
+verifyClipLinks()
+const clipFile = 'app/(dashboard)/clips/ClipsClient.tsx'
+assert.throws(() => verifyClipLinks({[clipFile]: rd(clipFile).replace('engines.find((e) => e.key === wanted) ?? engines[0]', 'engines[0]')}), /catalog engine reaches editor/)
+
 const errs = problems(LANDING, MOSAIC)
 ok(errs.length === 0, `(1)(2)(4) montagem, contagens e cartões${errs.length ? ': ' + errs.join('; ') : ''}`)
 
