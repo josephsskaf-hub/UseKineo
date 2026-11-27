@@ -19,7 +19,7 @@ import InstallAppBanner from '@/components/InstallAppBanner'
 import { installColors, iphoneStartupImages } from '@/lib/ui/installAppearance'
 import { AppearanceProvider } from '@/components/AppearanceSettings'
 import CreditBalanceNotice from '@/components/billing/CreditBalanceNotice'
-import { APPEARANCE_BOOT } from '@/lib/ui/appearance'
+import { APPEARANCE_BOOT, DEFAULT_APPEARANCE } from '@/lib/ui/appearance'
 import { FreeTierOfferProvider } from '@/components/FreeTierOfferProvider'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import { LLMS_TXT_PATH } from '@/lib/gptHandoff'
@@ -225,7 +225,7 @@ export default function RootLayout({
     </>
   )
   return (
-    <html lang="en" data-theme="light" suppressHydrationWarning className={devanagari.variable}>
+    <html lang="en" data-theme={DEFAULT_APPEARANCE} suppressHydrationWarning className={devanagari.variable}>
       <head>
         <link rel="preload" as="font" type="font/woff2" href="/fonts/manrope-v23/latin.woff2" crossOrigin="anonymous" />
         <script id="kineo-appearance-boot" dangerouslySetInnerHTML={{ __html: APPEARANCE_BOOT }} />

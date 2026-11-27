@@ -147,7 +147,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
  for (const saved of [null, 'light', 'dark', 'invalid']) {
   const document = { documentElement: { dataset: {} } }
   vm.runInNewContext(appearance.APPEARANCE_BOOT, { document, localStorage: { getItem: () => saved } })
-  assert.equal(document.documentElement.dataset.theme, saved === 'dark' ? 'dark' : 'light', 'existing preference boot unchanged')
+  assert.equal(document.documentElement.dataset.theme, saved === 'light' ? 'light' : 'dark', 'explicit appearance wins over the site default')
  }
  console.log('PASS: five actual component ASTs, seven SSR states in both themes, normal text contrast >=4.5 / large >=3, focus >=3, existing preference boot. ' + JSON.stringify(results))
 }

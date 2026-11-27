@@ -1,4 +1,4 @@
-// KINEO-CELULAR-A-0611 — guardião sem rede: preferência salva vence e o padrão do site depende da largura.
+// KINEO-CELULAR-A-0611 — guardião sem rede: preferência salva vence e o padrão escuro independe da largura.
 import fs from 'node:fs'
 import vm from 'node:vm'
 import ts from 'typescript'
@@ -22,43 +22,34 @@ const roda = (src, salvo, celular, pathname = '/', bloqueado = false) => {
   vm.runInNewContext(src, { document, ...ambiente(salvo, celular, pathname, bloqueado) })
   return document.documentElement.dataset.theme
 }
-const prova = (src) => [
-  roda(src, null, true) === 'dark',
-  roda(src, null, false) === 'light',
-  roda(src, 'light', true) === 'light',
-  roda(src, 'dark', false) === 'dark',
-  roda(src, 'qualquer', false) === 'light',
-]
-prova(boot).forEach((v, i) => checa('tema caso ' + (i + 1), v))
-checa('mutante (claro salvo não vence) é pego', prova(boot.replace("s!=='light'&&", '')).includes(false))
-const casosForCreators = [
-  ['visita nova no desktop', '/for-creators', null, false, false, 'dark'],
-  ['visita nova no celular', '/for-creators', null, true, false, 'dark'],
-  ['preferência vazia', '/for-creators', '', false, false, 'dark'],
-  ['formato com barra final', '/for-creators/', null, false, false, 'dark'],
-  ['claro salvo no desktop', '/for-creators', 'light', false, false, 'light'],
+const casos = [
+  ['home, desktop', '/', null, false, false, 'dark'],
+  ['home, celular', '/', null, true, false, 'dark'],
+  ['Film, preferência vazia', '/create/film', '', false, false, 'dark'],
+  ['Conta, preferência inválida', '/account', 'invalid', false, false, 'dark'],
+  ['página de criadores', '/for-creators/', null, false, false, 'dark'],
+  ['criadores com storage bloqueado', '/for-creators', null, false, true, 'dark'],
+  ['preços com storage bloqueado', '/pricing', null, true, true, 'dark'],
+  ['escuro salvo', '/pricing', 'dark', false, false, 'dark'],
   ['claro salvo no celular', '/for-creators', 'light', true, false, 'light'],
-  ['escuro salvo no desktop', '/for-creators', 'dark', false, false, 'dark'],
-  ['storage indisponível', '/for-creators', null, false, true, 'dark'],
-  ['rota com prefixo semelhante', '/for-creators-other', null, false, false, 'light'],
-  ['pricing no desktop', '/pricing', null, false, false, 'light'],
-  ['pricing no celular', '/pricing', null, true, false, 'dark'],
-  ['pricing com storage indisponível', '/pricing', null, true, true, 'light'],
+  ['claro salvo no desktop', '/account', 'light', false, false, 'light'],
 ]
-const provaForCreators = src => casosForCreators.every(([, path, salvo, celular, bloqueado, esperado]) =>
-  roda(src, salvo, celular, path, bloqueado) === esperado)
-checa('padrão de /for-creators no script do head e isolamento da rota', provaForCreators(boot))
-checa('mutante (exceção removida do head) é pego', !provaForCreators(boot.replace('c||matchMedia', 'matchMedia')))
-checa('mutante (exceção aplicada ao site inteiro) é pego', !provaForCreators(boot.replace('c||matchMedia', 'true||matchMedia')))
-for (const [label, path, salvo, celular, bloqueado, esperado] of casosForCreators) {
-  const browser = { exports: {} }
-  vm.runInNewContext(js, { exports: browser.exports, ...ambiente(salvo, celular, path, bloqueado) })
-  const { FOR_CREATORS_PATH, readPageAppearance } = browser.exports
-  checa('navegação e boot concordam · ' + label, readPageAppearance(FOR_CREATORS_PATH.test(path)) === esperado)
+function confereCaso(src, item) {
+  const [, path, salvo, celular, bloqueado, esperado] = item
+  return roda(src, salvo, celular, path, bloqueado) === esperado
 }
+for (const item of casos) {
+  checa('boot · ' + item[0], confereCaso(boot, item))
+  checa('sincronização de preferência · ' + item[0], mod.exports.parseAppearance(item[4] ? null : item[2]) === item[5])
+}
+const mutanteClaro = boot.replace("let theme='dark'", "let theme='light'")
+checa('mutante de padrão claro detectado no desktop e celular', !confereCaso(mutanteClaro, casos[0]) && !confereCaso(mutanteClaro, casos[1]))
+const mutanteSemPreferencia = boot.replace("theme='light'", "theme='dark'")
+checa('mutante que ignora claro salvo detectado nos dois tamanhos', !confereCaso(mutanteSemPreferencia, casos[8]) && !confereCaso(mutanteSemPreferencia, casos[9]))
 const semMedia = { documentElement: { dataset: {} } }
 vm.runInNewContext(boot, { document: semMedia, localStorage: { getItem: () => null } })
-checa('navegador sem matchMedia fica no claro', semMedia.documentElement.dataset.theme === 'light')
+checa('sem matchMedia o padrão continua escuro', semMedia.documentElement.dataset.theme === 'dark')
+checa('SSR usa o mesmo padrão sem JavaScript', ler('app/layout.tsx').includes('data-theme={DEFAULT_APPEARANCE}'))
 const css = ler('app/appearance.css'), bloco = css.slice(css.indexOf('KINEO-CELULAR-A-0611'))
 checa('menu lateral só abaixo de 768 px', /@media\(max-width:767px\)\{[\s\S]*\.klp \.nav-mobile-menu\{position:fixed!important;top:0!important/.test(bloco))
 checa('barra de baixo some só no celular', /@media\(max-width:767px\)\{[\s\S]*\.kineo-mobile-nav\{display:none!important\}/.test(bloco))
@@ -79,7 +70,7 @@ checa('evento novo não está na lista só do servidor', !ler('app/api/events/ro
 checa('Generate segue com nome para leitor de tela', caixa.includes('aria-label="Generate"'))
 checa('tela de criar: mudança só abaixo de 768 px', caixa.includes('.ksx-marca,.ksx-chip img{display:none}') && caixa.includes('@media (max-width:767px)'))
 const entradas = css.slice(css.indexOf('KINEO-CELULAR-ENTRADAS-0611'))
-checa('entradas no escuro só no celular', entradas.includes('@media(max-width:767px)') && entradas.includes("html[data-theme='dark'] .kpl{--kpl-bg:#07090D"))
+checa('paleta de entrada escura também no desktop', entradas.indexOf("html[data-theme='dark'] .kpl{") < entradas.indexOf('@media(max-width:767px)') && entradas.includes("html[data-theme='dark'] .kpl{--kpl-bg:#07090D"))
 checa('cor clara principal tem par escura', entradas.includes('[style*="color:#0E1116"]') && entradas.includes('[style*="background:#FFFFFF"]'))
 checa('menu lateral nas entradas', entradas.includes('.kpn-menu{position:fixed!important') && entradas.includes('.kpn-toggle input:checked{position:fixed!important'))
 checa('entradas não mostram título de galeria sem galeria', entradas.includes('.kpl .kpc-tit{display:none!important}'))

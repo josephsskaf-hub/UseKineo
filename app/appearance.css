@@ -333,31 +333,30 @@ html .pricing-blue [data-kineo=credit-minutes]{background:var(--card2)!important
 /* KINEO-CELULAR-A-0611 — no escuro, o véu azul do body ficava por cima do conteúdo das páginas sem camada própria e apagava os textos. */
 body::before{z-index:-1}
 
-/* KINEO-CELULAR-ENTRADAS-0611 — fundador 06/11 ("1 sim"): as páginas de entrada no escuro e com o menu lateral, só no celular. As cores delas são fixas no HTML: aqui cada cor da paleta clara ganha a sua par escura. */
+/* KINEO-CELULAR-ENTRADAS-0611 — shared dark entry colors, with mobile layout below. */
+html[data-theme='dark'] .kpl{--kpl-bg:#07090D;--kpl-card:#10141B;--kpl-line:#1F2530;--kpl-line2:#2A3240;--kpl-text:#F2F4F7;--kpl-body:#C9D1DC;--kpl-muted:#98A2B3;--kpl-accent:#7FB0FF;--kpl-accent-soft:#12203A;--kpl-accent-line:rgba(127,176,255,.4);--kpl-on-accent:#04122E;--kpl-zebra:rgba(255,255,255,.03);--kpl-hair:rgba(255,255,255,.08);--kpl-media:#12203A;--kpl-ok:#4ADE80;--kpl-warn:#F3B54A;--kpl-warn-soft:#2A2110;--kpl-err:#FF7D92;--kpl-purple:#B79CFF;color-scheme:dark;background:#07090D!important;color:#F2F4F7!important}
+html[data-theme='dark'] .kpl [style*="color:#0E1116"],html[data-theme='dark'] .kpl h1,html[data-theme='dark'] .kpl h2,html[data-theme='dark'] .kpl h3{color:#F2F4F7!important}
+html[data-theme='dark'] .kpl [style*="color:#2A2F37"]{color:#C9D1DC!important}
+html[data-theme='dark'] .kpl [style*="color:#5A5F67"]{color:#98A2B3!important}
+html[data-theme='dark'] .kpl [style*="color:#0A5CFF"]{color:#7FB0FF!important}
+html[data-theme='dark'] .kpl [style*="background:#FFFFFF"],html[data-theme='dark'] .kpl [style*="background:#fff"],html[data-theme='dark'] .kpl [style*="background-color:#fff"],html[data-theme='dark'] .kpl [style*="background-color:#FFFFFF"]{background:#10141B!important}
+html[data-theme='dark'] .kpl [style*="background:#F7F7F5"],html[data-theme='dark'] .kpl [style*="background:#EEF3FF"],html[data-theme='dark'] .kpl [style*="background:#E8EFFF"]{background:#12203A!important}
+html[data-theme='dark'] .kpl [style*="#E4E4E0"],html[data-theme='dark'] .kpl [style*="#D2D2CD"]{border-color:#2A3240!important}
+html[data-theme='dark'] .kpl [style*="rgba(14,17,22"],html[data-theme='dark'] .kpl [style*="rgba(14, 17, 22"]{border-color:rgba(255,255,255,.1)!important}
+html[data-theme='dark'] .kpl [style*="color:#4D535C"],html[data-theme='dark'] .kpl .kc2310 p,html[data-theme='dark'] .kpl .kc2310 time{color:#C9D1DC!important}
+html[data-theme='dark'] .kpl .kc2310 a{color:#7FB0FF!important}
+html[data-theme='dark'] .kpl .kc2310 table,html[data-theme='dark'] .kpl .kc2310 tr,html[data-theme='dark'] .kpl .kc2310 td,html[data-theme='dark'] .kpl .kc2310 th,html[data-theme='dark'] .kpl .kc2310 caption,html[data-theme='dark'] .kpl .kc2310-faq div,html[data-theme='dark'] .kpl .roundup-decision-row{background:#10141B!important;border-color:#2A3240!important;color:#F2F4F7!important}
+html[data-theme='dark'] .kpl .kc2310 h2,html[data-theme='dark'] .kpl .kc2310 h3,html[data-theme='dark'] .kpl .kc2310 strong{color:#F2F4F7!important}
+html[data-theme='dark'] .kpl [style*="background:#F1F1EE"]{background:#1A2029!important}
+html[data-theme='dark'] .kpl .kpl-cards{background:transparent!important}
+html[data-theme='dark'] .kpl .klp{--card:#10141B;--line:#1F2530;--line2:#2A3240;--txt:#F2F4F7;--muted:#98A2B3;--blue:#7FB0FF}
+html[data-theme='dark'] .kpl .kpc-caixa{color:#C9D1DC!important}
+html[data-theme='dark'] .kpl .kpc-porta{color:#F2F4F7!important}
+html[data-theme='dark'] .kpn{background:#0B0E13!important;border-bottom-color:#1F2530!important}
+html[data-theme='dark'] .kpn-logo{color:#F2F4F7!important}
+html[data-theme='dark'] .kpn-bars i{background:#F2F4F7!important}
 @media(max-width:767px){
-  html[data-theme='dark'] .kpl{--kpl-bg:#07090D;--kpl-card:#10141B;--kpl-line:#1F2530;--kpl-line2:#2A3240;--kpl-text:#F2F4F7;--kpl-body:#C9D1DC;--kpl-muted:#98A2B3;--kpl-accent:#7FB0FF;--kpl-accent-soft:#12203A;--kpl-accent-line:rgba(127,176,255,.4);--kpl-on-accent:#04122E;--kpl-zebra:rgba(255,255,255,.03);--kpl-hair:rgba(255,255,255,.08);--kpl-media:#12203A;--kpl-ok:#4ADE80;--kpl-warn:#F3B54A;--kpl-warn-soft:#2A2110;--kpl-err:#FF7D92;--kpl-purple:#B79CFF;color-scheme:dark;background:#07090D!important;color:#F2F4F7!important}
-  html[data-theme='dark'] .kpl [style*="color:#0E1116"],html[data-theme='dark'] .kpl h1,html[data-theme='dark'] .kpl h2,html[data-theme='dark'] .kpl h3{color:#F2F4F7!important}
-  html[data-theme='dark'] .kpl [style*="color:#2A2F37"]{color:#C9D1DC!important}
-  html[data-theme='dark'] .kpl [style*="color:#5A5F67"]{color:#98A2B3!important}
-  html[data-theme='dark'] .kpl [style*="color:#0A5CFF"]{color:#7FB0FF!important}
-  html[data-theme='dark'] .kpl [style*="background:#FFFFFF"],html[data-theme='dark'] .kpl [style*="background:#fff"],html[data-theme='dark'] .kpl [style*="background-color:#fff"],html[data-theme='dark'] .kpl [style*="background-color:#FFFFFF"]{background:#10141B!important}
-  html[data-theme='dark'] .kpl [style*="background:#F7F7F5"],html[data-theme='dark'] .kpl [style*="background:#EEF3FF"],html[data-theme='dark'] .kpl [style*="background:#E8EFFF"]{background:#12203A!important}
-  html[data-theme='dark'] .kpl [style*="#E4E4E0"],html[data-theme='dark'] .kpl [style*="#D2D2CD"]{border-color:#2A3240!important}
-  html[data-theme='dark'] .kpl [style*="rgba(14,17,22"],html[data-theme='dark'] .kpl [style*="rgba(14, 17, 22"]{border-color:rgba(255,255,255,.1)!important}
-  html[data-theme='dark'] .kpl [style*="color:#4D535C"],html[data-theme='dark'] .kpl .kc2310 p,html[data-theme='dark'] .kpl .kc2310 time{color:#C9D1DC!important}
-  html[data-theme='dark'] .kpl .kc2310 a{color:#7FB0FF!important}
-  html[data-theme='dark'] .kpl .kc2310 table,html[data-theme='dark'] .kpl .kc2310 tr,html[data-theme='dark'] .kpl .kc2310 td,html[data-theme='dark'] .kpl .kc2310 th,html[data-theme='dark'] .kpl .kc2310 caption,html[data-theme='dark'] .kpl .kc2310-faq div,html[data-theme='dark'] .kpl .roundup-decision-row{background:#10141B!important;border-color:#2A3240!important;color:#F2F4F7!important}
-  html[data-theme='dark'] .kpl .kc2310 h2,html[data-theme='dark'] .kpl .kc2310 h3,html[data-theme='dark'] .kpl .kc2310 strong{color:#F2F4F7!important}
-  html[data-theme='dark'] .kpl [style*="background:#F1F1EE"]{background:#1A2029!important}
-  html[data-theme='dark'] .kpl .kpl-cards{background:transparent!important}
-  html[data-theme='dark'] .kpl .klp{--card:#10141B;--line:#1F2530;--line2:#2A3240;--txt:#F2F4F7;--muted:#98A2B3;--blue:#7FB0FF}
   .kpl .kpc-tit{display:none!important}
-  html[data-theme='dark'] .kpl .kpc-caixa{color:#C9D1DC!important}
-  html[data-theme='dark'] .kpl .kpc-porta{color:#F2F4F7!important}
-
-  html[data-theme='dark'] .kpn{background:#0B0E13!important;border-bottom-color:#1F2530!important}
-  html[data-theme='dark'] .kpn-logo{color:#F2F4F7!important}
-  html[data-theme='dark'] .kpn-bars i{background:#F2F4F7!important}
   .kpn{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
   .kpn-in{position:relative;padding-left:60px!important}
   .kpn-right .kineo-interface-language{display:none!important}
