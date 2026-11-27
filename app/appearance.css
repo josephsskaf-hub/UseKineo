@@ -499,6 +499,7 @@ html[data-theme='dark'] .kpn-bars i{background:#F2F4F7!important}
   --muted: #afc2df;
   --muted2: #c1d2e9;
   --accent: #a9d0ff;
+  --on-accent: #102848;
   --accent-soft: #234770;
   --border: #345171;
   --border2: #4b6685;
