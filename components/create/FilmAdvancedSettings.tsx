@@ -30,6 +30,7 @@ export function useFilmAdvanced(c: CaixaNaMoldura) {
   const [photos, setPhotos] = useState<Photo[]>([])
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
+  const selectionVersion = useRef(0)
   const busy = useRef(false)
   const previews = useRef(new Set<string>())
   const alive = useRef(true)
@@ -54,13 +55,19 @@ export function useFilmAdvanced(c: CaixaNaMoldura) {
   const starActive = starEnabled && permission && paths.length > 0
   const surcharge = starActive ? estrelaSobretaxa(c.motor, c.duracao) : 0
 
+  function changePermission(value: boolean) {
+    selectionVersion.current++
+    setPermission(value)
+  }
   function removePhoto(photo: Photo) {
+    selectionVersion.current++
     URL.revokeObjectURL(photo.preview)
     previews.current.delete(photo.preview)
     setPhotos(current => current.filter(item => item.key !== photo.key))
   }
   async function addPhotos(files: File[]) {
     if (!permission || !starEnabled || busy.current || !files.length) return
+    selectionVersion.current++
     busy.current = true
     setUploading(true)
     setError('')
@@ -98,7 +105,7 @@ export function useFilmAdvanced(c: CaixaNaMoldura) {
     {!c.visitor && (starAllowed || photos.length > 0) && <details className="film-more-section" data-film-star-details=""><summary><SettingIcon kind="person" /><span className="film-setting-name">Person in the film<small>{photos.length ? `${photos.length} of 3 photos` : 'Reference photos'}</small></span></summary>
       <div className="film-setting-content">
       {starEnabled ? <>
-        <label className="film-more-consent"><input type="checkbox" checked={permission} disabled={uploading} onChange={event => setPermission(event.target.checked)} />I have permission to use this person’s image.</label>
+        <label className="film-more-consent"><input name="film-photo-consent" type="checkbox" checked={permission} disabled={uploading} onChange={event => changePermission(event.target.checked)} />I have permission to use this person’s image.</label>
         <div className="film-more-photos">{photos.map(photo => <div key={photo.key}><img src={photo.preview} alt="Selected reference" /><button type="button" aria-label="Remove photo" onClick={() => removePhoto(photo)}>×</button></div>)}</div>
         {photos.length < 3 && <label className="film-more-upload"><span aria-hidden="true">＋</span> Add photos<input aria-label="Add reference photos" type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={!permission || uploading} onChange={event => { const files = Array.from(event.target.files ?? []); event.target.value = ''; void addPhotos(files) }} /></label>}
         {photos.length > 0 && !permission && <p role="status">Confirm permission or remove the photos to generate.</p>}{uploading && <p role="status">Uploading photo…</p>}{error && <p role="alert">{error}</p>}
@@ -111,7 +118,7 @@ export function useFilmAdvanced(c: CaixaNaMoldura) {
   const blocked = uploading || (photos.length > 0 && !starActive)
   return { panel, open: () => setOpened(true), blocked, surcharge, generate: () => {
     if (blocked || busy.current) return
-    if (!starActive) return c.gerar()
-    c.gerarComReferencias(paths)
+    const versionAtClick = selectionVersion.current
+    c.gerarComReferencias(starActive ? paths : [], () => alive.current && selectionVersion.current === versionAtClick)
   } }
 }

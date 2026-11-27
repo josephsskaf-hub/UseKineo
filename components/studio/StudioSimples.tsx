@@ -115,7 +115,7 @@ export interface CaixaNaMoldura {
   motores: OpcaoDeMotor[] | null; motoresEstado: 'fechado' | 'lendo' | 'pronto' | 'falhou'; abrirMotores: () => void; escolherMotor: (k: string) => void
   /** KINEO-MOTOR-OPCIONAL-1011 — a leitura do Kling 4.0 pago (GET /api/kling4-paid/availability), feita junto com as flags; null = não lida. */
   kling4: unknown
-  camera: string; setCamera: (value: string) => void; gerarComReferencias: (paths: string[]) => void
+  camera: string; setCamera: (value: string) => void; gerarComReferencias: (paths: string[], selectionIsCurrent: () => boolean) => void
   visitor?: boolean; firstFilmFree?: boolean; checkingAccount?: boolean
   filmStylePicker?: ReactNode
   filmVoicePicker?: ReactNode
@@ -282,8 +282,8 @@ export default function StudioSimples({ entry, filmes, motor: motorDoLink, campa
   const order = JSON.stringify([texto, motor, duracao, formato, lingua, palavraPorPalavra, selectedLook, effectiveVoice, camera])
   currentOrder.current = order
   useEffect(() => () => { currentOrder.current = '' }, [])
-  function gerar() { return gerarComReferencias([]) }
-  async function gerarComReferencias(paths: string[]) {
+  function gerar() { return gerarComReferencias([], () => true) }
+  async function gerarComReferencias(paths: string[], selectionIsCurrent: () => boolean) {
     const idea = entry && palavraPorPalavra ? texto : texto.trim()
     const direction = !palavraPorPalavra && CAMERA_PRESETS.find(p => p.key === camera)
     const t = direction ? idea + '\n\n[camera: ' + direction.prompt + ']' : idea
@@ -337,6 +337,7 @@ export default function StudioSimples({ entry, filmes, motor: motorDoLink, campa
         setCheckingAccount(false)
       }
     }
+    if (!selectionIsCurrent()) return recusar('Photo selection changed. Review your photos and press Generate again.')
     try {
       if (paths.length) sessionStorage.setItem('kineo:studio:estrela:v1', JSON.stringify({ t: Date.now(), engine: motor, duration: duracao, prompt: t, paths, consent: true }))
       else sessionStorage.removeItem('kineo:studio:estrela:v1')

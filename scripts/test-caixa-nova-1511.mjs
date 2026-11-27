@@ -18,7 +18,7 @@ const { aba, React, read, ROOT } = R
 const BASE = 'ec6348f4b7beafa640bc3fb5d9dc5da3b7ce7b0b'
 // SHA-256 das duas fontes do pedido após acrescentar a escolha de voz. O guardião de voz também compara OFF com eb07dbd73.
 const ESTILO = {
-  'components/studio/StudioSimples.tsx': 'b84e008ea97414359dc6df819a2d489b2191b95db1ce6270d498ca86475f0b96',
+  'components/studio/StudioSimples.tsx': '46650a905a74ee165b821fd43615b8a199e9eec32ad2b8faedc1edea72a01a9d',
   'lib/growth/studioSimples.ts': 'bf3f49f0027fceec38ea7aea036220abd91586ece64d2d66392412f8b12dee5d',
   'lib/create/filmNaMoldura.ts': '3a772f79f8442a77a7e7125dcf8f1397620c0e3db1a766131aec399fd4ac5547',
 }

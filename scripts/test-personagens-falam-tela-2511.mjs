@@ -18,8 +18,8 @@ const active = { [release]: gateSource(read(release), true) }
 const rollback = { [release]: gateSource(read(release), false) }
 assert.match(read(release), /FILM_VOICE_RELEASE:.*= 'on'/, 'a chave abre para o cliente')
 
-function fromBase(file) {
-  return execFileSync('git', ['show', '43a94f1b0:' + file], { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 })
+function fromBase(file, ref = '43a94f1b0') {
+  return execFileSync('git', ['show', ref + ':' + file], { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 })
 }
 function matches(source, file, test) {
   const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
@@ -132,6 +132,12 @@ for (const [file, props] of [
   ['components/create/StudioNaMoldura.tsx', { caixaNova: true }],
 ]) {
   const stable = Object.fromEntries([file, 'components/studio/StudioSimples.tsx', 'components/create/CaixaNovaDoFilme.tsx', 'components/create/CaixaDeCriar.tsx', 'lib/growth/studioSimples.ts'].map(path => [path, fromBase(path)]))
+  if (props.caixaNova) {
+    // O OFF da voz preserva a caixa atual, inclusive o atalho de ajustes no próprio Film.
+    for (const path of ['components/create/CaixaNovaDoFilme.tsx', 'components/create/CaixaDeCriar.tsx']) {
+      stable[path] = fromBase(path, '61c5a5d7d708ddd0b56badb088f9c096e2387a87')
+    }
+  }
   assert.deepEqual(launch(file, props, rollback, null), launch(file, props, { ...stable, ...rollback }, null), 'OFF preserva montagem e destino')
   for (const selection of ['characters', 'narrator']) {
     const clicked = launch(file, props, active, selection)
