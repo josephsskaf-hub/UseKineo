@@ -16,7 +16,7 @@ import './clip-workspace.css'
 
 type Mode = 'templates' | 'motion' | 'own' | 'idea'
 type OwnVideo = ComponentProps<typeof SeuVideoRecreateClient>
-type Props = { measurementActor: string | null; recreate: RecreateProps; specs: Record<string, ClipTemplateSpec>; ownVideo?: OwnVideo }
+type Props = { initialIdeaMode?: boolean; measurementActor: string | null; recreate: RecreateProps; specs: Record<string, ClipTemplateSpec>; ownVideo?: OwnVideo }
 
 function ClipCover({ formats, media, polished }: { formats: readonly RecreateFormat[]; media: PartesDoRecreate['midia']; polished: boolean }) {
   const [index, setIndex] = useState(0)
@@ -51,16 +51,16 @@ function ClipCover({ formats, media, polished }: { formats: readonly RecreateFor
   </div>
 }
 
-export default function ClipTemplateWorkspace({ measurementActor, recreate, specs, ownVideo }: Props) {
+export default function ClipTemplateWorkspace({ initialIdeaMode = false, measurementActor, recreate, specs, ownVideo }: Props) {
   const polished = recreate.polished === true
-  const [mode, setMode] = useState<Mode>('templates')
+  const [mode, setMode] = useState<Mode>(initialIdeaMode ? 'idea' : 'templates')
   const [ownOpened, setOwnOpened] = useState(false)
   const [category, setCategory] = useState<ClipTemplateCategory | 'All'>('All')
   const [order, setOrder] = useState<ClipTemplateOrder>('latest')
   const orderId = useId()
   const semRepetir = titulosDaGrade(recreate.formatos)
 
-  return <ClipsClient measurementActor={measurementActor} semRepetir={semRepetir} separateEffectPlayback moldura={clip => <RecreateClient {...recreate} clipSpecs={specs}
+  return <ClipsClient publicEditorGuest={recreate.signedIn === false} measurementActor={measurementActor} semRepetir={semRepetir} separateEffectPlayback moldura={clip => <RecreateClient {...recreate} clipSpecs={specs}
     onClipSelect={() => setMode(current => current === 'motion' ? current : 'templates')} moldura={rc => {
       const available = mode === 'motion' ? rc.catalogo.filter(format => format.type === 'motion') : rc.catalogo
       const categories = CLIP_TEMPLATE_CATEGORIES.filter(item => available.some(format => clipTemplateCategory(format) === item))
@@ -80,7 +80,7 @@ export default function ClipTemplateWorkspace({ measurementActor, recreate, spec
       }
 
       return <main className="recreate rc-current-flow create-shell create-clip cw-workspace" data-create-shell="clip" data-clip-workspace="" data-recreate-showcase={polished || undefined}>
-        <header className="rc-nav ct-nav"><Link href="/" className="rc-brand" onClick={rc.sair}><KineoBrandIcon size={28} /><span>Kineo</span></Link><CreateTabs active="clip" showRecreate={false} showClip /><CreateNavConta /></header>
+        <header className="rc-nav ct-nav"><Link href="/" className="rc-brand" onClick={rc.sair}><KineoBrandIcon size={28} /><span>Kineo</span></Link><CreateTabs active="clip" showRecreate={false} showClip />{recreate.signedIn !== false && <CreateNavConta />}</header>
         {clip.estilos}
         <div className="cw-grid">
           <aside className="rc-panel cw-panel" aria-label="Clip controls">

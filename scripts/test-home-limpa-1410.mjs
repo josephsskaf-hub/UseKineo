@@ -87,7 +87,11 @@ function sourceProblems(src) {
   if (!src.includes("import HomeAuthModal from '@/components/auth/HomeAuthModal'") || !/<HomeAuthModal signedIn=\{isSignedIn\} \/>/.test(src)) p.push('modal de login desmontado')
   if ((src.match(/KINEO-LOGIN-MODAL-1410/g) || []).length < 2) p.push('marcas KINEO-LOGIN-MODAL-1410 sumiram')
   if ((src.match(/data-auth-modal="login"/g) || []).length < 2) p.push('Log in (desktop+celular) sem data-auth-modal')
-  if ((src.match(/data-auth-modal="signup"/g) || []).length < 2) p.push('Start free (desktop+celular) sem data-auth-modal')
+  for (const target of ['desktopStart', 'mobileStart']) {
+    if (!src.includes(`data-auth-modal={${target}.startsWith('/signup?') ? 'signup' : undefined} href={${target}}`)) {
+      p.push(`CTA de criação sem vínculo entre o destino e o modal (${target})`)
+    }
+  }
   return p
 }
 
@@ -139,7 +143,7 @@ function fileProblems(list, readFile, listDir, sizeOf) {
 // ─── render real ─────────────────────────────────────────────────────────────
 // O render offline da home (scripts/preview-ux-complete.mjs) troca componentes filhos por stub; por isso a galeria é
 // renderizada de verdade à parte (galleryRenderProblems) e o LUGAR dela na home é provado no fonte (sourceProblems).
-function homeRenderProblems(html, signedIn) {
+function homeRenderProblems(html, signedIn, editorOpen = true, referral = false) {
   const p = []
   for (const t of GONE_TEXT) if (html.includes(t)) p.push(`render ainda mostra "${t}"`)
   const more = html.indexOf('class="home-more-tools"') >= 0 ? html.indexOf('class="home-more-tools"') : html.indexOf('<div id="samples">') // reancorado KINEO-HOME-MOSAICO-2910 — fundador 29/10 "sem separações": a galeria entra na vitrine contínua (components/home/HomeMosaic.tsx), ainda antes da prova
@@ -149,13 +153,24 @@ function homeRenderProblems(html, signedIn) {
   const expected = signedIn ? NAV_ITEMS : [...NAV_ITEMS, 'login']
   for (const [surface, markup] of [['desktop', nav.slice(0, mobileStart)], ['celular', nav.slice(mobileStart)]]) {
     const items = [...markup.matchAll(/data-nav-item="([^"]+)"/g)].map(m => m[1])
+    if (!signedIn) {
+      const buttons = [...markup.matchAll(/<a\b[^>]*>/g)].map(m => m[0]).filter(tag => /class="[^"]*\bbtn-w\b/.test(tag))
+      const button = buttons[0] ?? ''
+      const href = button.match(/\bhref="([^"]*)"/)?.[1].replaceAll('&amp;', '&') ?? ''
+      const source = surface === 'desktop' ? 'nav' : 'nav-mobile'
+      const expectedHref = editorOpen ? `/create/film?utm_source=${source}&intent_campaign=studio_simple`
+        : referral ? '#try-kineo' : `/signup?utm_source=${source}`
+      const shouldOpenSignup = !editorOpen && !referral
+      if (buttons.length !== 1 || href !== expectedHref || button.includes('data-auth-modal="signup"') !== shouldOpenSignup) {
+        p.push(`destino ou modal do CTA mudou (${surface})`)
+      }
+    }
     if (mobileStart < 0 || JSON.stringify(items) !== JSON.stringify(expected)) {
       p.push(`menu do topo mudou (${surface}): ${JSON.stringify(items)}`)
     }
   }
   if (!signedIn) {
     if ((nav.match(/data-auth-modal="login"/g) || []).length < 2) p.push('menu sem Log in com data-auth-modal')
-    if ((nav.match(/data-auth-modal="signup"/g) || []).length < 2) p.push('menu sem Start free com data-auth-modal')
   }
   return p
 }
@@ -172,7 +187,7 @@ function galleryRenderProblems(block) {
     if (!/width="\d+"/.test(tag) || !/height="\d+"/.test(tag)) p.push(`${src}: sem width/height`)
   }
   const links = [...block.matchAll(/<a [^>]*class="khg-item[^"]*"[^>]*>/g)].map((m) => m[0])
-  if (links.length !== imgs.length || links.some((a) => !/href="\/images"/.test(a))) p.push('nem toda imagem leva a /images')
+  if (links.length !== imgs.length || links.some((a) => !a.includes('href="/create/image?engine=nanobanana"'))) p.push('foto sem destino no editor Nano Banana')
   if (/\b(client|customer|cliente)s?\b/i.test(block.replace(/<style>[\s\S]*?<\/style>/g, ' ').replace(/<[^>]+>/g, ' '))) p.push('galeria fala em cliente (alegação falsa)')
   return p
 }
@@ -192,8 +207,9 @@ let fp = fileProblems(LIST, fsRead, fsList, fsSize); checa(`(2)(3) arquivos: ${L
 
 // O renderer genérico oculta filhos de cliente. Expor o data-nav-item recebido
 // pelo filho UGC torna observável a decisão real da home de montá-lo em cada menu.
-function renderHome(props, change = source => source) {
+function renderHome(props, change = source => source, editorOpen = true) {
   setCurrentFilter((source, file) => {
+    if (file === 'lib/create/publicEditorRelease.ts') return source.replace(/(PUBLIC_CREATE_EDITORS = )(?:true|false)/, '$1' + String(editorOpen))
     if (file !== 'app/KineoLanding.tsx') return source
     return change(source).replace("import NavUgcAdsLink from '@/components/NavUgcAdsLink'",
       "const NavUgcAdsLink = props => <span data-nav-item={props['data-nav-item']} />")
@@ -210,6 +226,11 @@ for (const signedIn of [false, true]) for (const clipsFirst of [false, true]) {
   HTML[`${signedIn}/${clipsFirst}`] = html
   const rp = homeRenderProblems(html, signedIn)
   checa(`(1)(4)(5) render da home signedIn=${signedIn} clipsFirst=${clipsFirst}: blocos fora, More tools antes da prova, menu igual, login em modal (${rp.join('; ') || 'ok'})`, rp.length === 0)
+}
+for (const editorOpen of [true, false]) for (const referral of [true, false]) {
+  const html = renderHome({ initialUser: null, initialAcquisitionSource: referral ? 'chatgpt' : null }, s => s, editorOpen)
+  const problems = homeRenderProblems(html, false, editorOpen, referral)
+  checa(`CTA anônimo: editor=${editorOpen}, origem ChatGPT=${referral} · ${problems.join('; ') || 'ok'}`, !problems.length)
 }
 const GHTML = renderPage('components/home/HomeImageGallery.tsx', false, {}, {})
 const gp = galleryRenderProblems(GHTML)
@@ -247,7 +268,15 @@ for (const [surface, start, end] of [['desktop', 0, mobileStart], ['celular', mo
   }
 }
 mut('M8 Log in perde o modal', homeRenderProblems(H.split('data-auth-modal="login"').join(''), false))
-mut('M9 foto da galeria leva a outro lugar', galleryRenderProblems(GHTML.split('href="/images"').join('href="/pricing"')))
+for (const [surface, source] of [['desktop', 'nav'], ['celular', 'nav-mobile']]) {
+  const href = `href="/create/film?utm_source=${source}&amp;intent_campaign=studio_simple"`
+  for (const [label, replacement] of [['cadastro cedo', `href="/signup?utm_source=${source}"`], ['modal no editor', 'data-auth-modal="signup" ' + href]]) {
+    const changed = H.replace(href, replacement)
+    const problems = homeRenderProblems(changed, false)
+    checa(`(M14) ${surface}: ${label}`, changed !== H && problems.length === 1 && problems[0] === `destino ou modal do CTA mudou (${surface})`)
+  }
+}
+mut('M9 foto da galeria volta ao endereço antigo', galleryRenderProblems(GHTML.split('href="/create/image?engine=nanobanana"').join('href="/images"')))
 mut('M10 imagem sem procedência da casa', fileProblems([...LIST.slice(0, 13), { file: 'cliente.webp', w: 640, h: 1146, alt: 'customer upload photo' }], fsRead, fsList, fsSize))
 mut('M11 galeria passa a alegar cliente', galleryRenderProblems(GHTML.replace('Made with Kineo Images', 'Our clients made this · Made with Kineo Images')))
 mut('M12 galeria sai de More tools (fonte)', sourceProblems(LAND.replace('        <HomeImageGallery />', '').replace('<HomeAuthModal signedIn', '<HomeImageGallery />\n<HomeAuthModal signedIn')))

@@ -1,5 +1,6 @@
 'use client'
 
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
@@ -133,7 +134,7 @@ export default function VideoEditor({ initialTool }: { initialTool: EditingTool 
       {busy ? <div className="ke-status" role="status"><span>{busy === 'export' ? t(`Exporting ${progress}% — keep this tab visible`, `Exportando ${progress}% — mantén esta pestaña visible`) : busy === 'sample' ? t('Making a 4-second sample on your device…', 'Creando una muestra de 4 segundos en tu dispositivo…') : t('Reading your file…', 'Leyendo tu archivo…')}</span><button type="button" onClick={() => operation.current?.abort()}>{t('Cancel', 'Cancelar')}</button></div> : null}
       {error ? <p className="ke-error" role="alert">{t(...(ERRORS[error] ?? ERRORS.export_failed))}</p> : null}
       {result ? <section className="ke-result" aria-label={t('Export result', 'Resultado de exportación')}><div><p className="ke-eyebrow">{t('EXPORT READY', 'EXPORTACIÓN LISTA')}</p><h2>{t('Your edited video', 'Tu vídeo editado')}</h2><a className="ke-primary" href={result.url} download={result.name}>{t('Download video', 'Descargar vídeo')} {result.mime.startsWith('video/mp4') ? 'MP4' : 'WebM'} ↓</a><p className="ke-small">{t('Local download only. This copy is not saved to My Videos.', 'Solo descarga local. Esta copia no se guarda en Mis vídeos.')}</p></div><video ref={resultVideo} src={result.url} controls playsInline preload="metadata" aria-label={t('Exported video', 'Vídeo exportado')} /></section> : null}
-      <footer className="ke-footer"><p>{t('No upload. No generation credits. Your original is never overwritten.', 'Sin subir archivos. Sin créditos de generación. Tu original nunca se sobrescribe.')}</p><p>{t('Up to 100 MB · 3 minutes · MP4/WebM input recommended. These are basic editing tools, not the CapCut app.', 'Hasta 100 MB · 3 minutos · Se recomienda MP4/WebM. Son herramientas de edición básica, no la aplicación CapCut.')}</p><Link href="/studio">{t('Need a new video? Open Kineo Studio →', '¿Necesitas un vídeo nuevo? Abre Kineo Studio →')}</Link></footer>
+      <footer className="ke-footer"><p>{t('No upload. No generation credits. Your original is never overwritten.', 'Sin subir archivos. Sin créditos de generación. Tu original nunca se sobrescribe.')}</p><p>{t('Up to 100 MB · 3 minutes · MP4/WebM input recommended. These are basic editing tools, not the CapCut app.', 'Hasta 100 MB · 3 minutos · Se recomienda MP4/WebM. Son herramientas de edición básica, no la aplicación CapCut.')}</p><Link href={publicCreateCtaHref("/studio")}>{t('Need a new video? Open Kineo Studio →', '¿Necesitas un vídeo nuevo? Abre Kineo Studio →')}</Link></footer>
     </div>
   </main>
 }

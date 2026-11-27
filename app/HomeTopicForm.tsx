@@ -29,6 +29,7 @@
 // rewriting the script the visitor just approved.
 
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
 import { homeReferralCreationIntent } from '@/lib/growth/homeReferralBridge'
 import { SEEDANCE_15S_PUBLIC } from '@/lib/engineLaunch' // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — K6 revogada com a entrada nova
@@ -93,14 +94,18 @@ function buildActivationPrompt(lines: ScriptLine[]): string {
 // Reuses the homepage's existing signup hand-off contract: the same hidden
 // fields the form has always submitted, with the generated script standing in
 // for the raw topic so nothing is retyped after signup.
-function signupHref(prompt: string, createIntent: 'fast' | 'trial_best'): string {
+function filmHref(prompt: string, createIntent: 'fast' | 'trial_best', source: 'chatgpt' | 'taaft' | null): string {
   const params = new URLSearchParams({
     prompt,
     create_intent: createIntent,
     intent_campaign: HOME_PROMPT_CAMPAIGN,
     utm_source: 'homepage',
   })
-  return `/signup?${params.toString()}`
+  const legacy = `/signup?${params.toString()}`
+  const target = publicCreateCtaHref(legacy)
+  if (target === legacy || !source) return target
+  params.set('utm_source', source)
+  return publicCreateCtaHref(`/signup?${params.toString()}`)
 }
 
 type HomeTopicFormProps = {
@@ -130,10 +135,9 @@ export default function HomeTopicForm({
   const creationIntent = homeReferralCreationIntent(acquisitionSource, SEEDANCE_15S_PUBLIC)
   // Fallback destination when the free script cannot be written: degrade to the
   // pre-#101 behaviour (raw topic → signup) instead of leaving a dead end.
-  const fallbackHref = signupHref(
-    prompt.trim().slice(0, ACTIVATION_PROMPT_MAX),
-    creationIntent,
-  )
+  const fallbackHref = filmHref(prompt.trim().slice(0, ACTIVATION_PROMPT_MAX), creationIntent, acquisitionSource)
+  const resultHref = filmHref(activationPrompt, creationIntent, acquisitionSource)
+  const editorOpen = resultHref.startsWith('/create/film?')
 
   useEffect(() => {
     try {
@@ -247,7 +251,7 @@ export default function HomeTopicForm({
         source: HOME_PROMPT_CAMPAIGN,
         placement: trackingPlacement,
         acquisition_source: acquisitionSource,
-        destination: '/studio/create',
+        destination: editorOpen ? '/create/film' : '/studio/create',
         signed_in: true,
         topic_length: trimmed.length,
       }, '/')
@@ -285,7 +289,7 @@ export default function HomeTopicForm({
       source: HOME_PROMPT_CAMPAIGN,
       placement: resultPlacement,
       acquisition_source: acquisitionSource,
-      destination: '/signup',
+      destination: resultHref.split('?')[0],
       line_count: lines.length,
       script_length: activationPrompt.length,
     }, '/')
@@ -315,7 +319,7 @@ export default function HomeTopicForm({
       // KINEO-SEM-PORTEIRO-2026-09-02 b — o formulário da home mandava o tema
       // para o porteiro. Era o caminho mais quente do site: pessoa logada que
       // digitou uma ideia e apertou enter.
-      action={isSignedIn ? '/studio/create' : '/signup'}
+      action={editorOpen ? '/create/film' : isSignedIn ? '/studio/create' : '/signup'}
       method="get"
       noValidate
       onSubmit={handleSubmit}
@@ -328,7 +332,7 @@ export default function HomeTopicForm({
         <textarea
           id="home-short-topic"
           className="ci"
-          name="prompt"
+          name={editorOpen ? 'ideia' : 'prompt'}
           rows={3}
           required
           minLength={MIN_PROMPT_LENGTH}
@@ -373,9 +377,9 @@ export default function HomeTopicForm({
             source-bounded policy also governs the JS handoff above; ChatGPT and
             ordinary homepage traffic retain the existing guarded trial_best
             rail. */}
-        <input type="hidden" name="create_intent" value={creationIntent} />
+        {!editorOpen && <input type="hidden" name="create_intent" value={creationIntent} />}
         <input type="hidden" name="intent_campaign" value={HOME_PROMPT_CAMPAIGN} />
-        <input type="hidden" name="utm_source" value="homepage" />
+        <input type="hidden" name="utm_source" value={editorOpen ? acquisitionSource ?? 'homepage' : 'homepage'} />
         <button className="btn btn-w cbtn" type="submit" disabled={pending} aria-busy={pending}>
           {submitLabel}
         </button>
@@ -452,7 +456,7 @@ export default function HomeTopicForm({
                   </p>
                   <a
                     className="btn btn-w"
-                    href={signupHref(activationPrompt, creationIntent)}
+                    href={resultHref}
                     onClick={handleCtaClick}
                     style={{ textDecoration: 'none' }}
                   >

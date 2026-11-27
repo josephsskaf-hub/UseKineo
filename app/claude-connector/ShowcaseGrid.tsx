@@ -10,6 +10,7 @@
 // borda), grade de até 720 px; o título vai ABAIXO do quadro (fora do vídeo, nada de texto por cima do letreiro do clipe) e no
 // vídeo fica só um selo curto do motor/produto, no canto de baixo, que cabe inteiro a 390 px.
 // Selo honesto: o produto/motor real do clipe, nunca preço.
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { MCP_PALETTE as C } from './palette'
 import { trackEvent } from '@/lib/analytics'
@@ -89,7 +90,7 @@ export default function ShowcaseGrid() {
             <p style={{ margin: 0, fontSize: '1.08rem', fontWeight: 700, color: C.text, letterSpacing: '-0.01em' }}>
               {g.label} <span style={{ fontWeight: 500, color: C.muted, fontSize: '0.92rem' }}>· {g.line}</span>
             </p>
-            <a href={g.href} style={{ color: C.accent, textDecoration: 'none', fontWeight: 700, fontSize: '0.9rem', whiteSpace: 'nowrap' }}>Open in Kineo →</a>
+            <a href={publicCreateCtaHref(g.key === 'films' ? g.href : '/ads/v2?entry=' + (g.key === 'ugc' ? 'ugc' : 'product'), g.key === 'films' ? 'film' : 'ads')} style={{ color: C.accent, textDecoration: 'none', fontWeight: 700, fontSize: '0.9rem', whiteSpace: 'nowrap' }}>Open in Kineo →</a>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 'clamp(8px, 2vw, 16px)' }}>
             {g.clips.map((c) => (
@@ -180,7 +181,7 @@ export function ShowcaseStrip({ titulo, linha, clipes, href, source, tone = 'lig
         {clipes.map((c) => (
           <figure key={c.id} style={{ margin: 0, minWidth: 0 }}>
             <a
-              href={href}
+              href={publicCreateCtaHref(href)}
               style={tile}
               aria-label={`${c.title}, made with ${vitrineSelo(c)}. Start your own`}
               data-vitrine-motor={c.motor}

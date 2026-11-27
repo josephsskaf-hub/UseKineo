@@ -19,6 +19,7 @@
 // destrava. Esta página diz isso na cara, no chip do hero e no FAQ — nunca
 // "grátis" para um motor que o visitante não consegue rodar de graça. Toda copy
 // de free tier passa por ft(OFFER, …), como as outras ~45 frases do repositório.
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import { BuyerLead2011, BuyerDecision2011 } from '@/components/seo/BuyerDecision2011'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -189,7 +190,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
           {enginePaused(e.param) && (
             <div role="status" style={{ margin: '14px 0 0', padding: '12px 14px', borderRadius: 12, border: '1px solid #A35A00', background: '#FFF4E5', color: '#A35A00', fontSize: 14.5, lineHeight: 1.6 }}>
               <strong>Temporarily paused for maintenance.</strong> {enginePaused(e.param)!.message}{' '}
-              <Link href={`/studio?engine=${enginePaused(e.param)!.alternative.key}&intent_campaign=engine_paused`} style={{ color: '#A35A00', fontWeight: 700 }}>Open {enginePaused(e.param)!.alternative.label} →</Link>
+              <Link href={publicCreateCtaHref(`/studio?engine=${enginePaused(e.param)!.alternative.key}&intent_campaign=engine_paused`)} style={{ color: '#A35A00', fontWeight: 700 }}>Open {enginePaused(e.param)!.alternative.label} →</Link>
             </div>
           )}
           {!standardH3 && <p style={{ fontSize: '1.02rem', color: '#5A5F67', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 680 }}>{e.intro}</p>}
@@ -375,7 +376,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
           </OrganicCtaLink>
           <p style={{ margin: '14px 0 0', fontSize: '0.82rem', color: '#5A5F67' }}>
             Already have an account?{' '}
-            <Link href={studioUrl} style={{ color: '#0A5CFF', textDecoration: 'none', fontWeight: 700 }}>
+            <Link href={publicCreateCtaHref(studioUrl)} style={{ color: '#0A5CFF', textDecoration: 'none', fontWeight: 700 }}>
               Open the generator with {e.name} selected →
             </Link>
           </p>

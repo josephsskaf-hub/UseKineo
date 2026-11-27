@@ -1,6 +1,7 @@
 'use client'
 
 // KINEO-PAGINAS-IA-CLARAS-2110 — cores em var(--kpl-*, <cor de antes>): claras só dentro de <main className="kpl"> (as páginas de entrada do ChatGPT); nas outras páginas, a cor de antes.
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import { useState } from 'react'
 import { destinoDaIdeia } from '@/lib/growth/ideiaPousaNoStudio'
 import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
@@ -82,6 +83,8 @@ export default function TopicGeneratorForm({
 }: TopicGeneratorFormProps = {}) {
   const [topic, setTopic] = useState('')
   const [trimNotice, setTrimNotice] = useState<string | null>(null)
+  const publicEditor = !reviewInStudio && publicCreateCtaHref('/studio').startsWith('/create/film')
+  const formAction = reviewInStudio ? '/api/citations/film-entry' : publicEditor ? '/create/film' : '/signup'
   const inputId = `${formId}-input`
   // O contador de caracteres só tem copy em en/pt/es; as outras 13 línguas caem no inglês (só número + 'characters').
   const limitLocale: PromptLimitLocale = language === 'pt' || language === 'es' ? language : 'en'
@@ -139,7 +142,7 @@ export default function TopicGeneratorForm({
     // ignora o espelho e deduplica por pessoa; uma ação continua uma intenção.
     void trackEvent('organic_cta_clicked', {
       ...metadata,
-      destination: '/signup',
+      destination: formAction,
       mirrors: 'organic_topic_submitted',
     })
     const params = new URLSearchParams({
@@ -153,9 +156,9 @@ export default function TopicGeneratorForm({
     if (language) params.set('language', language)
     if (scriptMode) params.set('script_mode', scriptMode)
     if (duration) params.set('duration', String(duration))
-    const authRedirect = authRedirectFor(example)
+    const authRedirect = publicEditor ? null : authRedirectFor(example)
     if (authRedirect) params.set('redirect', authRedirect)
-    window.location.assign((reviewInStudio ? '/api/citations/film-entry' : '/signup') + '?' + params.toString())
+    window.location.assign(reviewInStudio ? '/api/citations/film-entry?' + params.toString() : publicCreateCtaHref('/signup?' + params.toString()))
   }
 
   return (
@@ -171,7 +174,7 @@ export default function TopicGeneratorForm({
       }}
     >
       <form
-        action={reviewInStudio ? '/api/citations/film-entry' : '/signup'}
+        action={formAction}
         method="get"
         onSubmit={(event) => {
           if (!canSubmit) {
@@ -196,7 +199,7 @@ export default function TopicGeneratorForm({
           // série histórica; o painel deduplica a intenção por pessoa.
           void trackEvent('organic_cta_clicked', {
             ...submitMetadata,
-            destination: '/signup',
+            destination: formAction,
             mirrors: 'organic_topic_submitted',
           })
         }}
@@ -258,9 +261,9 @@ export default function TopicGeneratorForm({
             {trimNotice}
           </p>
         ) : null}
-        <input type="hidden" name="create_intent" value={creationIntent} />
+        {!publicEditor && <input type="hidden" name="create_intent" value={creationIntent} />}
         <input type="hidden" name="intent_campaign" value={campaign} />
-        {authRedirectFor(topic) && (
+        {!publicEditor && authRedirectFor(topic) && (
           <input type="hidden" name="redirect" value={authRedirectFor(topic) ?? ''} />
         )}
         {utmSource && <input type="hidden" name="utm_source" value={utmSource} />}

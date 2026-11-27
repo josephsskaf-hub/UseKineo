@@ -1,3 +1,4 @@
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
@@ -65,7 +66,7 @@ export default function HalloweenPage() {
           Your first {TRIAL_FREE_FILM_SECONDS}-second film is free{GRANT_COUNTRY_CLAUSE}{noCard}.
         </p>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', margin: '22px 0 30px' }}>
-          <Link href={filmHref} style={{ background: 'var(--accent, #0A5CFF)', color: '#fff', borderRadius: 12, padding: '14px 22px', fontWeight: 700, textDecoration: 'none' }}>Make a free Halloween film</Link>
+          <Link href={publicCreateCtaHref(filmHref)} style={{ background: 'var(--accent, #0A5CFF)', color: '#fff', borderRadius: 12, padding: '14px 22px', fontWeight: 700, textDecoration: 'none' }}>Make a free Halloween film</Link>
           <Link href={effectPagePath('witch')} style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '14px 22px', color: 'inherit', textDecoration: 'none' }}>Try the witch effect</Link>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>

@@ -21,6 +21,22 @@ const CLIENT = 'app/recreate/RecreateClient.tsx'
 const nodes = (node, p, out = []) => { if (Array.isArray(node)) { node.forEach(n => nodes(n, p, out)); return out } if (!node || typeof node !== 'object') return out; if (p(node)) out.push(node); return nodes(node.props?.children, p, out) }
 const text = node => Array.isArray(node) ? node.map(text).join('') : node && typeof node === 'object' ? text(node.props?.children) : node == null || typeof node === 'boolean' ? '' : String(node)
 const photo = name => new File(['fixture'], name + '.jpg', { type: 'image/jpeg' })
+// Real acquisition helper running in the same synthetic browser as the component.
+function signupFor(w, window) {
+  const file = 'lib/analytics.ts'
+  const js = ts.transpileModule(w.source(file), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText
+  const out = { exports: {} }
+  function storage() {
+    const items = new Map()
+    return { getItem: k => items.get(k) ?? null, setItem: (k, v) => items.set(k, v), removeItem: k => items.delete(k) }
+  }
+  vm.runInNewContext(js, {
+    module: out, exports: out.exports, require: key => w.load(key.replace(/^@\//, '')),
+    window, document: { cookie: '', referrer: 'https://chatgpt.com/' },
+    sessionStorage: storage(), localStorage: storage(), URL, URLSearchParams, Date,
+  }, { filename: file })
+  return out.exports.publicEditorSignup
+}
 function client(over, options = {}) {
   const F = over.load('lib/recreate/formats'), E = over.load('lib/recreate/entry'), P = over.load('lib/recreate/catalogPublic'), pricing = over.load('lib/checkoutPricing')
   const quotes = F.RECREATE_FORMATS.map(f => { const credits = f.type === 'swap' ? pricing.recreateCreditCost(f.seconds) : F.recreateEffectCredits(f); return { id: f.id, credits, shortfall: 0, available: credits !== null } })
@@ -47,7 +63,8 @@ function client(over, options = {}) {
     },
   }
   let uuid = 0, timerId = 0
-  const window = { location: { assign: url => h.navigations.push(url) }, history: { replaceState() {} }, confirm: () => true, matchMedia: () => ({ matches: false }), addEventListener() {}, removeEventListener() {}, requestAnimationFrame: fn => fn() }
+  const window = { location: { pathname: '/recreate/passarela', hostname: 'fixture.invalid', protocol: 'https:', search: '?utm_source=chatgpt&utm_content=night&intent_campaign=footer_test', assign: url => h.navigations.push(url) }, history: { replaceState() {} }, confirm: () => true, matchMedia: () => ({ matches: false }), addEventListener() {}, removeEventListener() {}, requestAnimationFrame: fn => fn() }
+  dependencies['@/lib/analytics'].publicEditorSignup = (...args) => signupFor(over, window)(...args)
   const fetch = async (url, init = {}) => {
     h.calls.push({ url, ...init })
     if (url === '/api/avatar/upload') return Response.json({ url: 'https://fixture.invalid/storage/v1/object/public/avatars/' + (h.props.accountKey || ACCOUNT) + '/' + h.calls.length + '.jpg' })
@@ -78,6 +95,7 @@ function world(overrides = {}, session = { user: null }) {
     '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user: session.user } }) } }) },
     '@/lib/recreate/seuVideoPresentation': { seuVideoPresentation: () => ({ audio: 'original', minSeconds: 3, maxSeconds: 30, waitLabel: 'About 5 minutes', defaultPrompts: { 1: 'one', 2: 'two', 3: 'three' } }) },
     'next/navigation': { notFound() { throw Error('not-found') }, redirect(href) { throw Error('redirect:' + href) } },
+    '@/components/create/ClipTemplateWorkspace': { __esModule: true, default: function Workspace() {} },
     'app/recreate/RecreateClient': { __esModule: true, default: function LegacyOrFlowCatalog() {} },
     'app/recreate-preview/SeuVideoRecreateClient': { __esModule: true, default: function OwnVideo() {} },
     'app/recreate/RecreateCatalogPublic': { __esModule: true, default: function CatalogList() {} },
@@ -90,6 +108,20 @@ const notFound = async (promise, label) => { let error; try { await promise } ca
 const switchOff = over => ({ ...over, 'lib/recreate/flowRelease.ts': (over['lib/recreate/flowRelease.ts'] ?? read('lib/recreate/flowRelease.ts')).replace('RECREATE_FLOW_ENABLED = true', 'RECREATE_FLOW_ENABLED = false') })
 
 const suites = {
+  async guestSignup(over) {
+    const h = client(world(over), { props: { flowBasePath: '/recreate' } })
+    await h.flush()
+    await h.add()
+    ok(!h.navigations.length && !h.uploads() && !h.posts(), 'choosing a guest photo stays local before Generate')
+    await h.click(h.gen())
+    ok(h.navigations.length === 1 && h.saves.length === 1 && !h.uploads() && !h.posts(), 'guest Generate saves one local draft and navigates once')
+    const signup = new URL(h.navigations[0], 'https://fixture.invalid')
+    const back = new URL(signup.searchParams.get('redirect'), 'https://fixture.invalid')
+    ok(signup.pathname === '/signup' && back.pathname === '/recreate/passarela' && back.searchParams.get('draft') === REF && back.searchParams.get('volta') === '1', 'signup returns the same guest template and its local draft')
+    const tracked = url => url.searchParams.get('utm_source') === 'chatgpt' && url.searchParams.get('utm_content') === 'night' && url.searchParams.get('intent_campaign') === 'footer_test'
+    ok(tracked(signup), 'signup preserves the source and creation campaign')
+    ok(tracked(back), 'draft redirect preserves the source and creation campaign')
+  },
   // (mutante 1) a volta do cadastro devolve as fotos e PARA: nada sobe nem gera sem o clique.
   async noAutoGenerate(over) {
     const w = world(over), h = client(w, { props: { signedIn: true, accountKey: ACCOUNT, draftRef: REF }, restored: { photos: [photo('restored')], prompt: 'restored prompt' } })
@@ -151,15 +183,23 @@ const suites = {
   // (mutante 6) KINEO-M12-LIGA-1411: LIGADO, /recreate e /recreate/<id> montam o fluxo novo em /recreate para visitante, cliente e casa.
   // A VOLTA (desligado) segue provada: as páginas de hoje continuam no cliente de hoje, e /recreate/your-video não existe.
   async legacy(over) {
-    for (const user of [null, { id: ACCOUNT, email: HOUSE }, { id: ACCOUNT, email: 'customer@example.org' }]) {
-      const w = world(over, { user })
-      // KINEO-CLIP-RECREATE-JUNTOS-1511 — reancorado: a casa no interruptor recebe a tela única (Clip + Recreate); as props do RecreateClient vão em `recreate`,
-      // iguais uma a uma às de sempre (scripts/test-clip-recreate-juntos-1511.mjs B2). Visitante e cliente: o RecreateClient direto, como antes.
-      // KINEO-ABRE-TUDO-1511 — aberta ao público: quem recebe a tela única é decidido pela MESMA régua da rota (clipRecreateJuntosVisivel), não pelo e-mail da casa.
-      const juntos = !!user && w.load('lib/create/clipRecreateJuntos').clipRecreateJuntosVisivel(user.email)
-      const rc = el => (juntos ? { props: el.props.recreate } : el)
-      const index = rc(await w.load('app/recreate/page').default()), model = rc(await w.load('app/recreate/[id]/page').default({ params: { id: 'passarela' } }))
-      ok(index.props.currentFlow === true && model.props.currentFlow === true && index.props.flowBasePath === '/recreate' && model.props.flowBasePath === '/recreate' && model.props.initialId === 'passarela' && model.props.signedIn === !!user, 'switch on: regular routes mount the new flow on /recreate')
+    const gateFile = 'lib/create/publicEditorRelease.ts'
+    const gate = read(gateFile)
+    ok(gate.includes('PUBLIC_CREATE_EDITORS = true'), 'public creation rollout is on')
+    for (const publicEditor of [true, false]) {
+      const files = publicEditor ? over : { ...over, [gateFile]: gate.replace('PUBLIC_CREATE_EDITORS = true', 'PUBLIC_CREATE_EDITORS = false') }
+      for (const user of [null, { id: ACCOUNT, email: HOUSE }, { id: ACCOUNT, email: 'customer@example.org' }]) {
+        const w = world(files, { user })
+        const index = await w.load('app/recreate/page').default()
+        const model = await w.load('app/recreate/[id]/page').default({ params: { id: 'passarela' } })
+        for (const [element, id] of [[index, undefined], [model, 'passarela']]) {
+          const wrapped = Boolean(user) || publicEditor
+          ok(element.type.name === (wrapped ? 'Workspace' : 'LegacyOrFlowCatalog'), 'workspace for signed-in accounts and for guests only on public release')
+          const props = wrapped ? element.props.recreate : element.props
+          ok(props.currentFlow === true && props.flowBasePath === '/recreate' && props.initialId === id && props.signedIn === !!user, 'switch on: regular routes mount the new flow on /recreate')
+          ok(props.accountKey === (user?.id ?? null) && (!wrapped || element.props.measurementActor === (user?.id ?? null)), 'workspace preserves the real account or anonymous identity')
+        }
+      }
     }
     const offOver = switchOff(over)
     const guest = world(offOver), house = world(offOver, { user: { id: ACCOUNT, email: HOUSE } }), customer = world(offOver, { user: { id: ACCOUNT, email: 'customer@example.org' } })
@@ -195,7 +235,7 @@ const suites = {
     const customer = world(on, { user: { id: ACCOUNT, email: 'customer@example.org' } }), house = world(on, { user: { id: ACCOUNT, email: HOUSE } }), guest = world(on)
     const page = w => w.load('app/recreate/RecreateFlowPage').default
     ok(pp(await page(customer)({ basePath: '/recreate' }), 'customer@example.org').ownVideoVisible === false, 'customer catalog gets ownVideoVisible=false')
-    ok((await page(guest)({ basePath: '/recreate' })).props.ownVideoVisible === false, 'guest catalog gets ownVideoVisible=false while own video is house-only')
+    ok((await page(guest)({ basePath: '/recreate' })).props.recreate.ownVideoVisible === false, 'guest catalog gets ownVideoVisible=false while own video is house-only')
     ok((await page(house)({ basePath: '/recreate' })).props.recreate.ownVideoVisible === true, 'house catalog keeps the own-video entry') // KINEO-CLIP-RECREATE-JUNTOS-1511 — a casa: tela única, props do RecreateClient em `recreate`
     await notFound(customer.load('app/recreate/your-video/page').default({}), 'customer cannot open /recreate/your-video after approval')
     await notFound(guest.load('app/recreate/your-video/page').default({}), 'guest cannot open /recreate/your-video after approval')
@@ -215,7 +255,7 @@ const suites = {
     ok(!!button && /add your photo after/.test(text(h.tree)), 'storage failure offers to continue without saving photos')
     await h.click(button)
     const back = new URL(new URL(h.navigations[0] ?? '/', 'https://fixture.invalid').searchParams.get('redirect') ?? '/', 'https://fixture.invalid')
-    ok(h.navigations.length === 1 && back.pathname === '/recreate-flow-preview/passarela' && !back.searchParams.has('draft'), 'continue goes to signup and back to the same template, without a draft')
+    ok(h.navigations.length === 1 && back.pathname === '/recreate-flow-preview/passarela' && !back.searchParams.has('draft') && back.searchParams.get('volta') === '1', 'continue goes to signup and back to the same template, without a draft')
     ok(h.posts() === 0 && h.uploads() === 0, 'continuing without saving uploads and generates nothing')
   },
   // Item 3: o POST /api/recreate tem até 60 s no servidor; o cliente espera 75 s antes de chamar de incerto.
@@ -254,6 +294,10 @@ const sources = {}
 const src = file => sources[file] ??= read(file)
 const mutate = (file, from, to) => { assert.equal(src(file).split(from).length, 2, 'unique mutant anchor: ' + from.slice(0, 60)); return { [file]: src(file).replace(from, to) } }
 const mutants = [
+  ['perde a atribuição de saída', 'guestSignup', () => mutate('lib/analytics.ts', 'for (const [key, value] of attrs) query.set(key, value)', '/* missing outer tags */'), 'signup preserves the source and creation campaign'],
+  ['perde a atribuição interna', 'guestSignup', () => mutate('lib/analytics.ts', 'for (const [key, value] of attrs) draft.set(key, value)', '/* missing inner tags */'), 'draft redirect preserves the source and creation campaign'],
+  ['perde o rascunho', 'guestSignup', () => mutate(CLIENT, "new URLSearchParams({ draft: ref, volta: '1' })", "new URLSearchParams({ volta: '1' })"), 'signup returns the same guest template and its local draft'],
+  ['visitante entra na moldura com o editor público desligado', 'legacy', () => mutate('app/recreate/RecreateFlowPage.tsx', "const guestWorkspace = !user && publicEditor('clip')", 'const guestWorkspace = !user'), 'workspace for signed-in accounts and for guests only on public release'],
   ['gerar sozinho no retorno do catálogo', 'noAutoGenerate', () => mutate(CLIENT, "  type StepState = 'todo' | 'active' | 'done' | 'error'", "  useEffect(() => { if (currentFlow && draftRef && !restoring && photosDone && flowQuoteReady) void generate(false) }, [restoring, photosDone, flowQuoteReady])\n  type StepState = 'todo' | 'active' | 'done' | 'error'"), 'return from signup never uploads or generates by itself'],
   ['interruptor desligado em produção', 'entry', () => mutate('lib/recreate/flowRelease.ts', 'RECREATE_FLOW_ENABLED = true', 'RECREATE_FLOW_ENABLED = false'), 'public switch is on in production'], // KINEO-M12-LIGA-1411
   ['link da home sem cadastro', 'entry', () => mutate('lib/recreate/entry.ts', 'signedIn || (RECREATE_FLOW_ENABLED && publicRecreatePath(id))', 'signedIn || publicRecreatePath(id)'), 'guest home and catalog links go through signup while the switch is off'],

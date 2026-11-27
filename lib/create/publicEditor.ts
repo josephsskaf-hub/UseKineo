@@ -1,3 +1,4 @@
+import { publicEditorSignup } from '@/lib/analytics'
 import type { FilmLook } from '@/lib/cinematic/filmLook2511'
 import { duracoesDoMotor } from './motorOpcional'
 import { motorDaCaixa } from '@/lib/growth/studioSimples'
@@ -45,10 +46,7 @@ export function filmSignup(draft: GuestFilmDraft): string {
   localStorage.setItem(prefix + id, value)
   if (localStorage.getItem(prefix + id) !== value) throw new Error('Draft unavailable')
   const query = new URLSearchParams({ draft: id, volta: '1' })
-  for (const [key, item] of new URLSearchParams(window.location.search)) {
-    if (/^(?:utm_[a-z_]+|intent_campaign|ref|gclid|msclkid|fbclid|ttclid)$/.test(key)) query.set(key, item)
-  }
-  return '/signup?' + new URLSearchParams({ redirect: '/create/film?' + query })
+  return publicEditorSignup('/create/film', query)
 }
 export function restoreFilm(id: string, authenticated = false): GuestFilmDraft | null {
   try {

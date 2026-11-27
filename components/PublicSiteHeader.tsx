@@ -3,7 +3,7 @@ import { UiLabel } from '@/components/InterfaceLanguage'
 import { FOCUSED_PRODUCT_NAV_2511 } from '@/lib/ui/workspaceNavigation'
 import NavUgcAdsLink from '@/components/NavUgcAdsLink'
 import SiteSettingsMenu from '@/components/SiteSettingsMenu'
-import { createEntryForContentHref, createEntryHref } from '@/lib/create/entry'
+import { createEntryForContentHref, createEntryHref, publicCreateCtaHref } from '@/lib/create/entry'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 import { MADE_WITH_KINEO_HREF, MADE_WITH_KINEO_LABEL, MADE_WITH_KINEO_NAV_ITEM } from '@/lib/homeGaleria'
 import { PAGINA_CLARA_CSS } from '@/lib/seo/paginasIaClaras2110'
@@ -29,7 +29,7 @@ export default function PublicSiteHeader({ signedIn, currentPath, signupHref, si
     <Link href="/pricing" data-nav-item="pricing" aria-current={currentPath === '/pricing' ? 'page' : undefined}><UiLabel>Pricing</UiLabel></Link>
   </>)
   const login = signedIn ? null : <Link className="kpn-login" href="/login" data-nav-item="login"><UiLabel>Log in</UiLabel></Link>
-  const action = (mobile: boolean) => <Link className="kpn-cta" href={signedIn ? filmHref : signupHref ?? (mobile ? '/signup?utm_source=nav-mobile' : '/signup?utm_source=nav')}>
+  const action = (mobile: boolean) => <Link className="kpn-cta" href={signedIn ? filmHref : publicCreateCtaHref(signupHref ?? (mobile ? '/signup?utm_source=nav-mobile' : '/signup?utm_source=nav'))}>
     <UiLabel>{signedIn ? 'Dashboard' : signupLabel ?? CARD_ENTRY_COPY.ctaShort}</UiLabel>
   </Link>
   return (

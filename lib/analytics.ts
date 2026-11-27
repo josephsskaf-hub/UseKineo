@@ -25,6 +25,7 @@ import {
 // cujo anúncio venha sem utm chega só com referrer bing.com e se confunde com a busca orgânica do Bing (leitura de
 // 11/11). Guardião: scripts/test-msclkid-eventos-1111.mjs.
 const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'gclid', 'msclkid', 'ref'] as const
+const editorTrackingKey = (key: string) => /^(?:utm_[a-z][a-z_]{0,49}|gclid|msclkid|fbclid|ttclid|ref)$/.test(key)
 const EVENT_SESSION_KEY = EVENT_SESSION_COOKIE
 
 function syncSessionCookie(name: string, sessionId: string, maxAgeSeconds?: number): void {
@@ -214,6 +215,7 @@ type StoredSource = {
   utm_medium?: string
   utm_campaign?: string
   referrer?: string
+  editor_tracking?: Record<string, string>
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -370,14 +372,19 @@ export function captureSourceOnce(): void {
   // quem NÃO tem origem.
   captureSurfaceOnce()
   try {
+    const query = new URLSearchParams(window.location.search)
+    if (query.has('intent_campaign') && !/^\/(?:api|auth|checkout|account|admin|billing|login|signup)(?:\/|$)/.test(window.location.pathname)) {
+      rememberSignupCampaign(query.get('intent_campaign')!)
+    }
     // First-touch wins: if we already recorded a source (either store), stop.
     if (localStorage.getItem(SRC_KEY) || readSourceCookie()) return
 
     const sp = new URLSearchParams(window.location.search)
     const src: StoredSource = {}
+    const internalTag = internalSurfaceLabel(sp.get('utm_source'))
     SRC_FIELDS.forEach((k) => {
       const v = (sp.get(k) ?? '').trim()
-      if (!v) return
+      if (!v || internalTag) return
       if (k === 'utm_source') {
         const source = sanitizeAcquisitionUtmSource(v)
         if (source) src[k] = source
@@ -403,6 +410,11 @@ export function captureSourceOnce(): void {
     if (Object.keys(src).length === 0) captureSourceGuessOnce()
     if (Object.keys(src).length === 0) return
 
+    const extra: Record<string, string> = {}
+    for (const [key, value] of sp) {
+      if (editorTrackingKey(key) && !['utm_source','utm_medium','utm_campaign'].includes(key) && value.length <= 255) extra[key] = value
+    }
+    if (Object.keys(extra).length) src.editor_tracking = extra
     const json = JSON.stringify(src)
     try {
       localStorage.setItem(SRC_KEY, json)
@@ -413,7 +425,9 @@ export function captureSourceOnce(): void {
       // 90-day first-party cookie so the source survives the OAuth redirect and a
       // delayed email-confirmation → login. SameSite=Lax keeps it on the top-level
       // return navigation from Google's OAuth callback.
-      document.cookie = `${SRC_COOKIE}=${encodeURIComponent(json)};path=/;max-age=7776000;samesite=lax`
+      const encoded = encodeURIComponent(json)
+      const cookieValue = encoded.length <= 3500 ? encoded : encodeURIComponent(JSON.stringify({ ...src, editor_tracking: undefined }))
+      document.cookie = `${SRC_COOKIE}=${cookieValue};path=/;max-age=7776000;samesite=lax`
     } catch {
       /* ignore */
     }
@@ -431,6 +445,43 @@ function storedSource(): StoredSource {
     /* fall through to cookie */
   }
   return readSourceCookie() ?? {}
+}
+
+/** Preserve acquisition separately from the editor's preset and the visitor's saved draft. */
+export function editorSignupAttribution(): URLSearchParams {
+  const attrs = new URLSearchParams()
+  if (typeof window === 'undefined') return attrs
+  captureUtmsOnce()
+  captureSourceOnce()
+  const here = new URLSearchParams(window.location.search)
+  const first = storedSource()
+  const tab = storedUtms()
+  for (const group of [here, new URLSearchParams(tab), new URLSearchParams(first.editor_tracking ?? {})]) {
+    const internal = internalSurfaceLabel(group.get('utm_source'))
+    for (const [key, value] of group) {
+      if (internal && key.startsWith('utm_')) continue
+      if (editorTrackingKey(key) && value.length <= 255) attrs.set(key, value)
+    }
+  }
+  if (!internalSurfaceLabel(first.utm_source)) {
+    for (const key of SRC_FIELDS) if (first[key]) attrs.set(key, first[key]!)
+  }
+  if (!first.utm_source && first.referrer) {
+    // An internal CTA can have its own SEO tag after an untagged ChatGPT referral.
+    if (attrs.get('utm_source') === 'seo' || internalSurfaceLabel(attrs.get('utm_source'))) attrs.delete('utm_source')
+  }
+  if (internalSurfaceLabel(attrs.get('utm_source'))) attrs.delete('utm_source')
+  const intent = storedSignupCampaign() ?? cleanSignupCampaign(here.get('intent_campaign'))
+  if (intent) attrs.set('intent_campaign', intent)
+  return attrs
+}
+
+export function publicEditorSignup(path: string, draft: URLSearchParams): string {
+  const attrs = editorSignupAttribution()
+  for (const [key, value] of attrs) draft.set(key, value)
+  const query = new URLSearchParams({ redirect: path + '?' + draft })
+  for (const [key, value] of attrs) query.set(key, value)
+  return '/signup?' + query
 }
 
 // #383 — persist first-touch signup attribution to the user's profile row so
@@ -460,14 +511,16 @@ export function trackSignupSource(): void {
     // localStorage/cookie store, falling back to the sessionStorage UTMs for
     // utm_source when the source store is empty (belt-and-suspenders).
     const src = storedSource()
+    const eventSource = internalSurfaceLabel(utms.utm_source) || (!src.utm_source && src.referrer && utms.utm_source === 'seo') ? null : utms.utm_source
+    const signupSource = internalSurfaceLabel(src.utm_source) ? null : src.utm_source
     fetch('/api/track-signup-source', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         gclid: utms.gclid || null,
-        utm_source: utms.utm_source || null,
+        utm_source: eventSource || null,
         // Block 3.3 first-touch source fields:
-        signup_utm_source: src.utm_source || utms.utm_source || null,
+        signup_utm_source: signupSource || (!src.referrer && eventSource) || null,
         signup_utm_medium: src.utm_medium || utms.utm_medium || null,
         signup_utm_campaign: src.utm_campaign || storedSignupCampaign() || utms.utm_campaign || null,
         signup_referrer: src.referrer || null,

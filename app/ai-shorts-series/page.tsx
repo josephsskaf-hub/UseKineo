@@ -22,6 +22,7 @@
 //   · o JSON-LD FAQPage nasce do MESMO array que o HTML mostra — nada no schema
 //     que não esteja na página.
 
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
@@ -184,7 +185,7 @@ export default function AiShortsSeriesPage() {
 
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', margin: '0 0 48px' }}>
           <Link
-            href="/studio"
+            href={publicCreateCtaHref("/studio")}
             style={{ color: '#04110c', background: '#34d399', borderRadius: 999, padding: '13px 20px', fontSize: 14, fontWeight: 900, textDecoration: 'none' }}
           >
             Make the first video
@@ -288,7 +289,7 @@ export default function AiShortsSeriesPage() {
           </p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <Link
-              href="/studio"
+              href={publicCreateCtaHref("/studio")}
               style={{ color: '#04110c', background: '#34d399', borderRadius: 999, padding: '13px 20px', fontSize: 14, fontWeight: 900, textDecoration: 'none' }}
             >
               Make the first video

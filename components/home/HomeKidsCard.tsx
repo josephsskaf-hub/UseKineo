@@ -21,18 +21,18 @@ function KidsMedia({ featuredPlaylist }: { featuredPlaylist?: HomeCardPlaylist }
   return <HomeCardCycleMedia card="kids_cartoon" language={language} playlist={HOME_CARD_TRAILERS_0411.kids_cartoon} featuredPlaylist={featuredPlaylist} /> // KINEO-CARDS-TRAILER-0411 — o card de Cartoon mostra só o trailer
 }
 
-export default function HomeKidsCard({ signedIn, position = HOME_KIDS_CARD_POSITION, entradaNova = false, featuredPlaylist }: { signedIn: boolean; position?: number; entradaNova?: boolean; featuredPlaylist?: HomeCardPlaylist }) { // KINEO-ENTRADAS-CARTOES-1011 — + entradaNova (só a home passa true, como no HomeThreeCards) // KINEO-PAGINAS-IA-CLARAS-2110 — a faixa passa a posição real; usos antigos continuam em 4.
+export default function HomeKidsCard({ signedIn, position = HOME_KIDS_CARD_POSITION, entradaNova = false, featuredPlaylist, story }: { signedIn: boolean; position?: number; entradaNova?: boolean; featuredPlaylist?: HomeCardPlaylist; story?: { title: string; subtitle: string } }) { // KINEO-ENTRADAS-CARTOES-1011 — + entradaNova (só a home passa true, como no HomeThreeCards) // KINEO-PAGINAS-IA-CLARAS-2110 — a faixa passa a posição real; usos antigos continuam em 4.
   const language = useInterfaceLanguage()
   const [title, line, cta] = homeKidsCardCopy(language)
   return (
-    <Link href={entradaNova ? createEntryForSignupHref(homeKidsCardHref(signedIn), signedIn) : homeKidsCardHref(signedIn) /* KINEO-ENTRADAS-CARTOES-1011 [fundador 10/11: "Make my cartoon" abriu a tela ANTIGA] — logado: /create/cartoon com a mesma query; visitante: o desenho sem conta de hoje */} className="k3c-card" data-home-card={HOME_KIDS_CARD_ID} onClick={() => { void trackEvent(HOME_CARD_EVENT, { ...homeKidsCardClickMetadata(signedIn), position }) }}>
+    <Link href={entradaNova ? createEntryForSignupHref(homeKidsCardHref(signedIn), signedIn) : homeKidsCardHref(signedIn) /* KINEO-ENTRADAS-CARTOES-1011 [fundador 10/11: "Make my cartoon" abriu a tela ANTIGA] — logado: /create/cartoon com a mesma query; visitante: o desenho sem conta de hoje */} className="k3c-card" data-pumpkin-story={story ? true : undefined} data-home-card={HOME_KIDS_CARD_ID} onClick={() => { void trackEvent(HOME_CARD_EVENT, { ...homeKidsCardClickMetadata(signedIn), position }) }}>
       <KidsMedia featuredPlaylist={featuredPlaylist} />
       <span className="k3c-shade" aria-hidden="true" />
       <span className="k3c-glass" aria-hidden="true" />
       {/* KINEO-HOME-CARDS-CLAROS-2010 — sem o selo do motor (fundador 21/10: "pode tirar o motor de todos os cards desses 4 primeiros"); era: <span className="k3c-badge" aria-hidden="true">{HOME_KIDS_CARD_BADGE}</span> */}
       <span className="k3c-body">
-        <h2 className="k3c-title">{title}</h2>
-        <p className="k3c-sub">{line}</p>
+        <h2 className="k3c-title">{story?.title ?? title}</h2>
+        <p className="k3c-sub">{story?.subtitle ?? line}</p>
         <span className="btn btn-blue k3c-cta">{cta} <span className="k3c-arrow" aria-hidden="true">→</span></span>
       </span>
     </Link>

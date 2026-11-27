@@ -1,3 +1,4 @@
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
@@ -94,7 +95,7 @@ export default function CaseStudyPage() {
             <Link href="/made-with-kineo" className="transition hover:text-white">Examples</Link>
             <Link href="/pricing" className="transition hover:text-white">Pricing</Link>
             <Link
-              href="/signup?utm_source=case_study&utm_medium=proof&utm_campaign=live_channel"
+              href={publicCreateCtaHref('/signup?utm_source=case_study&utm_medium=proof&utm_campaign=live_channel')}
               className="rounded-full bg-white px-4 py-2 text-black transition hover:bg-cyan-200"
             >
               {CARD_ENTRY_COPY.ctaLong}
@@ -219,7 +220,7 @@ export default function CaseStudyPage() {
           </p>
           )}
           <Link
-            href="/signup?utm_source=case_study&utm_medium=proof&utm_campaign=live_channel"
+            href={publicCreateCtaHref("/signup?utm_source=case_study&utm_medium=proof&utm_campaign=live_channel")}
             className="ml-3 mt-3 inline-block rounded-full border border-white/20 px-6 py-3 text-sm font-black text-white transition hover:border-cyan-200 hover:text-cyan-100 max-sm:ml-0"
           >
             {/* KINEO-TRIAL-BLOCKERS-2026-08-07 — último vazamento de copy do QA

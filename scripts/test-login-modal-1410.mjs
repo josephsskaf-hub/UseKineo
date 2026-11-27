@@ -172,8 +172,11 @@ function rules(F) {
   // R9 — home.
   ok('R9', F.landing.includes('<Link className="nav-login" href="/login" data-nav-item="login" data-auth-modal="login">'), 'topo: "Log in" abre o modal, mesmo href')
   ok('R9', F.landing.includes(': <Link href="/login" data-nav-item="login" data-auth-modal="login">'), 'celular: "Log in" abre o modal, mesmo href')
-  ok('R9', F.landing.includes("data-auth-modal=\"signup\" href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav'}"), 'topo: "Start free" abre o modal, mesmo href')
-  ok('R9', F.landing.includes("data-auth-modal=\"signup\" href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav-mobile'}"), 'celular: "Start free" abre o modal, mesmo href')
+  for (const [id, surface, target] of [['R9D', 'nav', 'desktopStart'], ['R9M', 'nav-mobile', 'mobileStart']]) {
+    ok(id, F.landing.includes(`const ${target} = startHref('${surface}')`) &&
+      F.landing.includes(`data-auth-modal={${target}.startsWith('/signup?') ? 'signup' : undefined} href={${target}}`),
+    `Get started (${surface}): somente o destino efetivo de cadastro abre o modal`)
+  }
   ok('R9', F.landing.includes('<HomeAuthModal signedIn={isSignedIn} />'), 'a home monta o modal')
   const navCount = (src) => (src.match(/data-nav-item=/g) ?? []).length
   ok('R9', BASES.landing !== null && navCount(F.landing) === navCount(BASES.landing) + 2 - 10 + 4 + 2, `o menu só mudou pela ordem do fundador (${navCount(F.landing)} itens data-nav-item, base + 2 do "AI UGC Ads" − 10 do "More tools" + 4 de "AI Cartoon Videos"/"Claude & ChatGPT" + 2 do "Recreate")`) // KINEO-HOME-REMODELA-2010 — reancorado 20/10 (fundador 20/10: "esses vão ser os quatro principais, e ao lado vai ser o MCP do Claude e do GPT… more tools a gente vai cancelar"); a ordem nova é provada em scripts/test-home-remodela-2010.mjs · KINEO-MENU-RECREATE-1211 — reancorado 12/11: +2 do Recreate (topo e celular), ordem provada em scripts/test-menu-recreate-1211.mjs
@@ -219,6 +222,11 @@ const MUTANTS = [
   ['M6 o modal muda a lógica do login', 'login', '    e.preventDefault()\n    setLoading(true)', '    e.preventDefault()\n    if (inModal) return\n    setLoading(true)', 'R3'],
   ['M7 o callback muda', 'callbackRaw', 'maybeActivateReverseTrial({', 'maybeActivateReverseTrial( {', 'R8'],
   ['M8 o "Log in" do topo volta a trocar de página', 'landing', 'data-nav-item="login" data-auth-modal="login">', 'data-nav-item="login">', 'R9'],
+  ...[['M10D', 'desktopStart', 'R9D'], ['M10M', 'mobileStart', 'R9M']].map(([id, target, rule]) => [
+    `${id} editor interceptado pelo modal`, 'landing',
+    `data-auth-modal={${target}.startsWith('/signup?') ? 'signup' : undefined} href={${target}}`,
+    `data-auth-modal="signup" href={${target}}`, rule,
+  ]),
   ['M9 o Esc deixa de fechar', 'modal', "e.key === 'Escape'", "e.key === 'Esc_'", 'R10'],
 ]
 for (const [name, key, from, to, target] of MUTANTS) {

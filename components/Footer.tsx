@@ -16,6 +16,7 @@ import { PrivacyChoicesLink } from '@/components/ConsentManager'
 // kept inline to match the rest of the marketing chrome.
 
 import Link from 'next/link'
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import ShowcaseLabel from '@/components/showcase/ShowcaseLabel'
 import { SHOWCASE_PUBLIC } from '@/lib/showcaseTelemetry'
 import { InterfaceLanguageSelect, UiLabel } from '@/components/InterfaceLanguage'
@@ -94,10 +95,10 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
       // KINEO-NOITE-2026-08-17 — os produtos novos do dia entram no rodape
       // (26 paginas publicas linkando; nenhuma pagina nasce orfa).
       ...(SHOWCASE_PUBLIC ? [{ href: '/showcase', label: 'Showcase' }] : []),
-      { href: '/images', label: 'AI image generator — 6 engines' },
+      { href: '/create/image', label: 'AI image generator — 6 engines' },
       { href: '/made-with-kineo', label: 'Made with Kineo' },
       { href: '/recreate', label: 'Recreate — put yourself in the clip' }, // KINEO-MENU-RECREATE-1211 — par do topo da home: a grade de todos os modelos
-      { href: '/clips', label: 'AI clips — photo or text to clip' }, // KINEO-HOME-REMODELA-2010 — saíram do topo com o "More tools" (fundador 20/10): seguem a 1 clique no rodapé
+      { href: publicCreateCtaHref('/clips', 'clip'), label: 'AI clips — photo or text to clip' }, // KINEO-HOME-REMODELA-2010 — saíram do topo com o "More tools" (fundador 20/10): seguem a 1 clique no rodapé
       { href: '/spaces', label: 'Spaces — empty space in, finished space out' }, // KINEO-HOME-REMODELA-2010
       { href: '/ai-video-generator', label: 'AI video engine guides', sublist: ENGINE_GUIDE_SUBLIST }, // KINEO-HOME-REMODELA-2010
       { href: '/audio', label: 'AI voice generator (text to speech)' },
@@ -173,7 +174,7 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
       // (components/Sidebar.tsx), não o rodapé público.)
       // ═══════════════════════════════════════════════════════════════════════
       { href: '/pricing', label: 'Pricing' },
-      { href: '/signup', label: CARD_ENTRY_COPY.ctaShort }, // KINEO-VERSAO-B-2026-09-08
+      { href: publicCreateCtaHref('/signup'), label: CARD_ENTRY_COPY.ctaShort }, // KINEO-VERSAO-B-2026-09-08
     ],
   },
   {

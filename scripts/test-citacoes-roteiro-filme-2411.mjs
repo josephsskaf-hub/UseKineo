@@ -9,7 +9,9 @@ const old=Object.fromEntries([PAGE,CLIENT,FORM].map(f=>[f,citationFilmBaseline(f
 const plain=({children})=>React.createElement('div',null,children)
 const mocks={'lib/analytics.ts':{trackEvent(){},trackClosedEvent(){},rememberSignupCampaign(){}},'components/StickyFreeShortCTA.tsx':{__esModule:true,default:plain},'components/Footer.tsx':{__esModule:true,default:plain},'components/ExitIntentOffer.tsx':{__esModule:true,default:plain}}
 const dep={'lib/gptHandoff.ts':source('lib/gptHandoff.ts').replace("import { createHash } from 'node:crypto'","const createHash=()=>{throw Error('No hash in this proof')}")}
-const make=(rep={})=>offlineModules({mocks,replacements:{...dep,...rep}})
+// Lock the independent public-editor switch OFF when comparing the historical writer HTML.
+// Public ON is exercised with the real script and mode in test-signup-creation-proof.
+const make=(rep={})=>offlineModules({mocks,replacements:{'lib/create/publicEditorRelease.ts':'export const PUBLIC_CREATE_EDITORS = false',...dep,...rep}})
 // KINEO-CITACOES-PUBLIC-2411: o padrão agora é 'public'; a troca casa qualquer valor e confere a âncora (nunca no-op calado).
 const set=(rep,value)=>{const t=(rep[RELEASE]??source(RELEASE)).replace(/(CITATION_FILM_RELEASE: CitationFilmRelease = )'(?:off|internal|public)'/,"$1'"+value+"'");assert.ok(t.includes("CITATION_FILM_RELEASE: CitationFilmRelease = '"+value+"'"),'RELEASE override anchor');return{...rep,[RELEASE]:t}}
 const render=(l,f,props={})=>renderToStaticMarkup(React.createElement(l(f).default,props))

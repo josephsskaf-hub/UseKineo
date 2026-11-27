@@ -114,8 +114,8 @@ const r = p => read(p)
 const mutants = [
   ['Library volta para a casca velha', ROTAS, r(ROTAS).replace("export const MOLDURA_TOPO_ROTAS: readonly string[] = ['/library']", 'export const MOLDURA_TOPO_ROTAS: readonly string[] = []')],
   ['C sem decisão do dono (Images também)', ROTAS, r(ROTAS).replace("export const MOLDURA_TOPO_ROTAS: readonly string[] = ['/library']", "export const MOLDURA_TOPO_ROTAS: readonly string[] = ['/library', '/images']")],
-  ['aba Film marcada na Library', TOPO, r(TOPO).replace('<CreateTabs active={null}', "<CreateTabs active={'film'}")],
-  ['assinante perde o Buy credits', TOPO, r(TOPO).replace(/\s*<BuyCreditsLink surface=\{surface\}[^\n]*/, '')],
+  ['aba Film marcada na Library', TOPO, r(TOPO).replace('<CreateTabs active={active}', "<CreateTabs active={'film'}")],
+  ['assinante perde o Buy credits', TOPO, r(TOPO).replace(/<BuyCreditsLink surface=\{surface\}[^>]*\/>/, '')],
   ['ramo monta a lateral', SHELL, r(SHELL).replace('<CreateMolduraTopo showRecreate', '<Sidebar /><CreateMolduraTopo showRecreate')],
   ['ofertas somem da Library', SHELL, r(SHELL).replace(/(if \(usaMolduraNova\(pathname\)\) return \([\s\S]*?)\s*<AnnualWelcomeBar initial=\{annualWelcomeBar\} placement="app" \/>/, '$1')],
   ['ramo depois da lateral (nunca roda)', SHELL, r(SHELL).replace('  if (usaMolduraNova(pathname)) return (', '  if (false && usaMolduraNova(pathname)) return (').replace('<Sidebar', '<Sidebar').replace('{/* Desktop sidebar spacer', '{/* Desktop sidebar spacer') + ''],

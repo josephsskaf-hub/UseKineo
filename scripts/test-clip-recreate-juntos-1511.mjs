@@ -125,15 +125,56 @@ function ssrRecreate(o, props) {
   const C = L(o)('app/recreate/RecreateClient').default
   return renderToStaticMarkup(React.createElement(C, props))
 }
+async function clipPage(o, user, searchParams) {
+  const load = L(o, {
+    '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user } }) } }) },
+    'next/navigation': { redirect: path => { throw Object.assign(new Error('redirect'), { path }) } },
+    '@/app/recreate/RecreateFlowPage': { __esModule: true, default: props => ({ joined: true, ...props }) },
+    ...Object.fromEntries(['@/components/create/CreateShell', '@/components/create/StudioNaMoldura', '@/components/kidsCartoon/KidsCartoonTemplate', '@/components/kidsCartoon/KidsVendaPanel', '@/app/(dashboard)/ads/v2/AdsV2Workspace', '@/components/ads/PessoaFalandoPainel', './AbaComChegada', '@/components/StudioIdeaArrival', '@/components/create/ClipNaMoldura'].map(p => [p, { __esModule: true, default: () => null }])),
+  })
+  try { return await load('app/create/[tab]/page').default({ params: { tab: 'clip' }, searchParams }) }
+  catch (error) { if (error.message === 'redirect') return { redirect: error.path }; throw error }
+}
+async function publicRoutes(o) {
+  const grants = 'lib/create/release.ts'
+  const together = src(o, grants).replace("CLIP_RECREATE_JUNTOS_RELEASE: InternalRelease = 'public'", "CLIP_RECREATE_JUNTOS_RELEASE: InternalRelease = 'internal'")
+  const pub = 'lib/create/publicEditorRelease.ts'
+  const publicOff = { ...o, [pub]: src(o, pub).replace('PUBLIC_CREATE_EDITORS = true', 'PUBLIC_CREATE_EDITORS = false') }
+  const session = email => email ? { id: 'account-fixture', email } : null
+  async function flowTarget(overrides, email, basePath = '/recreate') {
+    const load = L(overrides, {
+      '@/lib/recreate/server': { recreateSession: async () => ({ user: session(email) }) },
+      '@/components/create/ClipTemplateWorkspace': { __esModule: true, default: function Workspace() {} },
+      '@/components/create/ClipRecreateJuntos': { __esModule: true, default: function Together() {} },
+      './RecreateClient': { __esModule: true, default: function Catalog() {} },
+    })
+    const el = await load('app/recreate/RecreateFlowPage').default({ basePath })
+    return el.type.name
+  }
+  const query = { prompt: 'A snowy garden', utm_source: 'chatgpt' }
+  const guest = await clipPage(o, null, query), signed = await clipPage(o, session(CUSTOMER), query)
+  const closed = await clipPage(publicOff, null, query)
+  const effect = L(o)('lib/recreate/formats').RECREATE_FORMATS.find(f => f.id.startsWith('effect-') && L(o)('lib/recreate/entry').publicRecreatePath(f.id))
+  if (!effect) throw Error('missing public effect fixture')
+  const tags = { utm_source: 'chatgpt', utm_content: 'night clip', intent_campaign: 'footer_test' }
+  const effectPage = email => clipPage(o, session(email), { effect: effect.id.slice(7).replaceAll('-', '_'), ...tags })
+  const withTags = result => {
+    if (!result.redirect) return false
+    const url = new URL(result.redirect, 'https://fixture.invalid')
+    return url.pathname === '/recreate/' + effect.id && isDeepStrictEqual(Object.fromEntries(url.searchParams), tags)
+  }
+  const routes = await Promise.all([flowTarget(o, null), flowTarget(o, CUSTOMER), flowTarget(publicOff, null), flowTarget(publicOff, CUSTOMER), flowTarget({ ...o, [grants]: together }, CUSTOMER), flowTarget(o, null, '/recreate-flow-preview')])
+  return [
+    ['B1 /recreate: sessão, interruptores e prévia escolhem o componente correto', isDeepStrictEqual(routes, ['Workspace', 'Workspace', 'Catalog', 'Workspace', 'Catalog', 'Catalog'])],
+    ['B3 /create/clip conserva o editor, a query, a porta desligada e o efeito permitido nas duas sessões', [guest, signed].every(r => r.joined && r.basePath === '/recreate' && isDeepStrictEqual(r.searchParams, query)) && closed.redirect === '/clips?' + new URLSearchParams(query) && withTags(await effectPage(null)) && withTags(await effectPage(CUSTOMER))],
+  ]
+}
 function casosB(o) {
-  const flow = src(o, FLOW), create = src(o, CREATE)
-  const desvio = "if (user && basePath === '/recreate' && clipRecreateJuntosVisivel(user.email)) {"
-  const iDesvio = flow.indexOf(desvio), iSempre = flow.indexOf('return <RecreateClient currentFlow flowBasePath={basePath} initialId={id}')
+  const flow = src(o, FLOW)
+  const iSempre = flow.indexOf('return <RecreateClient currentFlow flowBasePath={basePath} initialId={id}')
   const classico = atributosDoJsx(flow.slice(iSempre), 'RecreateClient') ?? {}
   const juntos = objetoLiteral(flow, 'recreate') ?? {}
   const norm = m => Object.fromEntries(Object.entries(m).map(([k, v]) => [k, v.replace(/\s+/g, ' ')]))
-  const iClip = create.indexOf("if (params.tab === 'clip') {"), iJ = create.indexOf('if (clipRecreateJuntosVisivel(u?.email)) {'), iMold = create.indexOf('return <ClipNaMoldura measurementActor={u?.id ?? null} showRecreate={recreateVisible(u?.email)} />')
-  const iPorta = create.indexOf("if (!clipNaMolduraVisivel(u?.email)) redirect('/clips' + (query ? '?' + query : ''))"), iEfeito = create.indexOf('if (recreateFormat(id)) redirect(`/recreate/${id}`)')
   const base = BASE_RC
   const casosHtml = [
     ['biblioteca (nenhum modelo)', { currentFlow: true, flowBasePath: '/recreate', signedIn: true, accountKey: 'u1', createTabs: true }],
@@ -143,12 +184,10 @@ function casosB(o) {
     ['tela antiga (sem fluxo)', { initialId: 'passarela', internalTools: true }],
   ]
   return [
-    ['B1 /recreate: a tela única só com a régua (logado, rota do Recreate, interruptor) e ANTES da linha de sempre', iDesvio > 0 && iSempre > iDesvio && flow.slice(iDesvio, iSempre).includes('return <ClipRecreateJuntos measurementActor={user.id} recreate={recreate} />')],
     ['B2 a tela única recebe as MESMAS props do RecreateClient de sempre (uma a uma)', Object.keys(classico).length >= 12 && isDeepStrictEqual(norm(classico), norm(juntos))],
-    ['B3 /create/clip: a tela única só depois das portas de hoje (aba Clip, efeito → Recreate) e antes da aba Clip de sempre', iClip > 0 && iPorta > iClip && iEfeito > iPorta && iJ > iEfeito && iMold > iJ && create.slice(iJ, iMold).includes("return RecreateFlowPage({ basePath: '/recreate' })")],
     ['B4 /recreate/your-video: a barra só muda com a mesma régua', flow.includes("abaJuntos={!!user && basePath === '/recreate' && clipRecreateJuntosVisivel(user.email)}") && src(o, 'app/recreate-preview/SeuVideoRecreateClient.tsx').includes("<CreateTabs active={abaJuntos?'clip':'recreate'} {...{recreateHref:flowBasePath}} {...(abaJuntos?{showClip:true,showRecreate:false}:{})}/>")],
     ...casosHtml.map(([n, props]) => [`B5 RecreateClient sem moldura = HTML da main (${n})`, ssrRecreate(o, props) === ssrRecreate({ ...o, ...base }, props)]),
-    ['B6 ClipsClient byte a byte o da base + filtros aprovados, mídia visível e validação de proporção antes do upload', src(o, CLIPS) === comAjustesClips2311(comClipsProporcao1811(comClipsVisivel1711(comSemRepetir(lf(baseSrc(CLIPS))))))],
+    ['B6 ClipsClient conserva os filtros de mídia e só recebe o delta de preparação do visitante', lf(execFileSync('git', ['cat-file', 'blob', 'abf78c7ca8d53cd987da70d99a30a79516eb7bc4'], { cwd: ROOT, encoding: 'utf8' })) === comAjustesClips2311(comClipsProporcao1811(comClipsVisivel1711(comSemRepetir(lf(baseSrc(CLIPS)))))) && src(o, CLIPS) === lf(execFileSync('git', ['cat-file', 'blob', '81d56a3ab4c5588ff52996d9958b25670946a9a9'], { cwd: ROOT, encoding: 'utf8' }))],
     ['B6b sem semRepetir nada some: todo filtro novo é `!semRepetir?.has(…)`', src(o, CLIPS).split('!semRepetir?.has(').length === 3 && !src(o, CLIPS).includes('semRepetir.has(')],
     ['B7 a aba Clip de sempre (ClipNaMoldura) intocada', src(o, 'components/create/ClipNaMoldura.tsx') === lf(baseSrc('components/create/ClipNaMoldura.tsx'))],
   ]
@@ -171,7 +210,7 @@ function harness(o, { moldura = false, props = {} } = {}) {
     '@/components/PublicSiteHeader': { __esModule: true, default: stub }, '@/components/KineoBolt': { KineoBrandIcon: stub }, '@/components/SiteSettingsMenu': { __esModule: true, default: () => null }, '@/lib/clips/clipCatalog': real('lib/clips/clipCatalog'), '@/lib/recreate/formats': real('lib/recreate/formats'), '@/lib/recreate/entry': real('lib/recreate/entry'), '@/lib/recreate/catalogPublic': real('lib/recreate/catalogPublic'),
     '@/lib/recreate/photos': { compressPhoto: prepare, cropFace: prepare, composePairPhoto: async () => new File(['par'], 'par.jpg', { type: 'image/jpeg' }) },
     '@/lib/recreate/identityPhotos': L(o)('lib/recreate/identityPhotos'),
-    '@/components/billing/BuyCreditsEntry': { TopupOuRecargaModal: () => null, BUY_CREDITS_OPENED_EVENT: 'buy_credits_entry_opened' }, '@/lib/analytics': { trackEvent: async () => {} }, // KINEO-TELA-RECREATE-1611
+    '@/components/billing/BuyCreditsEntry': { TopupOuRecargaModal: () => null, BUY_CREDITS_OPENED_EVENT: 'buy_credits_entry_opened' }, '@/lib/analytics': { trackEvent: async () => {}, publicEditorSignup: real('lib/analytics').publicEditorSignup }, // KINEO-TELA-RECREATE-1611
     './RecreatePlayer': { __esModule: true, default: 'fixture-player', ExampleCover: 'fixture-cover' },
     '@/components/create/CreateTabs': { __esModule: true, default: stub }, '@/components/create/CreateNavConta': { __esModule: true, default: stub },
     '@/lib/videoDownload': { downloadVideoFile: stub }, '@/lib/downloadNosso': { downloadHref: u => '/api/download?url=' + encodeURIComponent(u) },
@@ -310,8 +349,8 @@ function casosD(o) {
 }
 
 // Cada grupo só roda de novo num mutante que toca um arquivo dele; senão vale o resultado do mundo real (o mesmo código dá o mesmo resultado).
-const DEPENDE = { A: ['lib/', 'app/(dashboard)/DashboardShell.tsx', 'app/(dashboard)/ads/v2/AdsV2Workspace.tsx', CREATE], B: [FLOW, CREATE, RC, CLIPS, 'components/create/', 'app/recreate-preview/', 'lib/'], C: [RC, JUNTOS, CLIPS, 'components/create/', 'lib/'], D: [JUNTOS, RC, 'components/create/', 'app/dev/', 'app/recreate/', 'lib/'] }
-const GRUPOS = { A: async o => casosA(o), B: async o => casosB(o), C: casosC, D: async o => casosD(o) }
+const DEPENDE = { publicRoutes: [FLOW, CREATE, 'lib/create/', 'lib/recreate/access', 'lib/recreate/release', 'lib/recreate/flowRelease', 'lib/clips/clipLaunch'], A: ['lib/', 'app/(dashboard)/DashboardShell.tsx', 'app/(dashboard)/ads/v2/AdsV2Workspace.tsx', CREATE], B: [FLOW, CREATE, RC, CLIPS, 'components/create/', 'app/recreate-preview/', 'lib/'], C: [RC, JUNTOS, CLIPS, 'components/create/', 'lib/'], D: [JUNTOS, RC, 'components/create/', 'app/dev/', 'app/recreate/', 'lib/'] }
+const GRUPOS = { publicRoutes, A: async o => casosA(o), B: async o => casosB(o), C: casosC, D: async o => casosD(o) }
 let real = null
 const todos = async o => {
   const tocados = Object.keys(o), out = []
@@ -327,7 +366,7 @@ const mut = (p, de, para) => { const s = lf(read(p)); if (s.split(de).length !==
 const MUTANTES = [
   ["M1 interruptor fechado por engano", mut('lib/create/release.ts', "CLIP_RECREATE_JUNTOS_RELEASE: InternalRelease = 'public'", "CLIP_RECREATE_JUNTOS_RELEASE: InternalRelease = 'off'")],
   ['M2 régua ignora a allowlist', mut('lib/create/clipRecreateJuntos.ts', "release !== 'off' && releaseVisible(email, release) &&", "release !== 'off' &&")],
-  ['M3 /recreate desvia sem a régua', mut(FLOW, "if (user && basePath === '/recreate' && clipRecreateJuntosVisivel(user.email)) {", "if (user && basePath === '/recreate') {")],
+  ['M3 /recreate desvia sem a régua', mut(FLOW, "if (basePath === '/recreate' && (guestWorkspace || (user && clipRecreateJuntosVisivel(user.email)))) {", "if (basePath === '/recreate' && (guestWorkspace || user)) {"), 'B1'],
   ['M4 a tela única recebe outra prop', mut(FLOW, "internalTools: !!user && releaseVisible(user.email, 'internal'), formatos", 'internalTools: true, formatos')],
   ['M5 o pedido muda só na tela única', mut(RC, "const payload: Record<string, unknown> = { format: selected.id, mode: 'swap', seconds: selected.seconds, prompt, consent, simulate: false }", "const payload: Record<string, unknown> = { format: selected.id, mode: 'swap', seconds: selected.seconds + (moldura ? 1 : 0), prompt, consent, simulate: false }")],
   ['M6 a tela de sempre muda', mut(RC, '      {selected && <section className="rc-reference" aria-label="Base video">{palco}</section>}', '      {selected && <section className="rc-reference" aria-label="Template">{palco}</section>}')],
@@ -343,6 +382,8 @@ const MUTANTES = [
   ['M14 palco padrão pega o molde da casa', mut(JUNTOS, 'return catalogo.find(f => publicRecreatePath(f.id) !== null) ?? catalogo[0] ?? null', 'return catalogo[0] ?? null')],
   ['M15 voltar ao Clip manda pedido', mut(RC, "    window.history.replaceState(null, '', url)\n    return true", "    void fetch('/api/recreate', { cache: 'no-store' })\n    window.history.replaceState(null, '', url)\n    return true")],
   ['M16 /create/clip pula a porta da aba Clip', mut(CREATE, "    if (!clipNaMolduraVisivel(u?.email)) redirect('/clips' + (query ? '?' + query : ''))\n", '')],
+  ['efeito sem atribuição para visitante', mut(CREATE, 'if (path) redirect(effectTemplateHref(path, searchParams))', 'if (path) redirect(path)'), 'B3'],
+  ['efeito sem atribuição para conta logada', mut(CREATE, 'if (recreateFormat(id)) redirect(effectTemplateHref(`/recreate/${id}`, searchParams))', 'if (recreateFormat(id)) redirect(`/recreate/${id}`)'), 'B3'],
   ['M18 os estilos do Clips só no painel do Clips (a grade de efeitos perde o CSS com um modelo aberto)', mut(JUNTOS, '{clip.estilos}{/* os estilos', '{/* os estilos')],
   ['M19 o efeito repetido volta (a grade e as fileiras do Clips mostram o mesmo)', mut(JUNTOS, 'semRepetir={semRepetir} moldura=', 'moldura=')],
   ['M20 o filtro some sem a lista (esconde efeito na /clips de sempre)', mut(CLIPS, '.filter((fx) => !semRepetir?.has(fx.title.trim().toLowerCase())).map((fx) => ( // KINEO-CLIP-RECREATE-JUNTOS-1511 sem repetir', '.filter((fx) => !semRepetir || !semRepetir.has(fx.title.trim().toLowerCase())).map((fx) => ( // KINEO-CLIP-RECREATE-JUNTOS-1511 sem repetir')],
@@ -351,7 +392,7 @@ const MUTANTES = [
 ]
 for (const [nome, o, expectedCase] of MUTANTES) {
   let reprovou, porque = ''
-  try { const f = (await todos(o)).filter(([, ok]) => !ok); reprovou = f.length > 0 && (!expectedCase || f.some(([n]) => n.startsWith(expectedCase))); porque = f.map(([n]) => n.split(' ')[0]).join(', ') } catch (e) { reprovou = true; porque = 'erro: ' + String(e?.message ?? e).slice(0, 80) }
+  try { const f = (await todos(o)).filter(([, ok]) => !ok); reprovou = f.length > 0 && (!expectedCase || f.some(([n]) => n.startsWith(expectedCase))); porque = f.map(([n]) => n.split(' ')[0]).join(', ') } catch (e) { reprovou = false; porque = 'erro: ' + String(e?.message ?? e).slice(0, 80) }
   total++
   console.log(`  ${reprovou ? 'ok  ' : 'FAIL'} ${nome} → o guardião reprova (${porque})`)
   if (!reprovou) falhas++

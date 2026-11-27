@@ -372,7 +372,7 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
 
       {loaded && (tab === 'images' || (tab === 'all' && imgs.length > 0)) && (
         imgs.length === 0 ? (
-          loadFailed ? null : <p className="sub"><UiLabel>No images yet — </UiLabel><Link href="/images" style={{ color: '#2997ff' }}><UiLabel>create your first image</UiLabel></Link>.</p>
+          loadFailed ? null : <p className="sub"><UiLabel>No images yet — </UiLabel><Link href="/create/image" style={{ color: '#2997ff' }}><UiLabel>create your first image</UiLabel></Link>.</p>
         ) : fImgs.length === 0 ? (
           <div className="card" style={{ padding: 24, textAlign: 'center' }}>
             <p className="sub" style={{ marginBottom: 14 }}><UiLabel>No projects match these filters.</UiLabel></p>

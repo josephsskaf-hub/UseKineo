@@ -24,7 +24,7 @@ export const WORKSPACE_NAV = [
  *  outros sites têm" — aqui ela abre o grupo), depois Clipes e Espaços. Par: Sidebar.tsx (grupo) e MobileNav.tsx ("More"). */
 export const MORE_TOOLS_NAV = [
   // KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25 — Imagem (fundador 25/09); espelha na lateral e no mobile.
-  { href: '/images', label: 'Images', icon: 'images' },
+  { href: '/create/image', label: 'Images', icon: 'images' },
   // KINEO-CLIPES-2026-09-29 — Clipes (5–15 s, uma cena, sem narração) ao lado de Imagem; par no MobileNav e no mega-menu.
   { href: '/clips', label: 'Clips', icon: 'clips' },
   // KINEO-ESPACOS-LANCAMENTO-2026-09-30 — Espaços (espaço vazio → pronto, vídeo antes → depois); par no MobileNav e no mega-menu.
@@ -56,6 +56,7 @@ export const MORE_NAV: readonly { href: string; label: string; icon: string }[] 
 export function workspaceNavActive(pathname: string, href: string): boolean {
   const matches = (path: string) => pathname === path || pathname.startsWith(path + '/')
   if (href === '/') return pathname === '/'
+  if (href === '/create/image') return matches('/create/image') || matches('/images')
   if (href === '/library') return ['/library', '/history', '/my-videos'].some(matches)
   // Animate virou item proprio do "More" (KINEO-NAV-4-ITENS-2026-09-25).
   if (href === '/studio') return ['/studio', '/generate', '/avatar'].some(matches)
@@ -69,6 +70,7 @@ export function workspaceNavActive(pathname: string, href: string): boolean {
 const NAV_ITEM_BY_HREF: Record<string, string> = {
   '/studio': 'video',
   '/images': 'image',
+  '/create/image': 'image',
   '/ads': 'ads',
   '/ads/new': 'ads',
   '/library': 'library',

@@ -777,7 +777,7 @@ export default function AdsV2Client({ showRecreate = true, showClip = false, mol
       )}
     </div>
   )
-  return moldura ? <AdsMoldura showRecreate={showRecreate} showClip={showClip}>{content}</AdsMoldura> : content
+  return moldura ? <AdsMoldura guest={guest} showRecreate={showRecreate} showClip={showClip}>{content}</AdsMoldura> : content
 }
 
 // ─── a sessão: todo dado do anúncio mora aqui ────────────────────────────────────────────────

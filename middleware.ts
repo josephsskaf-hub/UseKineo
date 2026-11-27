@@ -15,6 +15,7 @@ import {
   decideCheckoutGate,
 } from '@/lib/growth/checkoutRobotGate' // KINEO-CHECKOUT-ROBO-1510
 import { caminhoForaDasLinguas } from '@/lib/seo/linguasPublicas0311' // KINEO-5-LINGUAS-0311
+import { createEntryForSignupHref } from '@/lib/create/entry'
 import { destinoDoVisitanteQueEscreve } from '@/lib/growth/visitanteEscreveAntes' // KINEO-ESCREVE-ANTES-DO-LOGIN-0411
 import { decidirDominioAntigo2611, ROTA_DA_ENTRADA_2611, semSessaoNoHostAntigo2611 } from '@/lib/seo/dominioAntigo2611' // KINEO-DOMINIO-ANTIGO-2611
 
@@ -148,7 +149,11 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
   // KINEO-ESCREVE-ANTES-DO-LOGIN-0411 [fundador 04/11: "1a"] — cartão de filme da home, sem sessão: escreve primeiro no Studio; o login vem no Generate.
   if (request.method === 'GET' && request.nextUrl.pathname === '/signup' && !request.cookies.getAll().some((c) => c.name.startsWith('sb-') && c.name.includes('auth-token') && !c.name.endsWith('code-verifier'))) { // KINEO-COOKIE-VERIFICADOR-1511 [dono 15/11 "você conserta"] — sb-<ref>-auth-token-code-verifier fica de um login do Google COMEÇADO e não terminado: não é sessão; contava como sessão e o visitante caía no cadastro
     const destinoEscreve = destinoDoVisitanteQueEscreve(request.nextUrl.pathname, request.nextUrl.searchParams.get('redirect'))
-    if (destinoEscreve) return NextResponse.redirect(new URL(destinoEscreve, request.url), 307)
+    if (destinoEscreve) {
+      const entrada = request.nextUrl.pathname + request.nextUrl.search
+      const editor = createEntryForSignupHref(entrada, false)
+      return NextResponse.redirect(new URL(/^\/(?:create|recreate)(?:\/|\?|$)/.test(editor) ? editor : destinoEscreve, request.url), 307)
+    }
   }
 
   // KINEO-5-LINGUAS-0311 [TRAVA 8.2 — "vai" do fundador 03/11] — a versão de página numa língua fora das 5 (en/de/es/pt/fr) segue

@@ -17,7 +17,7 @@ import { KLING4_PAID_COPY, kling4PromoZeroCredits, rebaseKling4Lease } from '@/l
 import { TRIAL_FREE_FILM_SECONDS } from '@/lib/freeTierOffer' // KINEO-HOME-TOPO-0511
 import { FREE_FILM_COUNTRY_CLAUSE } from '@/lib/freeFilmPolicy' // KINEO-GOOGLE-FAXINA-1011
 import { GENERATE_IN_CLAUDE_PATH } from '@/lib/generateInClaude' // KINEO-PRESENTE-CONECTOR-0911
-import { createEntryHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — a linha do filme grátis abre a aba Film
+import { createEntryHref, publicCreateCtaHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — a linha do filme grátis abre a aba Film
 
 export const CAIXA_CREDITS_API = '/api/credits'
 export const CAIXA_KLING4_API = '/api/kling4-paid/availability'
@@ -113,7 +113,9 @@ export const LINHA_GRATIS_DO_VISITANTE = `Your first film is free${FREE_FILM_COU
 
 /** As linhas do visitante: iguais para todo país (o país do IP não entra mais aqui). */
 export function linhasDoVisitante(): CaixaLinha[] {
-  const linhas: CaixaLinha[] = [{ id: 'filme', titulo: LINHA_GRATIS_DO_VISITANTE, detalhe: `${TRIAL_FREE_FILM_SECONDS} s, no card`, href: '/signup?utm_source=gift_box', modal: 'signup' }]
+  const legacy = '/signup?utm_source=gift_box'
+  const href = publicCreateCtaHref(legacy)
+  const linhas: CaixaLinha[] = [{ id: 'filme', titulo: LINHA_GRATIS_DO_VISITANTE, detalhe: `${TRIAL_FREE_FILM_SECONDS} s, no card`, href, modal: href === legacy ? 'signup' : undefined }]
   return [...linhas, ...linhasDaCaixa(CAIXA_SEM_LEITURA, 0)] // sem leitura nenhuma, sobram as linhas do conector e a do afiliado
 }
 

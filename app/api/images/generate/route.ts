@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { fal } from '@fal-ai/client'
 import { randomUUID } from 'crypto'
+import { imageCreditCost, type ImgModelKey } from '@/lib/imageModels'
 import { debitVideoCredits } from '@/lib/credits/debit'
 import { refundRenderCredits } from '@/lib/credits/refund'
 import { persistImage, signReferencePhotos } from '@/lib/imageStore'
@@ -31,23 +32,19 @@ import { moderationRefusalMessage, moderationRefusalStatus } from '@/lib/safety/
 
 export const maxDuration = 60
 
-type ImgModelKey = 'schnell' | 'dev' | 'recraft' | 'nanobanana' | 'seedream' | 'grok'
 type ImgSize = 'square_hd' | 'portrait_16_9' | 'landscape_16_9'
 
-const MODELS: Record<ImgModelKey, { slug: string; cost: number; input: (prompt: string, size: ImgSize) => Record<string, unknown> }> = {
+const MODELS: Record<ImgModelKey, { slug: string; input: (prompt: string, size: ImgSize) => Record<string, unknown> }> = {
   schnell: {
     slug: 'fal-ai/flux/schnell',
-    cost: 1,
     input: (prompt, size) => ({ prompt, image_size: size, num_inference_steps: 4, enable_safety_checker: true }),
   },
   dev: {
     slug: 'fal-ai/flux/dev',
-    cost: 2,
     input: (prompt, size) => ({ prompt, image_size: size, num_inference_steps: 28, enable_safety_checker: true }),
   },
   recraft: {
     slug: 'fal-ai/recraft/v3/text-to-image',
-    cost: 4,
     input: (prompt, size) => ({ prompt, image_size: size }),
   },
   // KINEO-IMAGES-TOP-2026-08-17 — os 3 chefoes pedidos pelo fundador, schemas
@@ -56,17 +53,14 @@ const MODELS: Record<ImgModelKey, { slug: string; cost: number; input: (prompt: 
   // Imagine 2.0 → 3cr. nano/grok usam aspect_ratio; seedream usa image_size.
   nanobanana: {
     slug: 'fal-ai/nano-banana-pro',
-    cost: 5,
     input: (prompt, size) => ({ prompt, aspect_ratio: size === 'square_hd' ? '1:1' : size === 'landscape_16_9' ? '16:9' : '9:16' }),
   },
   seedream: {
     slug: 'bytedance/seedream/v5/pro/text-to-image',
-    cost: 3,
     input: (prompt, size) => ({ prompt, image_size: size }),
   },
   grok: {
     slug: 'xai/grok-imagine-image/v2.0/text-to-image',
-    cost: 3,
     input: (prompt, size) => ({ prompt, aspect_ratio: size === 'square_hd' ? '1:1' : size === 'landscape_16_9' ? '16:9' : '9:16' }),
   },
 }
@@ -97,6 +91,7 @@ export async function POST(req: NextRequest) {
   const size: ImgSize =
     body.size === 'square_hd' || body.size === 'landscape_16_9' ? body.size : 'portrait_16_9'
   const model = MODELS[modelKey]
+  const cost = imageCreditCost(modelKey)
 
   // Referência: validada ANTES de moderar e de cobrar — só Nano Banana Pro, consentimento do servidor, até 3, só da pasta
   // da própria conta. As URLs que vão à moderação e à fal são assinadas aqui, pelo caminho; nenhuma vem do navegador.
@@ -123,7 +118,7 @@ export async function POST(req: NextRequest) {
 
   // Débito upfront, idempotente por renderId; falha do fornecedor estorna.
   const renderId = `image-${randomUUID()}`
-  const debit = await debitVideoCredits(supabase, { userId: user.id, renderId, cost: model.cost })
+  const debit = await debitVideoCredits(supabase, { userId: user.id, renderId, cost })
   if (debit.error || debit.data === null) {
     return NextResponse.json({ error: 'Not enough credits.', code: 'credits' }, { status: 402 })
   }
@@ -152,7 +147,7 @@ export async function POST(req: NextRequest) {
     // nosso bucket + linha na tabela `images` (galeria My Images). Fallback
     // best-effort: se a copia falhar, devolve a URL do fal mesmo.
     const stored = await persistImage({ userId: user.id, prompt, model: modelKey, sourceUrl: url })
-    console.log(`[images] user=${user.id.slice(0, 8)} model=${modelKey} cost=${model.cost} refs=${referenceUrls.length} ok persisted=${!!stored.id}`)
+    console.log(`[images] user=${user.id.slice(0, 8)} model=${modelKey} cost=${cost} refs=${referenceUrls.length} ok persisted=${!!stored.id}`)
     await referenceEvent('delivered')
     return NextResponse.json({ url: stored.url, id: stored.id, model: modelKey, balance: debit.data - 0 })
   } catch (e) {

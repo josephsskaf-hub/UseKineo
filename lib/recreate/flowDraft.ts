@@ -2,7 +2,7 @@
 
 // Local catalog handoff only. No URL, upload, API or generation result is stored.
 import { recreateFormat } from './formats'
-import { publicRecreatePath } from './entry'
+import { publicRecreatePath, RECREATE_MOLDES_SO_LOGADO } from './entry'
 import { KLING_IDENTITY_PHOTO_LIMIT, validRecreatePhotoCount } from './identityPhotos'
 
 type StoredPhoto = { blob: Blob; name: string; lastModified: number }
@@ -20,6 +20,7 @@ const accountValid = (key: unknown): key is string | null => key === null || typ
 const keyValid = (key: unknown) => key === undefined || typeof key === 'string' && /^[a-z0-9._:-]{8,100}$/i.test(key)
 const fresh = (at: unknown): at is number => typeof at === 'number' && Number.isFinite(at) && at >= 0 && at <= Date.now() && Date.now() - at < TTL
 function slots(model: unknown): number | null {
+  if (typeof model === 'string' && RECREATE_MOLDES_SO_LOGADO.includes(model)) return 1
   if (typeof model !== 'string' || !/^[a-z0-9-]{1,100}$/.test(model) || !publicRecreatePath(model)) return null
   const format = recreateFormat(model)
   return format && Number.isInteger(format.photoSlots) && format.photoSlots > 0 ? format.photoSlots : null

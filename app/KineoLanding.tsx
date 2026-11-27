@@ -56,7 +56,7 @@ import { ADS_SAMPLE_LIVE } from '@/lib/ads/sample'
 import { WELCOME20_PERCENT_OFF } from '@/lib/growth/publicPromoTruth'
 import { TRIAL_FREE_FILM_SECONDS, TRIAL_SEEDANCE15_FILMS } from '@/lib/freeTierOffer'
 import { clipsFirstFilmHref } from '@/lib/growth/homeClipsFirst'
-import { createEntryForContentHref, createEntryForSignupHref, createEntryHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — o destino de cada entrada de criação
+import { createEntryForContentHref, createEntryForSignupHref, createEntryHref, publicCreateCtaHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — o destino de cada entrada de criação
 import { NOMES_DE_PRODUTO } from '@/lib/ui/nomesDeProduto' // KINEO-NOMES-DE-PRODUTO-1211 — um nome por produto (tabela aprovada pelo fundador 11/11)
 import { MENU_CARTOON_HREF, MENU_CARTOON_LABEL, MENU_CARTOON_NAV_ITEM, MENU_CONNECTOR_HREF, MENU_CONNECTOR_LABEL, MENU_CONNECTOR_NAV_ITEM, HOME_GALLERY_TITLE } from '@/lib/ui/homeRemodela2010' // KINEO-HOME-REMODELA-2010
 import { RECREATE_MENU_HREF, RECREATE_MENU_LABEL, RECREATE_MENU_NAV_ITEM } from '@/lib/ui/homeRemodela2010' // KINEO-MENU-RECREATE-1211
@@ -819,6 +819,13 @@ export default function KineoLanding({
   const referralBridge = !isSignedIn && initialAcquisitionSource
     ? HOME_REFERRAL_BRIDGE_COPY[initialAcquisitionSource]
     : null
+  const startHref = (surface: 'nav' | 'nav-mobile') => {
+    const legacy = `/signup?utm_source=${surface}`
+    const target = publicCreateCtaHref(legacy)
+    return target === legacy && referralBridge ? '#try-kineo' : target
+  }
+  const desktopStart = startHref('nav')
+  const mobileStart = startHref('nav-mobile')
   const starterCheckoutHref = pricingCheckoutHref('/api/stripe/checkout?tier=starter&intro=1', isSignedIn)
   const creatorCheckoutHref = pricingCheckoutHref('/api/stripe/checkout?tier=basic&intro=1', isSignedIn)
   const studioCheckoutHref = pricingCheckoutHref('/api/stripe/checkout?tier=pro', isSignedIn)
@@ -950,7 +957,7 @@ export default function KineoLanding({
           {initialUser ? null : <Link className="nav-login" href="/login" data-nav-item="login" data-auth-modal="login"><UiLabel>Log in</UiLabel></Link>}
           {initialUser
             ? <div className="nav-cta"><NavCreditsBadge opensAccount /><Link className="btn btn-w nav-dashboard" style={{ padding: '12px 20px', fontSize: '14px' }} href={createEntryHref('film', '/studio', isSignedIn)}><UiLabel>Dashboard</UiLabel></Link></div>
-            : <Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} data-auth-modal="signup" href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav'}><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>}
+            : <Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} data-auth-modal={desktopStart.startsWith('/signup?') ? 'signup' : undefined} href={desktopStart}><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>}
           <div className="nav-toggle-wrap">
             <input type="checkbox" id="nav-toggle" className="nav-toggle-input" aria-label="Menu" aria-controls="mobile-nav-menu" />
             <span className="nav-toggle-btn" aria-hidden="true"><span className="bar" /><span className="bar" /><span className="bar" /></span>
@@ -976,7 +983,7 @@ export default function KineoLanding({
               {/* KINEO-HOME-REMODELA-2010 — par do topo no celular: o rótulo "More tools" e os itens dele saíram (Images, Clips, Spaces, Examples seguem no rodapé) */}
               {initialUser
                 ? null
-                : <Link className="btn btn-w" data-auth-modal="signup" href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav-mobile'}><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>}
+                : <Link className="btn btn-w" data-auth-modal={mobileStart.startsWith('/signup?') ? 'signup' : undefined} href={mobileStart}><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>}
             </label>
           </div>
         </div>

@@ -4,6 +4,7 @@
 // Componente de SERVIDOR (sem hook): o texto sai no HTML estático — é o que o OAI-SearchBot e o Bing leem.
 // Sem <video> (capa leve em <img>, carregamento tardio): as páginas que recebem esta seção não ganham mídia pesada.
 // KINEO-PAGINAS-IA-CLARAS-2110 — cores em var(--kpl-*, <cor de antes>): claras só dentro de <main className="kpl"> (as páginas de entrada do ChatGPT); nas outras páginas, a cor de antes.
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
@@ -95,7 +96,7 @@ export default function GeoRodada3Section({ answer }: { answer: Round3Answer }) 
         {answer.links.map((l, i) => (
           <span key={l.href}>
             {i > 0 ? ' · ' : ''}
-            <Link href={l.href} style={{ color: 'var(--kpl-accent, #2997ff)', textDecoration: 'none', fontWeight: 700 }}>{l.label}</Link>
+            <Link href={publicCreateCtaHref(l.href)} style={{ color: 'var(--kpl-accent, #2997ff)', textDecoration: 'none', fontWeight: 700 }}>{l.label}</Link>
           </span>
         ))}
       </nav>

@@ -1,3 +1,4 @@
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import { PLANS } from '@/lib/pricing'
 import { DURATION_REFERENCE_SECONDS } from '@/lib/credits/engineCost'
 import { SORA_REPLACEMENTS } from '@/lib/growth/soraMigrationFacts'
@@ -18,7 +19,7 @@ export default function SoraReplacementTable() {
       </table>
     </div>
     <p style={{ fontSize: 12, color: '#aaaab4' }}>*Allocation of the {PLANS.pro.name} monthly plan ({PLANS.pro.priceLabel}, {PLANS.pro.credits} credits): plan USD price ÷ plan credits × film credits. Not a standalone film purchase, provider API rate, or promise of unused-credit refunds. Duration and engine change credit usage. Check Studio before generating.</p>
-    <a href="/studio?utm_source=seo&utm_medium=sora_migration&utm_campaign=gpt_5h_20260924" style={{ display: 'inline-block', background: '#2997ff', color: '#fff', padding: '12px 20px', borderRadius: 10, fontWeight: 800, textDecoration: 'none' }}>Choose an available engine in Studio →</a>
+    <a href={publicCreateCtaHref("/studio?utm_source=seo&utm_medium=sora_migration&utm_campaign=gpt_5h_20260924")} style={{ display: 'inline-block', background: '#2997ff', color: '#fff', padding: '12px 20px', borderRadius: 10, fontWeight: 800, textDecoration: 'none' }}>Choose an available engine in Studio →</a>
     <p style={{ fontSize: 14, color: '#c7c7cc' }}>Want a human to make a business ad for you? <a href="/business-video-ads" style={{ color: '#71b8ff' }}>See Kineo Empresas</a>, a separate one-time service.</p>
   </section>
 }

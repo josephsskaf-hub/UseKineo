@@ -142,6 +142,7 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      { source: '/images', destination: '/create/image', permanent: false },
       // KINEO-FILMS-DIRETO-1311 — exact index redirect; public /examples/<slug> detail routes remain.
       { source: '/examples', destination: '/made-with-kineo', permanent: true },
       // PUSH #34 — the strongest stale branded-search result still points to

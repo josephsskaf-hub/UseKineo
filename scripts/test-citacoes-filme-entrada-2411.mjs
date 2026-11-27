@@ -16,6 +16,8 @@ function params(campaign,mode='ai'){return new URLSearchParams({prompt:'A brass 
 const request=p=>new Request('http://local.invalid/api/citations/film-entry?'+p)
 let checks=0
 async function verify(rep={}){
+ // Keep the existing authentication and saved-card checks against the rollback state.
+ rep={...rep,'lib/create/publicEditorRelease.ts':'export const PUBLIC_CREATE_EDITORS = false'}
  for(const campaign of campaigns)for(const mode of ['ai','verbatim'])for(const user of [null,buyer]){
   const w=world({rep,user}),result=await w.GET(request(params(campaign,mode)))
   assert.equal(result.status,303,'ENTRY redirects without generation')
@@ -42,7 +44,18 @@ async function verify(rep={}){
   const p=params(campaigns[0]);p.set(key,value);const w=world({rep});assert.equal((await w.GET(request(p))).status,400,'ENTRY unsupported input rejected');assert.equal(w.reads(),0);checks++
  }
 }
+async function verifyPublic(rep={}) {
+ for(const campaign of campaigns) for(const mode of ['ai','verbatim']) for(const user of [null,buyer]) {
+  const w=world({rep,user}); const q=params(campaign,mode); q.set('utm_source','chatgpt'); const result=await w.GET(request(q));
+  assert.equal(result.status,303); assert.equal(w.reads(),1); const t=new URL(result.url);
+  assert.equal(t.pathname, '/create/film','PUBLIC editor path'); assert.equal(t.origin, 'http://local.invalid','PUBLIC same origin');
+  assert.equal(t.searchParams.get('ideia'),'A brass owl.\nIt counted three lights.','PUBLIC words intact'); assert.equal(t.searchParams.get('script_mode'),mode,'PUBLIC exact mode');
+  assert.equal(t.searchParams.get('utm_source'),'chatgpt','PUBLIC acquisition'); assert.equal(t.searchParams.get('intent_campaign'),campaign,'PUBLIC campaign');
+  for(const key of ['redirect','create_intent','autoanalyze','studio'])assert.equal(t.searchParams.has(key),false,'PUBLIC no autostart');
+ }
+}
 await verify()
+await verifyPublic()
 const mutate=(a,b)=>{const s=source(ENTRY);assert.equal(s.split(a).length,2);return{[ENTRY]:s.replace(a,b)}}
 const mutants=[
  ['machine bypass',"user ? destinoDaIdeia(canonical) : '/signup'","user ? canonical : '/signup'",'ENTRY actual path for session state'],
@@ -53,5 +66,6 @@ const mutants=[
  ['scope widened','!CAMPAIGNS.has(campaign)','false','ENTRY unsupported input rejected'],
 ]
 for(const[name,a,b,message]of mutants){await assert.rejects(()=>verify(mutate(a,b)),e=>e?.code==='ERR_ASSERTION'&&e.message.startsWith(message),name+' exact failure');console.log('PASS mutant '+name+' -> '+message)}
-if(process.env.KINEO_CITATION_ENTRY_PROOF)fs.writeFileSync(process.env.KINEO_CITATION_ENTRY_PROOF,JSON.stringify({positiveCases:42,mutants:mutants.length,scope:'Real server GET and real signup preview; controlled auth I/O; no URL rewriting in browser proof; no network/account/generation/payment.'},null,2))
-console.log('PASS 42 server entry cases, six exact mutants; guest canonical card and verified session manual Studio; no addresses logged.')
+await assert.rejects(()=>verifyPublic(mutate('intent_campaign: campaign, script_mode: scriptMode })',"intent_campaign: campaign, script_mode: 'ai' })")),e=>e?.code==='ERR_ASSERTION'&&e.message.startsWith('PUBLIC exact mode'),'public mode not overwritten');
+if(process.env.KINEO_CITATION_ENTRY_PROOF)fs.writeFileSync(process.env.KINEO_CITATION_ENTRY_PROOF,JSON.stringify({positiveCases:70,mutants:mutants.length+1,scope:'Real server GET and real signup preview; controlled auth I/O; no URL rewriting in browser proof; no network/account/generation/payment.'},null,2))
+console.log('PASS 70 server entry cases, seven exact mutants; 28 public editor handoffs and 42 rollback/auth checks.')

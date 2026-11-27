@@ -97,7 +97,11 @@ ok(topicForm.includes('name="intent_campaign" value={campaign}'), 'shared form s
 ok(topicForm.includes('required') && topicForm.includes('minLength={3}'), 'empty or trivial topic cannot submit')
 const realTopicForm = offlineModules({ mocks: { 'lib/analytics.ts': { rememberSignupCampaign() {}, trackEvent() {} } } })('app/youtube-shorts-from-topic/TopicGeneratorForm.tsx').default
 const defaultHtml = renderToStaticMarkup(React.createElement(realTopicForm))
-ok(defaultHtml.includes('action="/signup"') && defaultHtml.includes('method="get"'), 'form uses the established resilient signup handoff')
+ok(defaultHtml.includes('action="/create/film"') && defaultHtml.includes('method="get"'), 'public GET opens the editable film')
+ok(!defaultHtml.includes('name="create_intent"') && !defaultHtml.includes('name="redirect"'), 'editor arrival never requests generation or login')
+const priorForm = offlineModules({ replacements: { 'lib/create/publicEditorRelease.ts': 'export const PUBLIC_CREATE_EDITORS = false' }, mocks: { 'lib/analytics.ts': { rememberSignupCampaign() {}, trackEvent() {} } } })('app/youtube-shorts-from-topic/TopicGeneratorForm.tsx').default
+const priorHtml = renderToStaticMarkup(React.createElement(priorForm))
+ok(priorHtml.includes('action="/signup"') && priorHtml.includes('method="get"') && priorHtml.includes('name="create_intent"'), 'rollback restores the resilient signup handoff')
 const experimentHtml = renderToStaticMarkup(React.createElement(realTopicForm, { reviewInStudio: true }))
 ok(experimentHtml.includes('action="/api/citations/film-entry"') && experimentHtml.includes('method="get"'), 'only explicit review opt-in uses the server entry')
 ok(topicForm.indexOf('name="prompt"') < topicForm.indexOf('name="create_intent"'), 'visible work and creation intent share the same form')

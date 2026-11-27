@@ -23,6 +23,7 @@ const eventsSrc = ler('app/api/events/route.ts')
 const module = { exports: {} }
 new Function('module', 'exports', 'require', ts.transpileModule(libSrc, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText)(module, module.exports, () => ({}))
 const P = module.exports
+const { imageCreditCost } = await import('data:text/javascript;base64,' + Buffer.from(ts.transpileModule(ler('lib/imageModels.ts'), { compilerOptions: { module: ts.ModuleKind.ES2020, target: ts.ScriptTarget.ES2020 } }).outputText).toString('base64'))
 
 // ── P1 interruptor e preço "a definir" ──
 checa('P1 nasce só da casa (PRODUCAO_PUBLIC = false)', P.PRODUCAO_PUBLIC === false && /export const PRODUCAO_PUBLIC = false\n/.test(libSrc))
@@ -31,7 +32,7 @@ checa('P3 abrir ao público exige preço da montagem decidido (null = "a definir
 checa('P4 a montagem recusa (403 price_not_set) público + preço null ANTES de ler o pedido', ordem(montSrc, "if (PRODUCAO_PUBLIC && PRODUCAO_MONTAGE_CREDITS === null) return producaoFail('price_not_set', 403)", 'parseMontageRefs(body?.shots)'))
 
 // ── P5 espelhos de preço (o número da tela = o que a rota cobra) ──
-checa('P5 imagem: 5 cr = MODELS.nanobanana.cost do /api/images/generate', P.PRODUCAO_IMAGE_CREDITS === 5 && /nanobanana: \{\n\s+slug: 'fal-ai\/nano-banana-pro',\n\s+cost: 5,/.test(imagesSrc))
+checa('P5 imagem: 5 cr = MODELS.nanobanana.cost do /api/images/generate', P.PRODUCAO_IMAGE_CREDITS === 5 && imageCreditCost('nanobanana') === P.PRODUCAO_IMAGE_CREDITS && imagesSrc.includes("slug: 'fal-ai/nano-banana-pro'") && imagesSrc.includes('const cost = imageCreditCost(modelKey)'))
 checa('P6 fala para a câmera: 110 cr = AVATAR_CREDIT_COST do fabric', P.PRODUCAO_AVATAR_CREDITS === 110 && P.PRODUCAO_AVATAR_ENGINE === 'fabric' && avatarSrc.includes("const AVATAR_CREDIT_COST = engine === 'presenter' ? 70 : 110"))
 checa('P7 piso de 12 s = AVATAR_MIN_NARRATION_SECONDS da rota', P.PRODUCAO_AVATAR_MIN_SECONDS === 12 && avatarSrc.includes('const AVATAR_MIN_NARRATION_SECONDS = 12'))
 checa('P8 narração: 2 cr/1.000 caracteres = perK do minimax e a mesma fórmula da rota',

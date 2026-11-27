@@ -18,6 +18,8 @@ function make(rep={},country='US',reverse=true,skeleton=false){
  const replacements={...dep,...rep}
  replacements[FREE]=(rep[FREE]??source(FREE)).replace("import { headers } from 'next/headers'",'const headers=()=>({get:()=>'+JSON.stringify(country)+'}) //').replace('const OFFER = getFreeTierOffer()','const OFFER = {...getFreeTierOffer(),reverseTrial:'+reverse+'}')
  const stub={__esModule:true,default:()=>React.createElement('i',{'data-form-placeholder':'yes'})}
+ // The archived citation baseline predates the public editor. Compare with its own unrelated switch OFF.
+ replacements['lib/create/publicEditorRelease.ts']='export const PUBLIC_CREATE_EDITORS = false'
  return offlineModules({mocks:skeleton?{...mocks,[FORM]:stub,[TOPIC]:stub,'components/seo/CitationFilmProof.tsx':{__esModule:true,default:({children})=>children},'components/seo/CitationFilmShortAnswer.tsx':{__esModule:true,default:()=>null}}:mocks,replacements})
 }
 // KINEO-CITACOES-PUBLIC-2411: o padrão agora é 'public'; a troca de estado casa qualquer valor para nunca virar no-op calado.

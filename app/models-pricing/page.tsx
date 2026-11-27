@@ -12,6 +12,7 @@
 // mercado inteiro deixou aberto: todos precificam 5s/8s isolados e devolvem a
 // aritmética para o usuário. Aqui a linha diz o que a pessoa realmente compra —
 // um filme de 35s, 60s ou 90s, com voz, legenda karaokê e trilha inclusas.
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
@@ -167,7 +168,7 @@ export default function ModelsPricingPage() {
         The Starter plan is ${starterPrice}/month for {starterCredits} credits — {Math.floor(starterCredits / creditCostForDuration('cinematic_ai', true, 60))} films
         of 60 seconds on MiniMax H3 Turbo.
         See every plan on the <Link href="/pricing" style={{ color: '#5cb3ff' }}>pricing page</Link>, or start
-        your free trial in the <Link href="/studio" style={{ color: '#5cb3ff' }}>studio</Link>.
+        your free trial in the <Link href={publicCreateCtaHref("/studio")} style={{ color: '#5cb3ff' }}>studio</Link>.
       </p>
 
       <script

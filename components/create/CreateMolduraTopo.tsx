@@ -10,21 +10,22 @@ import Link from 'next/link'
 import { KineoBrandIcon } from '@/components/KineoBolt'
 import BuyCreditsLink from '@/components/billing/BuyCreditsEntry'
 import CreateTabs from './CreateTabs'
+import type { CreateTab } from '@/lib/create/tabs'
 import CreateNavConta from './CreateNavConta'
 import '@/app/recreate/recreate.css'
 import './create.css'
 
 export { MOLDURA_TOPO_ROTAS, usaMolduraNova } from '@/lib/create/molduraNova' // a regra mora num módulo puro (a casca e os guardiões leem sem montar componente)
 
-export default function CreateMolduraTopo({ showRecreate = true, showClip = true, surface = 'library_top' }: { showRecreate?: boolean; showClip?: boolean; surface?: string }) {
+export default function CreateMolduraTopo({ showRecreate = true, showClip = true, surface = 'library_top', active = null, signedIn = true }: { showRecreate?: boolean; showClip?: boolean; surface?: string; active?: CreateTab | 'image' | null; signedIn?: boolean }) {
   return <div className="recreate ct-moldura-topo" data-create-moldura="topo" style={{ minHeight: 0 }}>
     <header className="rc-nav ct-nav">
       <Link href="/" className="rc-brand"><KineoBrandIcon size={28} /><span>Kineo</span></Link>
-      <CreateTabs active={null} showRecreate={showRecreate} showClip={showClip} />
-      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 16, minWidth: 0 }}>
-        <BuyCreditsLink surface={surface} style={{ fontSize: 12, whiteSpace: 'nowrap' }} />
+      <CreateTabs active={active} showRecreate={showRecreate} showClip={showClip} />
+      {signedIn && <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 16, minWidth: 0 }}>
+        {active === null && <BuyCreditsLink surface={surface} style={{ fontSize: 12, whiteSpace: 'nowrap' }} />}
         <CreateNavConta />
-      </div>
+      </div>}
     </header>
   </div>
 }

@@ -5,6 +5,7 @@
 // scripts/test-duracao-rewards-2026-10-06.mjs). Enquanto a pessoa confere, NADA sai do navegador: nenhum fetch,
 // nenhum evento por tecla. O único envio é o clique no CTA (ação dela), e leva só números — nunca o texto.
 
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
 import {
@@ -38,7 +39,7 @@ export function RewardsStudioCta({
   style?: CSSProperties
   children: ReactNode
 }) {
-  const href = rewardsStudioHref(script)
+  const href = publicCreateCtaHref(rewardsStudioHref(script))
   return (
     <a
       href={href}

@@ -15,17 +15,17 @@ const ROOT = path.resolve(import.meta.dirname, '..')
 const PAGE = 'app/(dashboard)/images/ImagesClient.tsx'
 const LIB = 'lib/images/telaImagens.ts'
 /** A base antes desta entrega: a lógica da tela tem de continuar igual a ela. */
-const BASE = '03b266b75'
-const lf = (t) => t.replace(/\r\n/g, '\n')
-const atual = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
-const naBase = lf(execFileSync('git', ['show', `${BASE}:${PAGE}`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 24 }))
-
-/** Tudo o que vai do upload da foto até o return: gerar, baixar, editar, ampliar. */
-const logica = (src) => {
-  const a = src.indexOf('  async function addRefPhotos(')
-  const b = src.indexOf('  return (\n    <div className="stu images-workspace kps-page">')
-  if (a < 0 || b < 0) return null
-  return src.slice(a, b)
+const lf = t => t.replace(/\r\n/g, '\n')
+const atual = rel => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
+const snapshot = ref => lf(execFileSync('git', ['show', ref + ':' + PAGE], { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 24 }))
+const beforeImage = snapshot('d15efde66')
+const visitorImage = snapshot('d835e54c6')
+// Only the image draft, reference upload and submission have a new contract.
+// Download, edit and upscale remain pinned to the independent base.
+function body(source, name) {
+  const sf = ts.createSourceFile(PAGE, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+  const component = sf.statements.find(s => ts.isFunctionDeclaration(s) && s.name?.text === 'ImagesClient')
+  return component?.body?.statements.find(s => ts.isFunctionDeclaration(s) && s.name?.text === name)?.body?.getText(sf)
 }
 const semEstilo = (html) => html.replace(/<style[^>]*>[\s\S]*?<\/style>/g, '')
 const PRECO = /\b\d+\s*cr\b/g
@@ -101,8 +101,8 @@ function problemas() {
   const condicao = fonte.match(/const mostraVitrine = (.*)/)?.[1] ?? ''
   if (!condicao.includes('items.length === 0')) p.push('D2 quem tem imagens ainda vê a vitrine')
   const posBotao = fonte.indexOf('className={`go ${canGenerate')
-  const palco = fonte.indexOf('{mostraVitrine && <ProductStage ')
-  const reta = fonte.indexOf('{mostraVitrine && <ProductRow ')
+  const palco = fonte.indexOf('{!publicEditor && mostraVitrine && <ProductStage ')
+  const reta = fonte.indexOf('{!publicEditor && mostraVitrine && <ProductRow ')
   if (!(posBotao >= 0 && palco > posBotao && reta > palco)) p.push('D3 sem imagens: a vitrine não está abaixo da caixa')
   if (!fonte.includes('/previews/promo-images-1.mp4') || !/<ProductStage .*items=\{HOUSE_IMAGES\}/.test(fonte)) p.push('D4 a vitrine não é a que já existia')
   if (!/!galleryLoading/.test(condicao) || !/!premiere/.test(condicao)) p.push('D5 a vitrine pisca enquanto a galeria é lida')
@@ -116,14 +116,17 @@ function problemas() {
   if (!css.includes('REGRAS_DO_RECOLHIDO') || !/\.ace-\(change\|more\|open-body\)/.test(css)) p.push('E3 o recolhido deixou de vir das regras do Cartoon')
 
   // F) só apresentação
-  if (logica(fonte) !== logica(naBase)) p.push('F1 a lógica de gerar, baixar, editar ou ampliar mudou')
+  if (['generate', 'uploadPhoto', 'addRefPhotos', 'downloadImage', 'applyEdit', 'upscale'].some(name => {
+    const expected = body(['generate', 'uploadPhoto', 'addRefPhotos'].includes(name) ? visitorImage : beforeImage, name)
+    return !expected || expected !== body(fonte, name)
+  })) p.push('F1 a lógica de gerar, baixar, editar ou ampliar mudou')
   if (!fonte.includes("useState<ImgModelKey>('dev')")) p.push('F2 o motor padrão mudou')
   if (!fonte.includes("useState<ImgSize>('portrait_16_9')")) p.push('F3 o formato padrão mudou')
   if (!fonte.includes('unitCost={unitCost}') || !fonte.includes('<TopupOuRecargaModal surface="images_402"') /* KINEO-RECARGA-TELAS-1211 */) p.push('F4 a parede de crédito sumiu')
 
   // G) nada de efeito novo (04/11: um laço de render congelou outra tela sem nenhum teste pegar)
   const ef = efeitos(fonte)
-  const efBase = efeitos(naBase)
+  const efBase = efeitos(visitorImage)
   if (ef.some((d) => d === null)) p.push('G1 efeito sem lista de dependências')
   if (JSON.stringify(ef) !== JSON.stringify(efBase)) p.push(`G2 os efeitos mudaram: ${ef.length} contra ${efBase.length} da base`)
   return p
@@ -191,7 +194,7 @@ const MUTANTES = [
   ['botão sem preço', 'C2', mut(PAGE, trocar('eng.credits, !busy && !refsUploading && !needsConsent)', 'eng.credits, false)'))],
   ['vitrine mostrando preço', 'C8', mut(PAGE, trocar("<ProductStage name={ui('Made on Kineo')}", "<ProductStage meta={eng.credits} name={ui('Made on Kineo')}"))],
   ['atalho do celular com preço', 'C9', mut(PAGE, trocar("cost={ui('Your image')}", 'cost={`${eng.name} · ${eng.credits}`}'))],
-  ['galeria acima da caixa', 'D1', mut(PAGE, moverAntes('<div className="grid creation-grid">', '</div>\n</div>\n', '<div className="kps-panel">'))],
+  ['galeria acima da caixa', 'D1', mut(PAGE, moverAntes('<div className="grid creation-grid">', '</div>\n</div>\n', "<div className={publicEditor ? 'cx-coluna' : 'kps-panel'}>"))],
   ['vitrine para quem já tem imagens', 'D2', mut(PAGE, trocar('const mostraVitrine = !galleryLoading && items.length === 0 && !premiere', 'const mostraVitrine = !galleryLoading && !premiere'))],
   ['vitrine piscando na leitura', 'D5', mut(PAGE, trocar('const mostraVitrine = !galleryLoading && items.length === 0 && !premiere', 'const mostraVitrine = items.length === 0 && !premiere'))],
   ['palco de volta acima da caixa no celular', 'D7', mut(LIB, trocar('position:relative;top:auto;order:0', 'position:relative;top:auto'))],

@@ -3,6 +3,7 @@
 // KINEO-BEBE-QUE-FALA-2010 — o botão das páginas estáticas do AI Kids Cartoon Stories (padrão do components/ugc/UgcCtaLink.tsx):
 // o HTML nasce com o caminho do VISITANTE (/signup?redirect=/kids-cartoon…) e, depois da hidratação, quem já tem sessão vai direto
 // ao template. A sessão é lida do armazenamento local (sem rede) só para escolher o link — o /kids-cartoon confere no servidor.
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import Link from 'next/link'
 import { useEffect, useState, type ReactNode } from 'react'
 import { trackEvent } from '@/lib/analytics'
@@ -20,7 +21,7 @@ export default function KidsCtaLink({ campaign, placement, className, children }
     } catch { /* idem */ }
     return () => { alive = false }
   }, [])
-  const href = kidsCartoonTemplateHref(signedIn, campaign)
+  const href = publicCreateCtaHref(kidsCartoonTemplateHref(signedIn, campaign), 'cartoon')
   return (
     <Link href={href} className={className} data-kids-cta={campaign} onClick={() => { void trackEvent('organic_cta_clicked', { source: campaign, placement, destination: href.split('?')[0] }) }}>
       {children}

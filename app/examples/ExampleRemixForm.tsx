@@ -1,5 +1,6 @@
 'use client'
 
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import { FormEvent, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -23,7 +24,7 @@ export default function ExampleRemixForm({
   const rootRef = useRef<HTMLDivElement | null>(null)
   const [topic, setTopic] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const exactHref = exampleRemixHref({ slug, referencePrompt, topic: '', mode: 'exact' })
+  const exactHref = publicCreateCtaHref(exampleRemixHref({ slug, referencePrompt, topic: '', mode: 'exact' }))
 
   useEffect(() => {
     const element = rootRef.current
@@ -54,12 +55,12 @@ export default function ExampleRemixForm({
       return
     }
     setError(null)
-    const href = exampleRemixHref({ slug, referencePrompt, topic: safeTopic })
+    const href = publicCreateCtaHref(exampleRemixHref({ slug, referencePrompt, topic: safeTopic }))
     void trackEvent('example_remix_topic_submitted', {
       version: EXAMPLE_REMIX_CAMPAIGN,
       example_slug: slug,
       topic_length: safeTopic.length,
-      destination: '/studio/create',
+      destination: href.split('?')[0],
     })
     router.push(href)
   }
@@ -81,12 +82,12 @@ export default function ExampleRemixForm({
           void trackEvent('example_remix_exact_started', {
             version: EXAMPLE_REMIX_EXACT_VERSION,
             example_slug: slug,
-            destination: '/studio/create',
+            destination: exactHref.split('?')[0],
           })
           void trackEvent('organic_cta_clicked', {
             source: `example_${slug}`,
             placement: 'example_remix_exact',
-            destination: '/studio/create',
+            destination: exactHref.split('?')[0],
             remix_mode: 'exact_prompt',
           })
         }}

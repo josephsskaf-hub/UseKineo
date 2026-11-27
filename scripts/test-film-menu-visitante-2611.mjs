@@ -19,8 +19,9 @@ for (const legacy of movieLinks) {
     assert.equal(menu({})('film', legacy, false, { [gate]: 'off' }), legacy)
   }
 }
-for (const [kind, url] of [['cartoon', '/kids-cartoon'], ['ads', '/ads/new'], ['film', '/studio?avancado=1']]) {
-  assert.equal(menu({})(kind, url, false), url)
+for (const [kind, url, destination] of [['cartoon', '/kids-cartoon', '/create/cartoon'], ['ads', '/ads/new', '/create/ads'], ['film', '/studio?avancado=1', '/studio?avancado=1']]) {
+  assert.equal(menu({})(kind, url, false), destination)
+  assert.equal(menu(off)(kind, url, false), url)
 }
 
 for (const signedIn of [true,false]) {

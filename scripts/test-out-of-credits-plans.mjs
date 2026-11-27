@@ -123,7 +123,7 @@ for (const [file, product, unitExpr] of [
   ok(c.includes(`surface="${product}_402"`), 'Creator/Studio seguem no CreditsTopupModal (surface intacta)')
 }
 const img = read('app/(dashboard)/images/ImagesClient.tsx')
-ok(img.includes('const unitCost = Number.parseInt(eng.credits, 10) || 1'), 'imagens: custo da unidade = motor selecionado (ex.: "5 cr" -> 5)')
+ok(img.includes("import { IMG_ENGINES, imageCreditCost,") && img.includes('const unitCost = imageCreditCost(model)'), 'imagens: custo da unidade = motor selecionado (ex.: "5 cr" -> 5)')
 ok((img.match(/test\(m\)\) openCreditsWall\(\)/g) || []).length === 3, 'imagens: generate + edit + upscale passam pela parede (3 pontos de 402)')
 
 console.log(`\n${pass} ok, ${fail} falhas`)

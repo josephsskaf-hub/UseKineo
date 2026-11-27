@@ -5,6 +5,7 @@
 // (Topaz Proteus) existe, custa 10 creditos e roda em 1 clique no My Videos;
 // para video de fora, o caminho e gerar/importar no Kineo (sem promessa de
 // upload avulso que nao existe — CTA leva pro signup + Studio).
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import type { Metadata } from 'next'
 import { TRIAL_GRANT_CREDITS_COPY, GRANT_COUNTRY_CLAUSE } from '@/lib/freeTierOffer'
 import { creditsPerReferenceVideo, formatUsd, planCreditSpendUsd } from '@/lib/marketingPrice'
@@ -86,7 +87,7 @@ export default function AiVideoUpscalerPage() {
         </p>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 40 }}>
           <Link
-            href={UPSCALER_SIGNUP_HREF}
+            href={publicCreateCtaHref(UPSCALER_SIGNUP_HREF)}
             style={{ background: '#2997ff', color: '#fff', fontWeight: 800, padding: '13px 22px', borderRadius: 12, textDecoration: 'none', boxShadow: '0 8px 24px rgba(41,151,255,.35)' }}
           >
             {CARD_ENTRY_COPY.ctaLong}
@@ -123,8 +124,8 @@ export default function AiVideoUpscalerPage() {
         </div>
 
         <p style={{ color: '#86868b', fontSize: 13 }}>
-          Related: <Link href="/studio" style={{ color: '#2997ff' }}>Studio</Link> ·{' '}
-          <Link href="/images" style={{ color: '#2997ff' }}>AI Images</Link> ·{' '}
+          Related: <Link href={publicCreateCtaHref('/studio')} style={{ color: '#2997ff' }}>Studio</Link> ·{' '}
+          <Link href="/create/image" style={{ color: '#2997ff' }}>AI Images</Link> ·{' '}
           <Link href="/audio" style={{ color: '#2997ff' }}>Text to Speech</Link> ·{' '}
           <Link href="/pricing" style={{ color: '#2997ff' }}>Pricing</Link>
         </p>

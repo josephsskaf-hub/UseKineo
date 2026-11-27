@@ -249,16 +249,22 @@ async function provaDaPagina(mutar = {}) {
   function visitar(n) { if (ts.isIfStatement(n) && n.expression.getText() === '!visitante' && n.thenStatement.getText().includes('lerRascunhoDoDesenho()')) restaura = n; ts.forEachChild(n, visitar) }
   visitar(ast)
   exige(Boolean(restaura), 'o rascunho existente continua sendo restaurado depois da ideia pública')
-  if (restaura) for (const visitante of [false, true]) {
+  if (restaura) for (const visitante of [false, true]) for (const publicDraft of [false, true]) {
     let idea = textoInicial
+    let draftReads = 0
     const codigo = ts.transpileModule(restaura.getText(), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText
     vm.runInNewContext(codigo, {
       ...carregador({ mutar })('lib/kidsCartoon/kidsCartoon.ts'),
       ...carregador({ mutar })('lib/cinematic/filmVoice2511.ts'), visitante, ideiaInicial: textoInicial,
+      window: { location: publicDraft ? { pathname: '/create/cartoon', search: '?draft=fixture' } : { pathname: '/kids-cartoon', search: '' } },
+      URLSearchParams, alive: { current: true },
+      readMediaDraft: async surface => { draftReads++; if (surface !== 'cartoon') throw Error(surface); return { fields: { idea: 'História do editor público' } } },
       lerRascunhoDoDesenho: () => ({ idea: 'Minha história já editada' }),
-      setIdea(v) { idea = v }, setCharacter() {}, setLanguage() {}, setIdeaId() {}, setDuration() {}, setVoiceMode() {},
+      setIdea(v) { idea = v }, setCharacter() {}, setLanguage() {}, setIdeaId() {}, setDuration() {}, setVoiceMode() {}, setCaptions() {},
     }, { timeout: 5000 })
-    exige(idea === (visitante ? textoInicial : 'Minha história já editada'), 'o rascunho do cadastro preserva o texto editado; o visitante ainda não o consome')
+    await Promise.resolve()
+    exige(draftReads === (!visitante && publicDraft ? 1 : 0), 'somente o retorno logado na tela nova recupera o rascunho de Cartoon')
+    exige(idea === (visitante ? textoInicial : publicDraft ? 'História do editor público' : 'Minha história já editada'), 'o rascunho do cadastro preserva o texto editado; o visitante ainda não o consome')
   }
   return erros
 }

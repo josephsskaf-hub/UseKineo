@@ -70,6 +70,8 @@ const NON_ACQUISITION_HOSTS = new Set([
 const INTERNAL_SURFACE_LABELS = new Set([
   'homepage',
   'sticky_cta',
+  'nav',
+  'nav-mobile',
 ])
 
 /**

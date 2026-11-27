@@ -1,8 +1,8 @@
+import { publicEditor } from '@/lib/create/publicEditorServer'
 import { notFound } from 'next/navigation'
 import { recreateSession } from '@/lib/recreate/server'
-import { RECREATE_FORMATS, recreateCreditsFor } from '@/lib/recreate/formats' // KINEO-RECREATE-MOVIMENTO-1411 — era: recreateEffectCredits + recreateCreditCost
-import { publicRecreateCatalog } from '@/lib/recreate/catalogPublic'
-import { publicRecreatePath } from '@/lib/recreate/entry'
+import { recreateCreditsFor } from '@/lib/recreate/formats' // KINEO-RECREATE-MOVIMENTO-1411 — era: recreateEffectCredits + recreateCreditCost
+import { publicRecreatePath, RECREATE_MOLDES_SO_LOGADO } from '@/lib/recreate/entry'
 import { recreateFormatVisible, releaseVisible } from '@/lib/recreate/access'
 import { formatosParaOCliente, recreateFormatServidor as recreateFormat } from '@/lib/recreate/catalogoServidor' // KINEO-RECEITA-FORA-DO-JS-1411
 import { publicRecreateCatalog as catalogoPublico } from '@/lib/recreate/catalogPublic' // KINEO-RECEITA-FORA-DO-JS-1411
@@ -43,33 +43,34 @@ export default async function RecreateFlowPage({ id, searchParams = {}, basePath
   }
   if (id) {
     const format = recreateFormat(id)
-    if (!format || (user ? !recreateFormatVisible(format, user.email) : !publicRecreatePath(id))) notFound()
+    if (!format || !recreateFormatVisible(format, user?.email) || (!user && !publicRecreatePath(id) && !(publicEditor('clip') && RECREATE_MOLDES_SO_LOGADO.includes(id)))) notFound()
   }
-  const formatos = user ? formatosParaOCliente(user.email) : formatosParaOCliente(null).filter(f => catalogoPublico().some(p => p.id === f.id)) // KINEO-RECEITA-FORA-DO-JS-1411 — só a vitrine, só o que esta pessoa vê
-  const formatIds = user ? formatos.map(format => format.id) : publicRecreateCatalog().map(format => format.id)
+  const formatos = user ? formatosParaOCliente(user.email) : formatosParaOCliente(null).filter(f => catalogoPublico().some(p => p.id === f.id) || (publicEditor('clip') && RECREATE_MOLDES_SO_LOGADO.includes(f.id))) // KINEO-RECEITA-FORA-DO-JS-1411 — só a vitrine, só o que esta pessoa vê
+  const formatIds = formatos.map(format => format.id)
   if (!formatIds.length) notFound()
   // Public tariff only, no invented account balance or engine availability.
   // The authenticated GET is still required before submitting a paid request.
-  const guestQuotes = user ? undefined : RECREATE_FORMATS.filter(format => formatIds.includes(format.id)).map(format => {
+  const guestQuotes = user ? undefined : formatIds.map(id => recreateFormat(id)!).map(format => {
     const credits = recreateCreditsFor(format) // KINEO-RECREATE-MOVIMENTO-1411 — era: format.type === 'swap' ? recreateCreditCost(format.seconds) : recreateEffectCredits(format)
     return { id: format.id, credits, available: credits !== null, shortfall: 0 }
   })
   // KINEO-CLIP-RECREATE-JUNTOS-1511 [dono 15/11: "juntar a aba de Clips com a aba de Recreate"] — quem está no interruptor (hoje só a casa) vê a tela
   // única: o MESMO RecreateClient, com as MESMAS props da linha de baixo (o guardião compara uma a uma), dentro da tela que junta o Clips.
   // Visitante e conta fora do interruptor: a linha de baixo, como sempre. Só nas rotas do Recreate (a prévia /recreate-flow-preview fica como está).
-  if (user && basePath === '/recreate' && clipRecreateJuntosVisivel(user.email)) {
+  const guestWorkspace = !user && publicEditor('clip')
+  if (basePath === '/recreate' && (guestWorkspace || (user && clipRecreateJuntosVisivel(user.email)))) {
     const recreate: RecreateProps = { currentFlow: true, polished, flowBasePath: basePath, initialId: id, guestQuotes, signedIn: !!user, accountKey: user?.id ?? null, draftRef, ownVideoVisible, generationAllowed, internalTools: !!user && releaseVisible(user.email, 'internal'), formatos, formatIds, createTabs: !!user && createShellVisible(user.email) }
-    if (clipWorkspaceVisible(user.email)) {
+    if (guestWorkspace || clipWorkspaceVisible(user?.email)) {
       const { default: ClipTemplateWorkspace } = await import('@/components/create/ClipTemplateWorkspace')
       const { clipTemplateSpecs, clipOwnVideoModelLabel } = await import('@/lib/create/clipWorkspaceServer')
       const presentation = ownVideoVisible ? seuVideoPresentation() : null
       const ownVideo = presentation ? {
-        signedIn: true, generationAllowed, accountKey: user.id, currentFlow: true, flowBasePath: basePath,
+        signedIn: !!user, generationAllowed, accountKey: user?.id ?? null, currentFlow: true, flowBasePath: basePath,
         presentation, clipModelLabel: clipOwnVideoModelLabel(),
       } : undefined
-      return <ClipTemplateWorkspace measurementActor={user.id} recreate={recreate} specs={clipTemplateSpecs(formatos, user.email)} ownVideo={ownVideo} />
+      return <ClipTemplateWorkspace initialIdeaMode={Boolean(searchParams.prompt || searchParams.engine || searchParams.remix || searchParams.effect || (!id && searchParams.draft))} measurementActor={user?.id ?? null} recreate={recreate} specs={clipTemplateSpecs(formatos, user?.email)} ownVideo={ownVideo} />
     }
-    return <ClipRecreateJuntos measurementActor={user.id} recreate={recreate} />
+    return <ClipRecreateJuntos measurementActor={user?.id ?? null} recreate={recreate} />
   }
   return <RecreateClient currentFlow flowBasePath={basePath} initialId={id}
     polished={polished}

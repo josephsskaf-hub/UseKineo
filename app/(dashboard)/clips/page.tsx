@@ -6,7 +6,7 @@ import { clipsVisible } from '@/lib/clips/clipLaunchAccess'
 import ClipsClient from './ClipsClient'
 import { recreateVisible } from '@/lib/recreate/access'
 import { recreateFormat } from '@/lib/recreate/formats'
-import { queryDaChegada } from '@/lib/create/entry'
+import { effectTemplateHref, queryDaChegada } from '@/lib/create/entry'
 import { clipEntryHref } from '@/lib/create/clipEntryServer' // KINEO-CLIP-NA-MOLDURA-1011
 
 export const metadata = { title: 'Clips — Kineo' }
@@ -18,7 +18,7 @@ export default async function ClipsPage({ searchParams }: { searchParams?: Recor
   if (!clipsVisible(user?.email ?? null)) notFound()
   if (recreateVisible(user?.email) && typeof searchParams?.effect === 'string') {
     const id = `effect-${searchParams.effect.replaceAll('_', '-')}`
-    if (recreateFormat(id)) redirect(`/recreate/${id}`)
+    if (recreateFormat(id)) redirect(effectTemplateHref(`/recreate/${id}`, searchParams))
   }
   // KINEO-CLIP-NA-MOLDURA-1011 [fundador 10/11: "quero a tela nova"] — logado com a aba Clip aberta (CREATE_CLIP_INPLACE): a MESMA tela
   // dentro da moldura nova, com a query intacta. Visitante e conta sem a aba: esta página, como sempre.

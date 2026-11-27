@@ -1,5 +1,6 @@
 'use client'
 
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import { useEffect, useState } from 'react'
 import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
@@ -39,7 +40,8 @@ export default function YouTubeBridgeClient({
     }, '/from-youtube')
   }, [isSignedIn])
 
-  const destination = isSignedIn ? '/studio/create' : '/signup'
+  const openEditor = publicCreateCtaHref('/studio').startsWith('/create/film')
+  const destination = openEditor ? '/create/film' : isSignedIn ? '/studio/create' : '/signup'
 
   return (
     <div
@@ -90,8 +92,9 @@ export default function YouTubeBridgeClient({
           className="block min-h-32 w-full resize-y rounded-2xl border border-white/15 bg-black/70 px-4 py-4 text-base leading-6 text-white outline-none transition placeholder:text-white/35 focus:border-cyan-300/70"
         />
 
-        <input type="hidden" name="create_intent" value="fast" />
-        <input type="hidden" name="intent_campaign" value={YOUTUBE_RELATED_CAMPAIGN} />
+
+        {!openEditor && <input type="hidden" name="create_intent" value="fast" />}
+          <input type="hidden" name="intent_campaign" value={YOUTUBE_RELATED_CAMPAIGN} />
         <input type="hidden" name="utm_source" value="youtube" />
         <input type="hidden" name="utm_medium" value="related_video" />
         <input type="hidden" name="utm_campaign" value={YOUTUBE_RELATED_CAMPAIGN} />

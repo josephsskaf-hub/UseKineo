@@ -17,7 +17,8 @@ const deps={'lib/gptHandoff.ts':gh.replace(crypto,"const createHash=()=>{throw E
 // KINEO-CITACOES-PUBLIC-2411: esta prova é da caixa de ideia (CITATION_IDEA_RELEASE). A caixa de filme virou 'public' e tem a
 // própria prova de HTML exato (test-citacoes-filme-2411); aqui ela fica fixada em 'off' para isolar a variável medida.
 const FILM_RELEASE='lib/growth/citationFilmRelease.ts',filmOff=(()=>{const t=source(FILM_RELEASE).replace(/(CITATION_FILM_RELEASE: CitationFilmRelease = )'(?:off|internal|public)'/,"$1'off'");assert.ok(t.includes("CITATION_FILM_RELEASE: CitationFilmRelease = 'off'"),'FILM pin anchor');return t})()
-const make=rep=>offlineModules({mocks,replacements:{...deps,[FILM_RELEASE]:filmOff,...rep}})
+const EDITOR='lib/create/publicEditorRelease.ts'
+const make=rep=>offlineModules({mocks,replacements:{...deps,[FILM_RELEASE]:filmOff,[EDITOR]:'export const PUBLIC_CREATE_EDITORS = false',...rep}})
 const originals=Object.fromEntries([BEST,PAY,FORM].map(f=>[f,execFileSync('git',['show',`91bc3083a:${f}`],{encoding:'utf8'})]))
 const old=make(originals),render=(l,f,p={})=>renderToStaticMarkup(React.createElement(l(f).default,p))
 const oldPages=new Map([BEST,PAY].map(f=>[f,render(old,f)]))
@@ -77,7 +78,25 @@ function verify(rep={}){
  }
 }
 verify()
+function verifyPublicEditor(rep={}){
+ for(const key of ['best','pay']) for(const mode of ['idea','finished_script']){
+  const r=setRelease({...rep,[EDITOR]:'export const PUBLIC_CREATE_EDITORS = true'},'public')
+  r[FORM]=(rep[FORM]??source(FORM)).replace("useState<TextToVideoInputMode>('idea')",`useState<TextToVideoInputMode>('${mode}')`)
+  r[TOPIC]=(rep[TOPIC]??source(TOPIC)).replace("useState('')",`useState(${JSON.stringify(sample)})`)
+  const body=form(render(make(r),key==='best'?BEST:PAY),key),params=hidden(body)
+  assert.match(body,/action="\/create\/film"/,'PUBLIC direct Film editor')
+  assert.match(body,new RegExp('<textarea[^>]*name="prompt"[^>]*>'+sample.replaceAll('.','\\.')+'</textarea>'),'PUBLIC prompt editable and exact')
+  assert.equal(params.has('redirect'),false,'PUBLIC no second signup')
+  assert.equal(params.get('intent_campaign'),`citation_idea_${key}_2311`,'PUBLIC campaign')
+  assert.equal(params.get('script_mode'),mode==='idea'?'ai':'verbatim','PUBLIC chosen mode')
+  assert.equal(params.get('duration'),mode==='idea'?'45':'35','PUBLIC selected duration')
+  for(const k of ['utm_source','utm_medium','utm_campaign'])assert.equal(params.has(k),false,'PUBLIC no fake referral')
+ }
+}
+verifyPublicEditor()
 const sub=(f,a,b)=>{const s=source(f);assert.equal(s.split(a).length,2,'mutation anchor '+a);return{[f]:s.replace(a,b)}}
+const lostDoor=sub(TOPIC,"publicEditor ? '/create/film' : '/signup'","publicEditor ? '/signup' : '/signup'")
+assert.throws(()=>verifyPublicEditor(lostDoor),e=>e?.code==='ERR_ASSERTION'&&e.message.startsWith('PUBLIC direct Film editor'),'public form actually catches lost editor')
 const mutants=[
  ['default public',()=>sub(RELEASE,"CITATION_IDEA_RELEASE: CitationIdeaRelease = 'off'","CITATION_IDEA_RELEASE: CitationIdeaRelease = 'public'"),'DEFAULT switch off'],
  ['off bypass',()=>sub(ACCESS,"release === 'public'","release === 'off' || release === 'public'"),'GATE off denies everyone'],

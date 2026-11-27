@@ -1,3 +1,4 @@
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
@@ -104,7 +105,7 @@ export default function RealEstateVideoMakerPage() {
               Turn a local market update, neighborhood guide or client question into a scripted, voiced and captioned 9:16 video — without filming yourself or pretending generated footage is the home for sale.
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 25 }}>
-              <Link href={STUDIO_HREF} style={{ minHeight: 50, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 22px', borderRadius: 12, background: '#7dd3fc', color: '#041018', fontWeight: 920, textDecoration: 'none' }}>
+              <Link href={publicCreateCtaHref(STUDIO_HREF)} style={{ minHeight: 50, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 22px', borderRadius: 12, background: '#7dd3fc', color: '#041018', fontWeight: 920, textDecoration: 'none' }}>
                 Start a real estate Short →
               </Link>
               <Link href="/business-video-content-plan" style={{ minHeight: 50, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 22px', borderRadius: 12, border: '1px solid rgba(255,255,255,.16)', color: '#f5f5f7', fontWeight: 850, textDecoration: 'none' }}>
@@ -190,7 +191,7 @@ export default function RealEstateVideoMakerPage() {
           </section>
 
           <div style={{ marginTop: 44, textAlign: 'center' }}>
-            <Link href={STUDIO_HREF} style={{ minHeight: 50, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px', borderRadius: 12, background: '#7dd3fc', color: '#041018', fontWeight: 920, textDecoration: 'none' }}>
+            <Link href={publicCreateCtaHref(STUDIO_HREF)} style={{ minHeight: 50, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px', borderRadius: 12, background: '#7dd3fc', color: '#041018', fontWeight: 920, textDecoration: 'none' }}>
               Start with verified facts →
             </Link>
           </div>

@@ -1,5 +1,6 @@
 'use client'
 
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import Link from 'next/link'
 import type { CSSProperties, ReactNode } from 'react'
 import { trackEvent } from '@/lib/analytics'
@@ -27,7 +28,7 @@ type OrganicCtaLinkProps = {
 // carries the campaign through signup/OAuth; this click event also measures
 // interest from visitors who leave before creating an account.
 export default function OrganicCtaLink({
-  href,
+  href: originalHref,
   source,
   placement,
   children,
@@ -36,6 +37,7 @@ export default function OrganicCtaLink({
   analyticsEvent = 'organic_cta_clicked',
   focusTargetId,
 }: OrganicCtaLinkProps) {
+  const href = focusTargetId ? originalHref : publicCreateCtaHref(originalHref)
   return (
     <Link
       href={href}

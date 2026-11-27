@@ -84,7 +84,7 @@ const links = nodes(tree).filter((n) => n.type === Link)
 // Founder 09/10 menu-enxuto + 13/10 duas-portas/trending: removed menu items retain their direct routes.
 // KINEO-GALERIA-HOME-2710 — reancorado 27/10 (fundador: item "Made with Kineo" no menu): /made-with-kineo entra no "More" do celular, logo depois do Trending.
 // KINEO-JUNTA-TRENDING-3110 — reancorado 30/10: o Trending virou o topo do Made with Kineo (/trending redireciona), saiu do "More".
-const expected = ['/studio', '/ads/new', '/library', '/pricing', '/made-with-kineo', '/images', '/clips', '/spaces', '/kids-cartoon', '/recreate', '/affiliate', '/account'] // KINEO-GALERIA-HOME-2710 · KINEO-CARTOON-NO-MENU-0511 · KINEO-MENU-RECREATE-1211 — reancorado 12/11: Recreate depois do Cartoon
+const expected = ['/studio', '/ads/new', '/library', '/pricing', '/made-with-kineo', '/create/image', '/clips', '/spaces', '/kids-cartoon', '/recreate', '/affiliate', '/account'] // KINEO-GALERIA-HOME-2710 · KINEO-CARTOON-NO-MENU-0511 · KINEO-MENU-RECREATE-1211 — reancorado 12/11: Recreate depois do Cartoon
 // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — Make a film · Product ads · Cartoon passam pela entrada
 // única (lib/create/entry.ts): o destino ANTIGO segue sendo a identidade do item (medição e ativo); o link abre a tela nova (/create/<aba>).
 const ENTRY = loadPure('@/lib/create/entry')
@@ -95,7 +95,7 @@ for (const href of expected) {
   check('existing route ' + href, () => assert.ok(
     ['app', 'app/(dashboard)'].some((base) => fs.existsSync(path.join(root, base, href.slice(1), 'page.tsx'))),
   ))
-  if (entrada(href) !== href) check('existing route ' + entrada(href), () => assert.ok(/^\/create\/(film|cartoon|ads)(\?|$)/.test(entrada(href)) && fs.existsSync(path.join(root, 'app/create/[tab]/page.tsx'))))
+  if (entrada(href) !== href) check('existing route ' + entrada(href), () => assert.ok(/^\/create\/(film|cartoon|ads|clip)(\?|$)/.test(entrada(href)) && fs.existsSync(path.join(root, 'app/create/[tab]/page.tsx'))))
 }
 check('five primary slots', () => {
   const row = nodes(tree).find((n) => n.props.className === 'kineo-mobile-row')
@@ -121,32 +121,36 @@ function checkGuestMenu(component, focused) {
   const hrefs = items.map(node => node.props.href)
   const films = items.filter(node => node.props['data-nav-item'] === 'video')
   assert.deepEqual(films.map(node => node.props.href), [guestFilm], 'guest Films must open the public editor with its campaign')
-  assert.deepEqual(hrefs.filter(href => href.startsWith('/create/')), [guestFilm])
-  assert.ok(!hrefs.includes('/studio'))
-  for (const href of ['/kids-cartoon', '/pricing']) assert.ok(hrefs.includes(href), href)
-  assert.equal(hrefs.includes('/ads/new'), !focused)
+  const destinations = focused ? [guestFilm, '/create/cartoon', '/create/clip', '/create/image'] : [guestFilm, '/create/ads', '/create/image', '/create/clip', '/create/cartoon']
+  assert.deepEqual(hrefs.filter(href => href.startsWith('/create/')).sort(), destinations.sort(), 'public editor destinations')
+  for (const old of ['/studio', '/kids-cartoon', '/ads/new', '/clips', '/images']) assert.ok(!hrefs.includes(old), old)
+  assert.ok(hrefs.includes('/pricing'))
   for (const href of ['/referral', '/affiliate', '/account']) assert.ok(!hrefs.includes(href), href)
 }
 
-check('guest Films opens the editor in both menus; the other destinations and private links keep their policy', () => {
+check('guest editors in focused and classic menus preserve campaign and account boundaries', () => {
   checkGuestMenu(MobileNav, false)
   checkGuestMenu(loadComponent('components/MobileNav.tsx'), true)
 })
 
-check('mutant: sending guest Films back to /studio fails the destination assertion', () => {
-  const oldGuestFilm = createOfflineLoader({
-    source(file, source) {
-      if (file !== 'lib/create/entry.ts') return source
-      const anchor = 'const publicFilmMenu = signedIn === false'
-      assert.equal(source.split(anchor).length, 2)
-      return source.replace(anchor, 'const publicFilmMenu = false')
-    },
+for (const [current, old] of [[guestFilm, '/studio'], ['/create/cartoon', '/kids-cartoon'], ['/create/ads', '/ads/new'], ['/create/clip', '/clips'], ['/create/image', '/images']]) {
+  check('mutant: guest menu links back to ' + old, () => {
+    let injected = false
+    const mutate = createOfflineLoader({
+      source(file, source) {
+        if (file === 'lib/ui/workspaceNavigation.ts') return source.replace('const FOCUSED_PRODUCT_NAV_2511 = true', 'const FOCUSED_PRODUCT_NAV_2511 = false')
+        if (file !== 'lib/create/entry.ts') return source
+        const anchor = 'const target = direct(href, opts, false) ?? href'
+        assert.equal(source.split(anchor).length, 2)
+        injected = true
+        return source.replace(anchor, anchor + '\n  if (!signedIn && target === ' + JSON.stringify(current) + ') return ' + JSON.stringify(old))
+      },
+    })
+    const component = loadComponent('components/MobileNav.tsx', mutate)
+    assert.throws(() => checkGuestMenu(component, false), error => error instanceof assert.AssertionError && (error.message.includes('guest Films') || error.message.includes('public editor destinations')))
+    assert.ok(injected)
   })
-  const mutatedNav = loadComponent('components/MobileNav.tsx', oldGuestFilm)
-  assert.throws(() => checkGuestMenu(mutatedNav, true), error =>
-    error instanceof assert.AssertionError && error.message.includes('guest Films must open the public editor') &&
-    error.actual.length === 1 && error.actual[0] === '/studio' && error.expected[0] === guestFilm)
-})
+}
 for (const [route, active] of [['/studio', true], ['/studio/create', true], ['/studio-other', false]]) {
   check('route boundary ' + route, () => {
     const link = nodes(render(route)).find((n) => n.props.href === entrada('/studio') && n.props['data-nav-item'] === 'video') // KINEO-ENTRADAS-TELA-NOVA-1011 — o ativo segue o destino antigo
@@ -184,7 +188,7 @@ check('Tab inside stays open; Tab outside closes', () => {
 })
 check('sheet link closes before client navigation', () => {
   details = [makeDetails()]
-  links.find((n) => n.props.href === '/images').props.onClick()
+  links.find((n) => n.props.href === '/create/image').props.onClick()
   assert.equal(details[0].open, false)
 })
 check('route/auth change closes sheets, no generation invoked', () => {

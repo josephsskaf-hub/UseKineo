@@ -346,7 +346,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [], afterT
             if (t.kind === 'clip') {
               const c = t.clip
               const card = (
-                <Link key={c.id} href={viaSignup('/clips?' + new URLSearchParams({ engine: c.engine, prompt: c.prompt }).toString(), signedIn)} className="kmz-t kmz-big" data-home-cta="mosaic_clip" aria-label={`${c.title} — clip`}>
+                <Link key={c.id} href={createEntryForSignupHref(viaSignup('/clips?' + new URLSearchParams({ engine: c.engine, prompt: c.prompt }).toString(), signedIn), signedIn)} className="kmz-t kmz-big" data-home-cta="mosaic_clip" aria-label={`${c.title} — clip`}>
                   <div className="kmz-md" style={focusStyle(c.poster, MOSAIC_CLIP_FOCUS[c.id] ?? c.focus)}><WallMedia src={c.video} /></div>
                   <Chips recreate={podeRecriar(t)} clipPrompt />
                 <span className="kmz-shade" aria-hidden="true" />
@@ -355,7 +355,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [], afterT
               )
               return hasFaceRemix(c.id) ? (
                 <div key={c.id} className="kmz-cell kmz-big">
-                  <Link href={faceRemixHref(c.id, signedIn)} className="kmz-chip kmz-face" data-home-cta="face_remix" aria-label={`Put your face in it — ${c.title}`}><UiLabel>Put your face in it</UiLabel></Link>
+                  <Link href={createEntryForSignupHref(faceRemixHref(c.id, signedIn), signedIn)} className="kmz-chip kmz-face" data-home-cta="face_remix" aria-label={`Put your face in it — ${c.title}`}><UiLabel>Put your face in it</UiLabel></Link>
                   {card}
                 </div>
               ) : card
@@ -366,8 +366,12 @@ export default function HomeMosaic({ signedIn, full = false, styles = [], afterT
               const convite = podeRecriar(t) || podeFazerAnuncio(t) ? null : clipeNovoConvite(c) // KINEO-HOME-ESTRATEGIA-A-1311 — só quem não tem Recreate nem Make your ad
               const clipPrompt = Boolean(c.prompt && !publicRecreatePath(c.id) && !recreateMoldeLogadoHref(c.id, signedIn))
               const tipo = c.selo ?? 'Clip' // KINEO-CARDS-SEM-MOTOR-0911 — o TIPO (Clip / Trending format), nunca o motor; o motor real segue no dado e no link · KINEO-CARDS-SEM-ETIQUETA-0911 — o tipo vive só no aria-label
-              return ( // KINEO-ADS-NATAL-VITRINE-1011 — exemplo de anúncio: clipeNovoDestino dá /ads/new (via viaSignup), medido à parte como mosaic_ad
-                <Link key={'novo-' + c.id} href={convite === 'cartoon' ? createEntryForContentHref('cartoon', MENU_CARTOON_HREF, '/kids-cartoon', signedIn) /* KINEO-HOME-ESTRATEGIA-A-1311 — o mesmo destino do item Cartoon do menu do topo */ : convite === 'film' || clipeNovoAbreStudio(c) ? filmHref /* KINEO-VITRINE-10-1011 — filme do Studio: o link dos filmes */ : (recreateMoldeLogadoHref(c.id, signedIn) /* KINEO-HOME-PITCH-1611 — molde só de quem tem conta: logado abre /recreate/<id>; visitante pelo cadastro e volta */ ?? (publicRecreatePath(c.id) ? recreateEntryHref(c.id, signedIn)! : createEntryForSignupHref(viaSignup(clipeNovoDestino(c), signedIn), signedIn))) /* KINEO-ENTRADAS-TELA-NOVA-1011 — logado: só /ads/new seco vira /create/ads */} className={`kmz-t${t.grande ? ' kmz-big' : ''}`} data-home-cta={podeFazerAnuncio(t) ? 'mosaic_ad' : convite === 'film' ? 'mosaic_film' : convite === 'cartoon' ? 'mosaic_cartoon' : 'mosaic_clip'} data-clip-novo={c.id} aria-label={`${c.title} — ${tipo}`}>
+              const templateHref = recreateMoldeLogadoHref(c.id, signedIn) ?? (publicRecreatePath(c.id) ? recreateEntryHref(c.id, signedIn) : null)
+              const href = convite === 'cartoon' ? createEntryForContentHref('cartoon', MENU_CARTOON_HREF, '/kids-cartoon', signedIn)
+                : convite === 'film' || clipeNovoAbreStudio(c) ? filmHref
+                : createEntryForSignupHref(templateHref ?? viaSignup(clipeNovoDestino(c), signedIn), signedIn)
+              return (
+                <Link key={'novo-' + c.id} href={href} className={`kmz-t${t.grande ? ' kmz-big' : ''}`} data-home-cta={podeFazerAnuncio(t) ? 'mosaic_ad' : convite === 'film' ? 'mosaic_film' : convite === 'cartoon' ? 'mosaic_cartoon' : 'mosaic_clip'} data-clip-novo={c.id} aria-label={`${c.title} — ${tipo}`}>
                   <div className="kmz-md" style={focusStyle(undefined, c.focus)}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={clipeNovoPoster(c)} width={540} height={960} alt="" loading={topo || firstPosters ? 'eager' : 'lazy'} decoding="async" style={{ objectPosition: c.focus, transform: 'none' }} />
@@ -418,7 +422,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [], afterT
             if (t.kind === 'style') { // KINEO-MWK-MOSAICO-3110
               const st = t.style
               return (
-                <Link key={'style-' + st.key} href={st.href} className="kmz-t" data-home-cta={`mosaic_style_${st.key}`} aria-label={`${st.title} — ad style`}>
+                <Link key={'style-' + st.key} href={createEntryForSignupHref(st.href, signedIn)} className="kmz-t" data-home-cta={`mosaic_style_${st.key}`} aria-label={`${st.title} — ad style`}>
                   <div className="kmz-md" style={focusStyle(st.poster ?? undefined, MOSAIC_STYLE_FOCUS[st.key] ?? '50% 45%')}><WallMedia src={st.video} /></div>
                   <Chips recreate={podeRecriar(t)} />
                 <span className="kmz-shade" aria-hidden="true" />
@@ -428,7 +432,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [], afterT
             }
             const img = t.img
             return (
-              <Link key={img.file} href="/images" className={`kmz-t ${img.w > img.h ? 'kmz-wide' : HOME_GALLERY_BIG.has(img.file) ? 'kmz-big' : ''}`} data-home-cta="mosaic_image" aria-label={`${img.alt}. Open Kineo Images`}>
+              <Link key={img.file} href="/create/image" className={`kmz-t ${img.w > img.h ? 'kmz-wide' : HOME_GALLERY_BIG.has(img.file) ? 'kmz-big' : ''}`} data-home-cta="mosaic_image" aria-label={`${img.alt}. Open Kineo Images`}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={`${img.dir}${img.file}`} width={img.w} height={img.h} alt={img.alt} loading="lazy" decoding="async" style={MOSAIC_IMAGE_FOCUS[img.file] ? { objectPosition: MOSAIC_IMAGE_FOCUS[img.file] } : undefined} />{/* KINEO-ENQUADRAMENTO-0911 */}
                 <span className="kmz-shade" aria-hidden="true" />

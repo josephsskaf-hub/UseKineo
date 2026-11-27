@@ -20,7 +20,9 @@ import ControlIcon from '@/components/ControlIcon'
 import ImageResultPreview from '@/components/ImageResultPreview'
 import MobileCreationShortcut from '@/components/MobileCreationShortcut'
 import { ProductRow, ProductStage, ProductStageStyles, useProductStage, type StageItem } from '@/components/ProductStage' // KINEO-ABAS-PALCO-2026-10-01
-import { IMG_ENGINES, type ImgModelKey } from '@/lib/imageModels'
+import { readMediaDraft, saveMediaDraft } from '@/lib/create/visitorMediaDraft'
+import ImageCreationBox from '@/components/create/ImageCreationBox'
+import { IMG_ENGINES, imageCreditCost, type ImgModelKey } from '@/lib/imageModels'
 import { IMAGES_TELA_CSS, rotuloDoBotaoImagem } from '@/lib/images/telaImagens' // KINEO-IMAGES-TELA-0511
 import { downloadHref } from '@/lib/downloadNosso' // KINEO-DOWNLOAD-NOSSO-1311 — baixar pelo nosso domínio, nunca o endereço do Supabase
 
@@ -43,7 +45,7 @@ const PREMIERE_WIDTH: Record<ImgSize, number> = { portrait_16_9: 380, square_hd:
 // lutando na guerra de Troia como Aquiles", com o rosto do amigo). A foto sobe para a pasta da conta (/api/images/
 // reference, moderada antes de ser guardada) e volta só o CAMINHO; ao gerar, o servidor assina a URL e usa o endpoint
 // /edit do fal. A miniatura é local (object URL): a tela não pede a foto de volta ao servidor.
-type RefPhoto = { key: string; path: string | null; preview: string; uploading: boolean }
+type RefPhoto = { key: string; path: string | null; preview: string; uploading: boolean; file?: File }
 const REF_MODEL: ImgModelKey = 'nanobanana'
 const REF_MAX = 3
 const REF_MAX_BYTES = 10 * 1024 * 1024
@@ -71,11 +73,11 @@ async function shrinkPhoto(file: File): Promise<Blob> {
 }
 
 /** KINEO-ABAS-PALCO-2026-10-01 — imagens da casa feitas no Nano Banana Pro (conta do fundador, 30/09). */
-const HOUSE_IMAGES: StageItem[] = [
+const HOUSE_IMAGES = [
   { title: 'Perfume campaign shot', badge: 'Nano Banana Pro', video: '/previews/promo-images-1.mp4', poster: '/posters/promo-images-1.webp' },
   { title: 'Astronaut in a sunflower field', badge: 'Nano Banana Pro', video: '/previews/promo-images-2.mp4', poster: '/posters/promo-images-2.webp' },
   { title: 'Lighthouse in the storm', badge: 'Nano Banana Pro', video: '/previews/promo-images-3.mp4', poster: '/posters/promo-images-3.webp' },
-]
+] satisfies StageItem[]
 const HOUSE_ROW = [
   { title: 'Perfume campaign shot', image: '/posters/promo-images-1.webp' },
   { title: 'Astronaut in a sunflower field', image: '/posters/promo-images-2.webp' },
@@ -85,7 +87,10 @@ const HOUSE_ROW = [
   { title: 'Empty floor → coworking', image: '/posters/spaces-demo-3-depois.webp' },
 ]
 
-export default function ImagesClient() {
+export default function ImagesClient({ publicEditor = false, visitor = false, restoring = false }: { publicEditor?: boolean; visitor?: boolean; restoring?: boolean } = {}) {
+  const [loadingDraft, setLoadingDraft] = useState(restoring)
+  const requestPending = useRef(false)
+  const [example, setExample] = useState(0)
   const ui = useUiCopy()
   const [model, setModel] = useState<ImgModelKey>('dev')
   const [sample, setSample] = useState<{ src: string; name: string } | null>(null)
@@ -128,6 +133,38 @@ export default function ImagesClient() {
   // KINEO-IMAGES-STORE-2026-08-17 (fundador: "precisa ter o storage, obvio"):
   // as imagens agora persistem no nosso bucket + tabela `images` — a grade
   // virou "My Images" e sobrevive ao refresh.
+  useEffect(() => {
+    if (!restoring) return
+    let active = true
+    const previews: string[] = []
+    async function restore() {
+      try {
+        const saved = await readMediaDraft('image')
+        if (!active) return
+        if (!saved) throw new Error('This draft has expired. Please describe your image again.')
+        const { fields, photos } = saved
+        const engine = IMG_ENGINES.find(e => e.key === fields.model)
+        const format = SIZES.find(s => s.key === fields.size)
+        if (!engine || !format) throw new Error('This image draft could not be restored.')
+        setPrompt(fields.prompt)
+        setModel(engine.key)
+        setSize(format.key)
+        setRefConsent(fields.consent === '1')
+        setRefs(photos.map(file => {
+          const preview = URL.createObjectURL(file)
+          previews.push(preview)
+          return { key: crypto.randomUUID(), preview, path: null, uploading: false, file }
+        }))
+      } catch (e) {
+        if (active) setError(e instanceof Error ? e.message : 'Could not restore your draft.')
+      } finally {
+        if (active) setLoadingDraft(false)
+      }
+    }
+    void restore()
+    return () => { active = false; previews.forEach(url => URL.revokeObjectURL(url)) }
+  }, [restoring])
+
   function loadGallery() {
     setGalleryFailed(false)
     setGalleryLoading(true)
@@ -143,7 +180,7 @@ export default function ImagesClient() {
       .catch(() => setGalleryFailed(true))
       .finally(() => setGalleryLoading(false))
   }
-  useEffect(() => { loadGallery() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!visitor) loadGallery(); else setGalleryLoading(false) }, [visitor]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // sprint-assinaturas #13 — best effort; sem resposta a parede assume 'free'
   // (= planos), que e o destino seguro: nunca manda ninguem a um pack recusado.
@@ -156,7 +193,7 @@ export default function ImagesClient() {
       if (typeof d?.credits === 'number') setBalance(d.credits)
     } catch {}
   }
-  useEffect(() => { void refreshPlan() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!visitor) void refreshPlan() }, [visitor]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function openCreditsWall() {
     if (outOfCreditsDestination(plan) === 'topup') setShowTopup(true)
@@ -170,13 +207,13 @@ export default function ImagesClient() {
   // KINEO-IMAGES-TELA-0511 — abaixo da caixa: a galeria da própria pessoa quando houver; senão, a vitrine da casa (com o selo do
   // motor real de cada peça). Lendo a galeria ou com um pedido em voo ela não aparece: não pode piscar para quem já tem imagens.
   const mostraVitrine = !galleryLoading && items.length === 0 && !premiere
-  const unitCost = Number.parseInt(eng.credits, 10) || 1
+  const unitCost = imageCreditCost(model)
   // Referência só vai no Nano Banana Pro; nos outros motores as fotos ficam guardadas na tela mas não são enviadas.
-  const readyRefs = refs.filter((r) => r.path)
+  const readyRefs = refs.filter((r) => r.path || r.file)
   const refsUploading = model === REF_MODEL && refs.some((r) => r.uploading)
   const sendRefs = model === REF_MODEL && readyRefs.length > 0
   const needsConsent = sendRefs && !refConsent
-  const canGenerate = !!prompt.trim() && !busy && !refsUploading && !needsConsent
+  const canGenerate = !!prompt.trim() && !busy && !refsUploading && !needsConsent && !loadingDraft
 
   async function addRefPhotos(list: FileList | null) {
     const files = Array.from(list ?? []).slice(0, Math.max(0, REF_MAX - refs.length))
@@ -187,22 +224,31 @@ export default function ImagesClient() {
       if (file.size > REF_MAX_BYTES) { setError(ui('Photo is too large — max 10 MB.')); continue }
       const key = `${Date.now()}-${Math.random().toString(36).slice(2)}`
       const preview = URL.createObjectURL(file)
+      if (visitor) {
+        setRefs(xs => xs.length < REF_MAX ? [...xs, { key, path: null, preview, uploading: false, file }] : xs)
+        continue
+      }
       setRefs((xs) => [...xs, { key, path: null, preview, uploading: true }])
       try {
-        const blob = await shrinkPhoto(file)
-        const form = new FormData()
-        form.append('file', blob, blob === file ? file.name : 'reference.jpg')
-        form.append('rights', 'true')
-        const res = await fetch('/api/images/reference', { method: 'POST', body: form })
-        const data = await res.json().catch(() => null)
-        if (!res.ok || typeof data?.path !== 'string') throw new Error(data?.error ?? 'Photo upload failed. Please try again.')
-        setRefs((xs) => xs.map((x) => (x.key === key ? { ...x, path: data.path as string, uploading: false } : x)))
+        const path = await uploadPhoto(file)
+        setRefs((xs) => xs.map(x => x.key === key ? { ...x, path, uploading: false } : x))
       } catch (e) {
         URL.revokeObjectURL(preview)
         setRefs((xs) => xs.filter((x) => x.key !== key))
         setError(e instanceof Error ? e.message : 'Photo upload failed. Please try again.')
       }
     }
+  }
+
+  async function uploadPhoto(file: File): Promise<string> {
+    const blob = await shrinkPhoto(file)
+    const form = new FormData()
+    form.append('file', blob, blob === file ? file.name : 'reference.jpg')
+    form.append('rights', 'true')
+    const res = await fetch('/api/images/reference', { method: 'POST', body: form })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || typeof data?.path !== 'string') throw new Error(data?.error ?? 'Photo upload failed. Please try again.')
+    return data.path
   }
 
   function removeRefPhoto(key: string) {
@@ -214,17 +260,39 @@ export default function ImagesClient() {
   }
 
   async function generate() {
-    if (!canGenerate) return
+    if (!canGenerate || requestPending.current) return
+    requestPending.current = true
+    if (visitor) {
+      try {
+        setBusy(true)
+        const signup = await saveMediaDraft('image', { prompt, model, size, consent: refConsent ? '1' : '0' }, refs.flatMap(r => r.file ? [r.file] : []))
+        window.location.assign(signup)
+      } catch {
+        setError('Your browser could not save this draft. Please allow local storage and try again.')
+      } finally {
+        requestPending.current = false
+        setBusy(false)
+      }
+      return
+    }
     setBusy(true)
     setError(null)
     setPremiere({ prompt: prompt.trim(), size, engine: eng.name, url: null }) // KINEO-ESTREIA-3110
     try {
+      const referencePaths: string[] = []
+      if (sendRefs) {
+        for (const photo of readyRefs) {
+          const path = photo.path ?? await uploadPhoto(photo.file!)
+          referencePaths.push(path)
+          if (!photo.path) setRefs(xs => xs.map(r => r.key === photo.key ? { ...r, path } : r))
+        }
+      }
       const res = await fetch('/api/images/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: prompt.trim(), model, size,
-          ...(sendRefs ? { reference_paths: readyRefs.map((r) => r.path), reference_consent: refConsent } : {}),
+          ...(sendRefs ? { reference_paths: referencePaths, reference_consent: refConsent } : {}),
         }),
       })
       const data = await res.json()
@@ -237,6 +305,7 @@ export default function ImagesClient() {
       setPremiere(null) // KINEO-ESTREIA-3110 — falhou: a sala sai e o erro de sempre aparece
       { const m = e instanceof Error ? e.message : 'Generation failed.'; setError(m); if (/not enough credits/i.test(m)) openCreditsWall() }
     } finally {
+      requestPending.current = false
       setBusy(false)
     }
   }
@@ -353,8 +422,47 @@ export default function ImagesClient() {
     promptRef.current?.focus({ preventScroll: true })
   }
 
+  const referencePanel = (model === REF_MODEL ? (
+              <div className="image-ref">
+                <div className="image-ref-head"><ControlIcon name="image" /> <UiLabel>Reference photo (optional)</UiLabel></div>
+                <p className="image-ref-help"><UiLabel>The face and look of the person in the photo go into the image.</UiLabel></p>
+                <label className="image-ref-consent">
+                  <input type="checkbox" checked={refConsent} onChange={(e) => setRefConsent(e.target.checked)} />
+                  <span><UiLabel>I have permission from the person in the photo to use their image.</UiLabel></span>
+                </label>
+                <div className="row image-ref-row">
+                  {refs.map((r) => (
+                    <div key={r.key} className={`image-ref-thumb${r.uploading ? ' busy' : ''}`}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={r.preview} alt="" />
+                      <button type="button" className="image-ref-x" aria-label={ui('Remove photo')} onClick={() => removeRefPhoto(r.key)}>×</button>
+                    </div>
+                  ))}
+                  {refs.length < REF_MAX && (
+                    <label className={`pill image-ref-add${refConsent ? '' : ' off'}`} aria-disabled={!refConsent}>
+                      <input type="file" accept={REF_TYPES.join(',')} multiple hidden disabled={!refConsent}
+                        onChange={(e) => { void addRefPhotos(e.target.files); e.target.value = '' }} />
+                      + <UiLabel>Add photo</UiLabel>
+                    </label>
+                  )}
+                </div>
+                <p className="image-ref-limits"><UiLabel>{refConsent ? 'Up to 3 photos · JPG, PNG or WEBP · max 10 MB each' : 'Check the box above to add a photo.'}</UiLabel></p>
+              </div>
+            ) : (
+              <div className="image-ref image-ref-off">
+                <span><UiLabel>Reference photo · Available on Nano Banana Pro</UiLabel></span>
+                <button type="button" className="pill" onClick={() => setModel(REF_MODEL)}><UiLabel>Use Nano Banana Pro</UiLabel></button>
+              </div>
+            ))
+  const examples = HOUSE_IMAGES.map((item, index) => ({ id: 'image-' + index, title: item.title, video: item.video, poster: item.poster }))
+  const chooseExample = (index: number) => {
+    setExample(index)
+    setPrompt(HOUSE_IMAGES[index].title)
+    promptRef.current?.focus()
+  }
+
   return (
-    <div className="stu images-workspace kps-page">
+    <div className={publicEditor ? 'stu images-workspace image-editor recreate create-shell cx-tela' : 'stu images-workspace kps-page'}>
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
       <ProductStageStyles />
       <style>{`
@@ -415,14 +523,26 @@ export default function ImagesClient() {
         .stu.images-workspace .grid.creation-grid{grid-template-columns:minmax(0,1fr);margin-top:8px}
       `}</style>
       <style dangerouslySetInnerHTML={{ __html: IMAGES_TELA_CSS }} />
+      {publicEditor && <style>{`
+        .stu.image-editor{padding:0;background:var(--rc-bg);color:var(--rc-text);margin:0 auto;max-width:none}
+        .image-editor .cx-area{align-items:start}.image-editor .image-stage{min-width:0}.image-editor .image-stage-poster{display:block;width:100%;max-height:64vh;object-fit:contain;border-radius:14px}
+        .image-editor .creation-grid{display:block;max-width:1160px;margin:0 auto;padding:0 clamp(16px,4vw,48px) 32px}.image-editor .image-ref{margin-top:12px}
+        .image-editor .image-stage[data-result]{display:block;width:100%}
+        .image-editor .cx-menu summary{padding:9px;cursor:pointer;font-size:14px}.image-editor .cx-menu details{width:100%}
+      `}</style>}
 
-      <h1><UiLabel>Images</UiLabel></h1>
-      <p className="sub"><UiLabel>Pro images from a sentence — or keep a face from your own photo</UiLabel></p>
+      {!publicEditor && <><h1><UiLabel>Images</UiLabel></h1>
+      <p className="sub"><UiLabel>Pro images from a sentence — or keep a face from your own photo</UiLabel></p></>}
 
 {/* KINEO-IMAGES-TELA-0511 — o esqueleto do Cartoon: a caixa primeiro, um padrão pronto, um botão com o preço, os opcionais recolhidos
     e montados (nenhum valor se perde ao fechar); abaixo, a galeria da pessoa ou a vitrine. Coluna única: a vitrine saiu da direita. */}
-<div className="kps-grid">
-<div className="kps-panel">
+<div className={publicEditor ? 'cx-area' : 'kps-grid'}>
+<div className={publicEditor ? 'cx-coluna' : 'kps-panel'}>
+{publicEditor ? <ImageCreationBox prompt={prompt} setPrompt={setPrompt} promptRef={promptRef} model={model} setModel={setModel}
+  formats={SIZES} size={size} setSize={key => setSize(SIZES.find(s => s.key === key)!.key)} cost={unitCost} error={error}
+  pending={busy || refsUploading || needsConsent || loadingDraft}
+  buttonLabel={loadingDraft ? 'Restoring draft…' : busy ? (visitor ? 'Saving draft…' : 'Creating…') : 'Generate'}
+  references={model === REF_MODEL ? referencePanel : null} examples={examples} selected={example} choose={chooseExample} generate={generate} /> : (
 <div className="images-form" data-kineo="images-formulario">
 <div className="card creation-input" data-kineo="images-caixa">
             <div className="lab"><UiLabel>Your image</UiLabel></div>
@@ -497,38 +617,7 @@ export default function ImagesClient() {
               ))}
             </div>
           </div>
-            {model === REF_MODEL ? (
-              <div className="image-ref">
-                <div className="image-ref-head"><ControlIcon name="image" /> <UiLabel>Reference photo (optional)</UiLabel></div>
-                <p className="image-ref-help"><UiLabel>The face and look of the person in the photo go into the image.</UiLabel></p>
-                <label className="image-ref-consent">
-                  <input type="checkbox" checked={refConsent} onChange={(e) => setRefConsent(e.target.checked)} />
-                  <span><UiLabel>I have permission from the person in the photo to use their image.</UiLabel></span>
-                </label>
-                <div className="row image-ref-row">
-                  {refs.map((r) => (
-                    <div key={r.key} className={`image-ref-thumb${r.uploading ? ' busy' : ''}`}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={r.preview} alt="" />
-                      <button type="button" className="image-ref-x" aria-label={ui('Remove photo')} onClick={() => removeRefPhoto(r.key)}>×</button>
-                    </div>
-                  ))}
-                  {refs.length < REF_MAX && (
-                    <label className={`pill image-ref-add${refConsent ? '' : ' off'}`} aria-disabled={!refConsent}>
-                      <input type="file" accept={REF_TYPES.join(',')} multiple hidden disabled={!refConsent}
-                        onChange={(e) => { void addRefPhotos(e.target.files); e.target.value = '' }} />
-                      + <UiLabel>Add photo</UiLabel>
-                    </label>
-                  )}
-                </div>
-                <p className="image-ref-limits"><UiLabel>{refConsent ? 'Up to 3 photos · JPG, PNG or WEBP · max 10 MB each' : 'Check the box above to add a photo.'}</UiLabel></p>
-              </div>
-            ) : (
-              <div className="image-ref image-ref-off">
-                <span><UiLabel>Reference photo · Available on Nano Banana Pro</UiLabel></span>
-                <button type="button" className="pill" onClick={() => setModel(REF_MODEL)}><UiLabel>Use Nano Banana Pro</UiLabel></button>
-              </div>
-            )}
+            {referencePanel}
   </div>
 </details>
 
@@ -538,7 +627,12 @@ export default function ImagesClient() {
             </button>
           </div>
 </div>
+)}
 </div>
+<div className={publicEditor ? 'cx-palco image-stage' : undefined} data-result={!!premiere || undefined}>
+      {publicEditor && !premiere && <><header className="cx-palco-caption"><span className="cx-palco-tag">Image example</span><h2 className="cx-palco-nome">{examples[example].title}</h2></header>
+        <img className="image-stage-poster" src={examples[example].poster} alt={examples[example].title} />
+      </>}
       {/* KINEO-ESTREIA-3110 — a espera vira a estreia: a mesma sala/estreia de todas as telas de geração (components/premiere).
           A imagem nova continua entrando primeiro em "My Images" logo abaixo. */}
       {premiere && (busy || premiere.url) ? (
@@ -592,6 +686,9 @@ export default function ImagesClient() {
           ) : null}
         </div>
       ) : null}
+</div>
+{!publicEditor && mostraVitrine && <ProductStage name={ui('Made on Kineo')} desc="Real images from our engines — every one started as a sentence." items={HOUSE_IMAGES} wide semSelo />}
+</div>
 <div className="grid creation-grid">
 <div className="creation-results">
 {galleryFailed && (
@@ -645,9 +742,7 @@ export default function ImagesClient() {
           )}
 </div>
 </div>
-        {mostraVitrine && <ProductStage name={ui('Made on Kineo')} desc="Real images from our engines — every one started as a sentence." items={HOUSE_IMAGES} wide semSelo />}{/* KINEO-VITRINE-SEM-SELO-1111 — sem "Made with Nano Banana Pro" na vitrine */}
-</div>
-      {mostraVitrine && <ProductRow title="Images made by Kineo" items={HOUSE_ROW} />}
+      {!publicEditor && mostraVitrine && <ProductRow title="Images made by Kineo" items={HOUSE_ROW} />}
       {/* KINEO-IMAGES-TELA-0511 — fora do painel: o painel tem backdrop-filter, que prenderia o popup. */}
       {showTopup && <TopupOuRecargaModal surface="images_402" onClose={() => setShowTopup(false)} />}
       {showPlans && (
@@ -660,7 +755,7 @@ export default function ImagesClient() {
           onClose={() => setShowPlans(false)}
         />
       )}
-      <MobileCreationShortcut targetId="image-generation-review" cost={ui('Your image')} />
+      {!publicEditor && <MobileCreationShortcut targetId="image-generation-review" cost={ui('Your image')} />}
       {sample && <ImageResultPreview {...sample} onClose={() => setSample(null)} />}
     </div>
   )

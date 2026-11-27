@@ -11,6 +11,7 @@
 // The pass is off sale (lib/ads/offer.ts adsPassOnSale); Studio Ads itself stays open and indexed (adsPassLive). Who cannot pay for an ad finds the plans
 // at the point of generating, inside /ads/v2 (lib/ads/eligibilityPure adsV2RefusalFor, AdsEligibilityNotice). Guardian: scripts/test-frente-0411.mjs.
 // The button: Studio Ads closed and not internal → "Opens soon"; signed in → the maker; not signed in → the maker's guest screen (login comes at the first action that needs it).
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
@@ -163,7 +164,7 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
   // KINEO-ADS-SEM-PRECO-0411 — /ads/new (classic, no access) and old links arrive with ?from=new|v2: say why, and where the plans are, with no price on this page.
   const returnedFromWizard = (from === 'new' || from === 'v2') && viewer.signedIn && viewer.gate === 'no_access'
   // KINEO-CARDS-ANTES-DO-LOGIN-0411 — sem conta, o botão abre a tela do anúncio; o login vem na primeira ação que precisa dele.
-  const makerHref = ADS_V2_PUBLIC && !viewer.signedIn ? ANUNCIO_DA_PORTA : MAKER_HREF
+  const makerHref = publicCreateCtaHref(ADS_V2_PUBLIC && !viewer.signedIn ? ANUNCIO_DA_PORTA : MAKER_HREF, 'ads')
   // KINEO-ADS-AMOSTRA-2026-10-09 / KINEO-ADS-SIMPLES-2810 — a nota da amostra pergunta à régua ÚNICA (lib/ads/eligibility.ts). A amostra em si não muda. Timeout/erro = sem nota (falha fechada).
   const elegibilidadePorta = live && ADS_SAMPLE_LIVE && ADS_V2_PUBLIC && viewer.signedIn && viewer.gate === 'no_access' && viewer.userId ? await withTimeout(loadAdsEligibility(footageAdminClient(), { id: viewer.userId }, 'none', { requestCountry: paisDoRequest(headers()) }), null) : null
   const sampleOpen = ADS_SAMPLE_LIVE && live && ADS_V2_PUBLIC && (viewer.signedIn ? elegibilidadePorta?.state === 'free_sample_available' : viewer.noSession)

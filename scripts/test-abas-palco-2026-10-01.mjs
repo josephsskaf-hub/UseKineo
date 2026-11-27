@@ -34,6 +34,8 @@ function stageProblems(src) {
 }
 function pageProblems(key, src) {
   const p = []
+  // Normalize only the three conditional wrappers to their signed-in legacy branch.
+  if (key === 'images') src = src.replace(/className=\{publicEditor \? '[^']+' : '(stu images-workspace kps-page|kps-grid|kps-panel)'\}/g, 'className="$1"')
   if (!/from '@\/components\/ProductStage'/.test(src)) p.push('não usa a peça compartilhada')
   if (!src.includes(`useProductStage('${key}')`)) p.push(`não pinta a tela com a cor de ${key}`)
   if (!/className="[^"]*\bkps-page\b[^"]*"/.test(src) || !src.includes('<ProductStageStyles />')) p.push('raiz fora do formato')

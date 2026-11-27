@@ -83,7 +83,7 @@ export default function HomeImageGallery() {
           {HOME_GALLERY_IMAGES.map((img) => (
             <Link
               key={img.file}
-              href="/images"
+              href="/create/image?engine=nanobanana"
               className={`khg-item ${img.w > img.h ? 'khg-wide' : HOME_GALLERY_BIG.has(img.file) ? 'khg-big' : 'khg-portrait'}`}
               data-home-cta="gallery_image"
               aria-label={`${img.alt}. Open Kineo Images`}

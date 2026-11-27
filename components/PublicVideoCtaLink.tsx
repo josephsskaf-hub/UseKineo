@@ -1,5 +1,6 @@
 'use client'
 
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import Link from 'next/link'
 import { useEffect, useRef } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
@@ -89,7 +90,7 @@ export default function PublicVideoCtaLink({
   return (
     <Link
       ref={ref}
-      href={href}
+      href={publicCreateCtaHref(href)}
       style={style}
       onClick={() => {
         void trackEvent('public_video_cta_clicked', {

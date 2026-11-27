@@ -40,10 +40,10 @@ export function lerRascunhoDoAnuncio<F extends CamposDoAnuncio>(): { campos: Par
   return { campos: campos as Partial<F>, link: typeof d.link === 'string' ? d.link.slice(0, 2000) : '' }
 }
 
-export function guardarRascunhoDoDesenho(r: { character: string; idea: string; ideaId: string | null; language: string; duration: number; voice_mode?: FilmVoiceMode }): void {
+export function guardarRascunhoDoDesenho(r: { character: string; idea: string; ideaId: string | null; language: string; duration: number; captions?: boolean; voice_mode?: FilmVoiceMode }): void {
   guardar(CHAVE_DESENHO, r)
 }
 
-export function lerRascunhoDoDesenho(): { character?: unknown; idea?: unknown; ideaId?: unknown; language?: unknown; duration?: unknown; voice_mode?: unknown } | null { // KINEO-CARTOON-SO-PLANO-0411 — + ideaId e duration: a ideia pronta e a duração voltam junto
+export function lerRascunhoDoDesenho(): { character?: unknown; idea?: unknown; ideaId?: unknown; language?: unknown; duration?: unknown; captions?: unknown; voice_mode?: unknown } | null { // KINEO-CARTOON-SO-PLANO-0411 — + ideaId e duration: a ideia pronta e a duração voltam junto
   return ler(CHAVE_DESENHO)
 }

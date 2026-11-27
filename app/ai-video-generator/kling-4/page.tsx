@@ -1,3 +1,4 @@
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Kling4PaidEnginePage from '@/components/Kling4PaidEnginePage'
@@ -105,7 +106,7 @@ export default function Kling4Page() {
         <h3 style={{ fontSize: 17, margin: '0 0 6px' }}>{q}</h3>
         <p style={{ margin: 0, lineHeight: 1.6, color: 'var(--muted2)' }}>{a}</p>
       </div>)}
-      <p style={{ marginTop: 24 }}><Link href={href} style={{ fontWeight: 700 }}>{freeFilmIsKling4 ? `Make your free ${TRIAL_FREE_FILM_SECONDS}-second film →` : 'Try Kling 4.0 →'}</Link></p>
+      <p style={{ marginTop: 24 }}><Link href={publicCreateCtaHref(href)} style={{ fontWeight: 700 }}>{freeFilmIsKling4 ? `Make your free ${TRIAL_FREE_FILM_SECONDS}-second film →` : 'Try Kling 4.0 →'}</Link></p>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
     </section>
     <Footer />

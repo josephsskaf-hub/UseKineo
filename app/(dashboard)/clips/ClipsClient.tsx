@@ -35,6 +35,7 @@ import { galeriaPromptFromUrl } from '@/lib/homeGaleria' // KINEO-GALERIA-HOME-2
 import { intervaloDePoll, POLL_RAPIDO_ADS_MS } from '@/lib/pollingRapido' // KINEO-FILME-RAPIDO-1710 · polling — clipe em andamento: pergunta já e a cada 3 s nos 2 primeiros minutos (linha própria)
 import { downloadVideoFile } from '@/lib/videoDownload' // KINEO-DOWNLOAD-CLIPE-3010
 import { PremiereStage, PremiereResult, usePremiereBeacon } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110 — a espera vira a estreia
+import { saveMediaDraft, readMediaDraft } from '@/lib/create/visitorMediaDraft'
 import { cadastroComVolta } from '@/lib/growth/visitanteEscreveAntes' // KINEO-CRIAR-SEM-PAREDE-1511
 import { useUiCopy } from '@/components/InterfaceLanguage' // KINEO-ESTREIA-3110 — textos da estreia (props de texto) na língua da tela
 import VisibleClipVideo from '@/components/clips/VisibleClipVideo'
@@ -260,7 +261,7 @@ async function composePairPhoto(a: File, b: File): Promise<File> {
 /** KINEO-CLIP-NA-MOLDURA-1011 — as peças da tela de Clips que a moldura nova recebe (o MESMO JSX, os MESMOS handlers). */
 export interface PartesDoClipe { estilos: ReactNode; grade: ReactNode; tendencias: ReactNode; efeitos: ReactNode; meusClipes: ReactNode }
 
-export default function ClipsClient({ measurementActor = null, moldura, rotuloDosAjustes, semRepetir, separateEffectPlayback = false }: { measurementActor?: string | null; separateEffectPlayback?: boolean; moldura?: (p: PartesDoClipe) => ReactNode; /** KINEO-CLIP-RECREATE-JUNTOS-1511 — títulos (minúsculos) que a tela única já mostra na grade de modelos: o efeito igual não se repete nas fileiras do Clips. Sem ele, nada some. */ semRepetir?: ReadonlySet<string>; /** KINEO-CLIP-NA-MOLDURA-1011 — na moldura, o resumo do <details> chama "Details" como os outros passos */ rotuloDosAjustes?: string }) {
+export default function ClipsClient({ publicEditorGuest, measurementActor = null, moldura, rotuloDosAjustes, semRepetir, separateEffectPlayback = false }: { publicEditorGuest?: boolean; measurementActor?: string | null; separateEffectPlayback?: boolean; moldura?: (p: PartesDoClipe) => ReactNode; /** KINEO-CLIP-RECREATE-JUNTOS-1511 — títulos (minúsculos) que a tela única já mostra na grade de modelos: o efeito igual não se repete nas fileiras do Clips. Sem ele, nada some. */ semRepetir?: ReadonlySet<string>; /** KINEO-CLIP-NA-MOLDURA-1011 — na moldura, o resumo do <details> chama "Details" como os outros passos */ rotuloDosAjustes?: string }) {
   const language = useInterfaceLanguage()
   const t = useCallback((key: ClipCopyKey, vars?: Record<string, string | number>) => clipCopy(language, key, vars), [language])
   useProductStage('clips') // KINEO-CLIPS-CORES-2026-10-01 — fundo e barra lateral na cor da aba, como Imagens/Espaços/Ads
@@ -284,6 +285,28 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
   const [seconds, setSeconds] = useState<number>(5)
   const [aspect, setAspect] = useState<string>('9:16')
   const [prompt, setPrompt] = useState('')
+  const localImage = useRef<File | null>(null)
+  const localPreview = useRef<string | null>(null)
+  function keepPhoto(file: File) {
+    if (localPreview.current) URL.revokeObjectURL(localPreview.current)
+    localImage.current = file
+    localPreview.current = URL.createObjectURL(file)
+    setPhotoUrl(localPreview.current)
+  }
+  useEffect(() => () => { if (localPreview.current) URL.revokeObjectURL(localPreview.current) }, [])
+  useEffect(() => {
+    if (publicEditorGuest === undefined || !new URLSearchParams(window.location.search).has('draft')) return
+    let mounted = true
+    void readMediaDraft('clip').then(d => {
+      if (!mounted) return
+      if (!d) { setError({ text: 'Draft unavailable in this tab.', credits: false }); return }
+      setPrompt(d.fields.prompt); setEngineKey(d.fields.engine); setSeconds(Number(d.fields.seconds))
+      setAspect(d.fields.aspect); setEffectKey(d.fields.effect || null); setRemixId(d.fields.remix || null)
+      setRemixConsent(d.fields.consent === 'true')
+      if (d.photos[0]) keepPhoto(d.photos[0])
+    }).catch(() => { if (mounted) setError({ text: 'Could not restore the draft.', credits: false }) })
+    return () => { mounted = false }
+  }, [publicEditorGuest])
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [photoProblem, setPhotoProblem] = useState<ClipPhotoProblem | null>(null)
   const [uploading, setUploading] = useState(false)
@@ -317,6 +340,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
       })
       .catch(() => setLoadFailed(true))
       .finally(() => setLoading(false))
+    if (publicEditorGuest) return
     fetch('/api/credits', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { if (typeof d?.plan === 'string') setPlan(d.plan) })
@@ -547,6 +571,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
         setPhotoProblem(problem)
         return
       }
+      if (publicEditorGuest) { keepPhoto(normalized); return }
       const upload = uploadClipPhoto // KINEO-ABRACO-BEIJO-3110 — o upload subiu para o componente (a foto comum, o rosto e as 2 fotos do Abraço/Beijo usam o mesmo)
       const url = await upload(normalized) // KINEO-ROSTO-QUADRO-CHAVE-2810
       setPhotoUrl(url) // KINEO-ROSTO-QUADRO-CHAVE-2810
@@ -600,6 +625,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
     setUploading(true)
     try {
       const joined = await composePairPhoto(next[0], next[1]) // KINEO-ABRACO-BEIJO-3110
+      if (publicEditorGuest) { keepPhoto(joined); return }
       setPhotoUrl(await uploadClipPhoto(joined)) // KINEO-ABRACO-BEIJO-3110 — o MESMO upload/termo de direitos da foto comum (um caminho só)
     } catch (e) {
       setError({ text: e instanceof Error ? e.message : 'Upload failed. Please try again.', credits: false })
@@ -624,6 +650,22 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
     setError(null)
     const key = newKey(markTestRef.current)
     try {
+      if (publicEditorGuest) {
+        const fields = { prompt, engine: engineKey, seconds: String(seconds), aspect, effect: effectKey ?? '', remix: remixId ?? '', consent: String(remixConsent) }
+        const photos = photoUrl && localImage.current && photoUrl === localPreview.current ? [localImage.current] : []
+        window.location.assign(await saveMediaDraft('clip', fields, photos))
+        return
+      }
+      if (payload.image_url && payload.image_url === localPreview.current && localImage.current) {
+        const file = localImage.current
+        const url = await uploadClipPhoto(file)
+        payload = { ...payload, image_url: url }
+        setPhotoUrl(url)
+        if (payload.remix) {
+          const face = await cropFace(file)
+          if (face) payload.face_image_url = await uploadClipPhoto(face)
+        }
+      }
       const res = await fetch('/api/clips', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Idempotency-Key': key },

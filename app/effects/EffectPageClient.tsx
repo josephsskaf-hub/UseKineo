@@ -1,4 +1,5 @@
 'use client'
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -28,7 +29,7 @@ export default function EffectPageClient({ effect, language, signedIn, related, 
       </div>
     </header>
     <div className="ep-wrap">
-      <nav className="ep-breadcrumb" aria-label={t('Clip effects')}><Link href="/clips">{t('Clip effects')}</Link><span aria-hidden="true"> / </span>{t(effect.title)}</nav>
+      <nav className="ep-breadcrumb" aria-label={t('Clip effects')}><Link href={publicCreateCtaHref("/clips", 'clip')}>{t('Clip effects')}</Link><span aria-hidden="true"> / </span>{t(effect.title)}</nav>
       <section className="ep-hero" aria-labelledby="effect-title">
         <div className="ep-intro">
           <span className="ep-eyebrow">{t('Made on Kineo')}</span>
@@ -45,7 +46,7 @@ export default function EffectPageClient({ effect, language, signedIn, related, 
         </figure>
       </section>
       <section className="ep-related" aria-labelledby="more-effects">
-        <div className="ep-section-heading"><h2 id="more-effects">{t('More effects')}</h2><Link href="/clips" data-clip-action="view_all">{t('See all effects')} ↗</Link></div>
+        <div className="ep-section-heading"><h2 id="more-effects">{t('More effects')}</h2><Link href={publicCreateCtaHref("/clips", 'clip')} data-clip-action="view_all">{t('See all effects')} ↗</Link></div>
         <div className="ep-grid">{related.map(item => <Link key={item.key} className="ep-card" href={effectPagePath(effectSlug(item), language)} prefetch={false} data-clip-action="select_related" data-clip-effect={item.key}>
           {/* House posters only; no additional videos or paid renders. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -54,7 +55,7 @@ export default function EffectPageClient({ effect, language, signedIn, related, 
           <h3>{t(item.title)}</h3>
         </Link>)}</div>
       </section>
-      <footer className="ep-footer"><Link href="/clips">{t('Clip effects')}</Link><span>Kineo</span></footer>
+      <footer className="ep-footer"><Link href={publicCreateCtaHref("/clips", 'clip')}>{t('Clip effects')}</Link><span>Kineo</span></footer>
     </div>
   </main>
 }

@@ -5,6 +5,7 @@
 // Sem nome do fornecedor da troca. Sem "free" (o dado de 10/11: página de "grátis" trouxe 510 cadastros e 0 pagantes).
 // /api/recreate/assets segue só para quem está logado. KINEO-VITRINE-PAGINAS-1011: os vídeos-base dos formatos APROVADOS aparecem pela
 // prévia pública que a home e o /made-with-kineo já servem (public/previews/galeria) — nenhuma rota nova, nenhum formato em teste.
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
@@ -67,14 +68,14 @@ export default function FaceSwapVideoPage() {
         <p style={{ fontSize: 13, letterSpacing: '.08em', textTransform: 'uppercase', color: '#9aa3b2', margin: '0 0 10px' }}>Kineo Recreate</p>
         <h1 style={{ fontSize: 'clamp(1.8rem,5vw,2.6rem)', lineHeight: 1.15, letterSpacing: '-.02em', margin: '0 0 8px' }}>Put your face in a video with AI</h1>
         {aberto ? <p style={{ margin: '12px 0 24px' }}>{/* KINEO-FACE-SWAP-CABECALHO-1111 — o botão na 1ª dobra */}
-          <Link href={href} style={{ display: 'inline-block', background: '#3D7BFF', color: '#fff', fontWeight: 700, padding: '13px 22px', borderRadius: 12, textDecoration: 'none' }}>Put my face in a video →</Link>
+          <Link href={publicCreateCtaHref(href, 'recreate')} style={{ display: 'inline-block', background: '#3D7BFF', color: '#fff', fontWeight: 700, padding: '13px 22px', borderRadius: 12, textDecoration: 'none' }}>Put my face in a video →</Link>
         </p> : null}
         <BlocoCitavel1011 bloco={bloco} id="recreate" />
         {/* KINEO-VITRINE-PAGINAS-1011 — os vídeos-base dos formatos aprovados, pela MESMA prévia pública que a home já serve (a rota
             /api/recreate/assets continua só para quem está logado). Só aparece com troca aberta: é o vídeo do catálogo, não um resultado. */}
         {aberto && vitrine ? <ShowcaseStrip titulo={vitrine.titulo} linha={vitrine.linha} clipes={vitrine.clipes.filter((c) => formatos.some((f) => f.id === c.id))} href={href} source={CAMPANHA_RECREATE} tone="dark" /> : null}
         {aberto ? <p style={{ margin: '8px 0 40px' }}>
-          <Link href={href} style={{ display: 'inline-block', background: '#3D7BFF', color: '#fff', fontWeight: 700, padding: '13px 22px', borderRadius: 12, textDecoration: 'none' }}>Put my face in a video →</Link>
+          <Link href={publicCreateCtaHref(href, 'recreate')} style={{ display: 'inline-block', background: '#3D7BFF', color: '#fff', fontWeight: 700, padding: '13px 22px', borderRadius: 12, textDecoration: 'none' }}>Put my face in a video →</Link>
         </p> : null}
         {bloco.faq.length > 0 ? <section aria-labelledby="recreate-faq">
           <h2 id="recreate-faq" style={{ fontSize: 24, letterSpacing: '-.01em', margin: '0 0 12px' }}>Questions</h2>

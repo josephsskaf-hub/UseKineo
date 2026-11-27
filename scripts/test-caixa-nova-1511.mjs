@@ -47,7 +47,7 @@ function casosA(o) {
     ["A4 'off': ninguém; 'public': toda conta logada, nunca visitante", [HOUSE, CUSTOMER, null].every(e => v(e, 'off') === false) && v(CUSTOMER, 'public') === true && v(null, 'public') === false],
     ['A5 a página troca a casca só com filmNaMoldura E caixaNovaVisivel', iNova > 0],
     ['A6 a linha de sempre (3 passos) segue intacta, logo depois', iSempre > iNova && iSempre - iNova < LINHA_NOVA.length + 400],
-    ['A7 o caixaNova só aparece na linha guardada pela régua', (page.match(/StudioNaMoldura caixaNova/g) ?? []).length === 2 && /if \(publicFilmEditor\(\) && params.tab === 'film'\)[\s\S]*?<StudioNaMoldura caixaNova entry=/.test(page)],
+    ['A7 o caixaNova só aparece na linha guardada pela régua', (page.match(/StudioNaMoldura caixaNova/g) ?? []).length === 2 && /if \(publicEditor\(params\.tab\)\) \{\s*const loggedIn = [^\n]+\s*if \(params\.tab === 'film'\) \{[^}]*?const trusted = [\s\S]*?<StudioNaMoldura caixaNova entry=/.test(page)],
   ]
 }
 

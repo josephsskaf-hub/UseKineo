@@ -26,7 +26,7 @@ import {
   type HomeCardId,
   type HomeCardPlaylist,
 } from '@/lib/ui/homeThreeCards'
-import { WOLF_CARTOON_PREVIEW, MARS_FILM_PREVIEW, MARS_FIRST_PAINT_POSTER, marsCardCopy } from '@/lib/ui/homeFocusedShowcase2511'
+import { WOLF_CARTOON_PREVIEW, MARS_FILM_PREVIEW, MARS_FIRST_PAINT_POSTER, marsCardCopy, pumpkinCardCopy } from '@/lib/ui/homeFocusedShowcase2511'
 import { createEntryForSignupHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"]
 import { homeCardLinha } from '@/lib/ui/homeCardLinha0411' // KINEO-FLUXO2-F-0411
 import HomeProductAdsReel from '@/components/home/HomeProductAdsReel' // KINEO-BEBE-QUE-FALA-2010 — o reel do card de produto no modo 4 cards
@@ -96,6 +96,7 @@ const FOCUSED_HOME_CARDS_CSS = `
 @media (max-width:760px){
 .k3c-grid[data-home-four-examples]{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin:0;padding:0;overflow:visible}
 .k3c-grid[data-home-four-examples] .k3c-card{min-height:170px;max-width:none!important}
+.klp .k3c-card[data-pumpkin-story] .k3c-sub{display:block!important;font-size:12px;line-height:1.25}
 .k3c-grid[data-home-four-examples] .k3c-body{gap:5px;padding:12px!important}
 .k3c-grid[data-home-four-examples] .k3c-title{font-size:clamp(1rem,4.3vw,1.4rem)!important;overflow-wrap:anywhere}
 .klp .k3c-grid[data-home-four-examples] .k3c-cta{margin-top:4px!important;padding:7px 9px!important;font-size:12px!important;white-space:normal}
@@ -152,7 +153,7 @@ export default function HomeThreeCards({ signedIn, kidsCard = false, entradaNova
         <div className="k3c-head"><p className="k3c-kicker"><UiLabel>Choose what to make</UiLabel></p>{!focusedShowcase && <Link className="k3c-more" href={language === 'pt' ? UGC_PILLAR_PT_PATH : UGC_PILLAR_PATH} data-home-ugc-guide="1"><UiLabel>How AI UGC ads work</UiLabel> →</Link>}</div>{/* KINEO-PAGINAS-UGC-2010 */}
         <div className="k3c-grid" data-k3c-cols={fourColumns ? '4' : undefined} data-home-four-examples={focusedShowcase || undefined}>{/* KINEO-BEBE-QUE-FALA-2010 — undefined = o atributo nem é emitido (home de hoje); era: <div className="k3c-grid"> */}
           {cardChoices.map(({ card, key, featuredPlaylist }, index) => card === 'kids_cartoon' ? ( // KINEO-PAGINAS-IA-CLARAS-2110 — ordem DOM e teclado seguem a ordem visual; chaves estáveis.
-            <HomeKidsCard key={key} featuredPlaylist={featuredPlaylist} signedIn={signedIn} position={index + 1} entradaNova={entradaNova} /> // KINEO-PAGINAS-IA-CLARAS-2110
+            <HomeKidsCard key={key} story={key === 'cartoon' ? pumpkinCardCopy(language) : undefined} featuredPlaylist={featuredPlaylist} signedIn={signedIn} position={index + 1} entradaNova={entradaNova} /> // KINEO-PAGINAS-IA-CLARAS-2110
           ) : (
             <Link key={key} href={entradaNova ? createEntryForSignupHref(homeCardHref(card, signedIn), signedIn) : homeCardHref(card, signedIn)} className="k3c-card" data-mars-story={key === 'mars' || undefined} data-home-card={card} onClick={() => track(card, index + 1)}>
               {kidsCard && card === 'product_ads' ? <HomeProductAdsReel language={language} /> : <CardMedia card={card} language={language} featuredPlaylist={featuredPlaylist} />}{/* KINEO-BEBE-QUE-FALA-2010 — modo 4 cards: o reel Lume + 3 trios no card de produto; era: <CardMedia card={card} language={language} /> */}

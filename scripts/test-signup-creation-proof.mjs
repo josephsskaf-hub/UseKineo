@@ -356,9 +356,16 @@ check(callbackRoute.includes('...(creationFailureTelemetry ?? {})'), 'callback r
 check(callbackRoute.includes('NextResponse.redirect(new URL(failureHandoff.loginPath, origin))'), 'existing checkout redirect integration remains unchanged')
 check(!callbackRoute.includes('saved_creation_redirect:'), 'callback telemetry has no raw saved-work destination')
 
+const {offlineModules: runProduct} = await import('./gpt24h-offline-support.mjs')
+const routeFreeScript = runProduct()('lib/create/entry.ts').publicCreateCtaHref
+const destinationForEditor = new URL(routeFreeScript(generatedScriptSignup.pathname + generatedScriptSignup.search), 'https://www.usekineo.com')
+equal(destinationForEditor.pathname, '/create/film', 'finished script opens the public film editor')
+equal(destinationForEditor.searchParams.get('ideia'), new URL(generatedScriptSignup.searchParams.get('redirect'),'https://www.usekineo.com').searchParams.get('prompt'), 'finished script survives intact')
+equal(destinationForEditor.searchParams.get('script_mode'), 'verbatim', 'finished script stays verbatim')
+check(!destinationForEditor.searchParams.has('autoanalyze'), 'opening editor cannot generate')
 const freeScriptClient = read('app/free-script-generator/FreeScriptClient.tsx')
 check(freeScriptClient.includes("from '@/lib/growth/freeScriptSignupHandoff'"), 'real free-script client imports the tested handoff builder')
-check(/const createShortHref = buildFreeScriptSignupHref\(\s*lines,/.test(freeScriptClient), 'real free-script CTA uses the tested handoff builder result')
+check(/const createShortHref = publicCreateCtaHref\(buildFreeScriptSignupHref\(\s*lines,/.test(freeScriptClient), 'real free-script CTA uses the tested handoff builder result')
 check(!freeScriptClient.includes('handoff_kind'), 'proof marker has no duplicate or dead-code copy in the client')
 check(!/free_script_to_signup_clicked[\s\S]{0,500}(?:prompt|script):\s*(?:script|lines)/.test(freeScriptClient), 'free-script analytics never emits visitor content')
 

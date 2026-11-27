@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { buildShowcaseSchema, showcasePath, type ShowcaseFilm, type ShowcaseLocale } from '@/lib/madeWithKineo'
@@ -32,7 +33,7 @@ function Header({ locale, slug }: { locale: ShowcaseLocale; slug?: string }) {
     <Link href="/" className={styles.brand}>Kineo<span>↗</span></Link>
     <nav aria-label="Languages" className={styles.languages}>{(['en', 'pt', 'es'] as const).map(lang =>
       <Link key={lang} href={showcasePath(lang, slug)} hrefLang={lang} lang={lang} aria-current={locale === lang ? 'page' : undefined}>{lang.toUpperCase()}</Link>)}</nav>
-    <Link className={styles.headerCta} href={showcaseCreateHref(locale)}>{SHOWCASE_COPY[locale].cta} ↗</Link>
+    <Link className={styles.headerCta} href={publicCreateCtaHref(showcaseCreateHref(locale))}>{SHOWCASE_COPY[locale].cta} ↗</Link>
   </header>
 }
 function Facts({ film, locale }: { film: ShowcaseFilm; locale: ShowcaseLocale }) {
@@ -51,10 +52,10 @@ export async function MadeWithKineoGallery({ locale, page = 1 }: { locale: Showc
   const copy = SHOWCASE_COPY[locale]
   return <main className={styles.page} lang={locale}>
     <Header locale={locale} />
-    <section className={styles.hero}><p className={styles.eyebrow}>{copy.eyebrow}</p><h1>{copy.title}<span>.</span></h1><p className={styles.intro}>{copy.intro}</p><Link className={styles.cta} href={showcaseCreateHref(locale)}>{copy.cta} ↗</Link></section>
+    <section className={styles.hero}><p className={styles.eyebrow}>{copy.eyebrow}</p><h1>{copy.title}<span>.</span></h1><p className={styles.intro}>{copy.intro}</p><Link className={styles.cta} href={publicCreateCtaHref(showcaseCreateHref(locale))}>{copy.cta} ↗</Link></section>
     {films.length ? <section aria-label={copy.title} className={styles.grid}>{films.map(film => <article className={styles.card} key={film.slug}>
       <div className={styles.media}><video src={film.playbackUrl} poster={film.posterUrl ?? film.thumbnailUrl} controls playsInline preload="none" aria-label={film.title} /></div>
-      <div className={styles.cardBody}><h2><Link href={showcasePath(locale, film.slug)}>{film.title} ↗</Link></h2><p className={styles.theme}><span>{copy.topic}: </span>{film.theme}</p><Facts film={film} locale={locale} /><Link className={styles.cardCta} href={showcaseCreateHref(locale)}>{copy.cta} ↗</Link></div>
+      <div className={styles.cardBody}><h2><Link href={showcasePath(locale, film.slug)}>{film.title} ↗</Link></h2><p className={styles.theme}><span>{copy.topic}: </span>{film.theme}</p><Facts film={film} locale={locale} /><Link className={styles.cardCta} href={publicCreateCtaHref(showcaseCreateHref(locale))}>{copy.cta} ↗</Link></div>
     </article>)}</section> : <section className={styles.empty}><span aria-hidden="true">↗</span><h2>{copy.empty}</h2><p>{copy.emptyDetail}</p><Link href="/made-with-kineo">{copy.examples} ↗</Link></section>}
     <nav className={styles.pagination} aria-label="Pagination">
       {page > 1 ? <Link href={`${showcasePath(locale)}?page=${page - 1}`}>← {copy.previous}</Link> : null}
@@ -72,7 +73,7 @@ export async function MadeWithKineoFilm({ locale, slug }: { locale: ShowcaseLoca
     <Link href={showcasePath(locale)} className={styles.back}>← {copy.back}</Link>
     <article className={styles.film}>
       <div className={styles.filmMedia}><video src={film.playbackUrl} poster={film.posterUrl ?? film.thumbnailUrl} controls playsInline preload="metadata" aria-label={film.title} /></div>
-      <div className={styles.filmBody}><p className={styles.eyebrow}>{copy.title}</p><h1>{film.title}</h1><p className={styles.theme}><span>{copy.topic}: </span>{film.theme}</p><Facts film={film} locale={locale} /><Link href={showcaseCreateHref(locale)} className={styles.cta}>{copy.cta} ↗</Link><p className={styles.permission}>{copy.consent}</p></div>
+      <div className={styles.filmBody}><p className={styles.eyebrow}>{copy.title}</p><h1>{film.title}</h1><p className={styles.theme}><span>{copy.topic}: </span>{film.theme}</p><Facts film={film} locale={locale} /><Link href={publicCreateCtaHref(showcaseCreateHref(locale))} className={styles.cta}>{copy.cta} ↗</Link><p className={styles.permission}>{copy.consent}</p></div>
     </article>
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(buildShowcaseSchema(film, locale)).replace(/</g, '\\u003c') }} />
   </main>

@@ -8,6 +8,7 @@
 // próprias (lib/seo/paginasIaClaras2110.ts) e a faixa dos cards usa o tema claro exportado (app/kineoLandingTheme.ts).
 // Medição dos cards: o clique segue o contrato fechado da home (home_card_clicked, surface 'home'); quem quiser separar estas
 // páginas lê events.path (trackEvent grava o pathname de cada clique).
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import Link from 'next/link'
 import { KineoBrandIcon } from '@/components/KineoBolt'
@@ -16,7 +17,7 @@ import { UiLabel } from '@/components/InterfaceLanguage'
 import HomeThreeCards from '@/components/home/HomeThreeCards'
 import { HOME_4TH_CARD_LIVE } from '@/lib/ui/homeKidsCard'
 import { KINEO_LANDING_THEME_CSS } from '@/app/kineoLandingTheme'
-import { RECREATE_MENU_HREF, RECREATE_MENU_LABEL, RECREATE_MENU_NAV_ITEM, MENU_CARTOON_HREF, MENU_CARTOON_LABEL, MENU_CARTOON_NAV_ITEM, MENU_CONNECTOR_HREF, MENU_CONNECTOR_LABEL, MENU_CONNECTOR_NAV_ITEM } from '@/lib/ui/homeRemodela2010'
+import { RECREATE_MENU_HREF, RECREATE_MENU_LABEL, RECREATE_MENU_NAV_ITEM,  MENU_CARTOON_LABEL, MENU_CARTOON_NAV_ITEM, MENU_CONNECTOR_HREF, MENU_CONNECTOR_LABEL, MENU_CONNECTOR_NAV_ITEM } from '@/lib/ui/homeRemodela2010'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 import { MADE_WITH_KINEO_HREF, MADE_WITH_KINEO_LABEL, MADE_WITH_KINEO_NAV_ITEM } from '@/lib/homeGaleria' // KINEO-GALERIA-HOME-2710
 import ShowcaseGrid from '@/app/claude-connector/ShowcaseGrid'
@@ -36,11 +37,11 @@ export function PaginaClaraTopo() {
           Kineo
         </Link>
         <div className="kpn-links" data-nav-surface="top" data-nav-area="public">
-          <Link href="/studio" className="kpn-primary" data-nav-item="video"><UiLabel>Make a film</UiLabel></Link>
-          <Link href="/ads/new" className="kpn-primary" data-nav-item="business"><UiLabel>Product ads</UiLabel></Link>
+          <Link href={publicCreateCtaHref('/studio')} className="kpn-primary" data-nav-item="video"><UiLabel>Make a film</UiLabel></Link>
+          <Link href={publicCreateCtaHref('/ads/new', 'ads')} className="kpn-primary" data-nav-item="business"><UiLabel>Product ads</UiLabel></Link>
           <NavUgcAdsLink data-nav-item="more:ugc" />
           <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}>{MADE_WITH_KINEO_LABEL}</Link>{/* KINEO-GALERIA-HOME-2710 — par do topo da home */}
-          <Link href={MENU_CARTOON_HREF} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{MENU_CARTOON_LABEL}</UiLabel></Link>
+          <Link href={publicCreateCtaHref('/kids-cartoon', 'cartoon')} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{MENU_CARTOON_LABEL}</UiLabel></Link>
           <Link href={RECREATE_MENU_HREF} data-nav-item={RECREATE_MENU_NAV_ITEM}>{RECREATE_MENU_LABEL}</Link>
           <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM}>{MENU_CONNECTOR_LABEL}</Link>
           <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
@@ -48,21 +49,21 @@ export function PaginaClaraTopo() {
         <div className="kpn-right">
           <SiteSettingsMenu />
           <Link className="kpn-login" href="/login" data-nav-item="login"><UiLabel>Log in</UiLabel></Link>
-          <Link className="kpn-cta" href="/signup?utm_source=nav"><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>
+          <Link className="kpn-cta" href={publicCreateCtaHref('/signup?utm_source=nav')}><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>
           <div className="kpn-toggle">
             <input type="checkbox" id="kpn-toggle" aria-label="Menu" aria-controls="kpn-menu" />
             <span className="kpn-bars" aria-hidden="true"><i /><i /><i /></span>
             <label htmlFor="kpn-toggle" id="kpn-menu" className="kpn-menu" data-nav-surface="mobile" data-nav-area="public">
-              <Link href="/studio" data-nav-item="video"><UiLabel>Make a film</UiLabel></Link>
-              <Link href="/ads/new" data-nav-item="business"><UiLabel>Product ads</UiLabel></Link>
+              <Link href={publicCreateCtaHref('/studio')} data-nav-item="video"><UiLabel>Make a film</UiLabel></Link>
+              <Link href={publicCreateCtaHref('/ads/new', 'ads')} data-nav-item="business"><UiLabel>Product ads</UiLabel></Link>
               <NavUgcAdsLink data-nav-item="more:ugc" />
               <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}>{MADE_WITH_KINEO_LABEL}</Link>{/* KINEO-GALERIA-HOME-2710 — par do topo no celular */}
-              <Link href={MENU_CARTOON_HREF} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{MENU_CARTOON_LABEL}</UiLabel></Link>
+              <Link href={publicCreateCtaHref('/kids-cartoon', 'cartoon')} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{MENU_CARTOON_LABEL}</UiLabel></Link>
               <Link href={RECREATE_MENU_HREF} data-nav-item={RECREATE_MENU_NAV_ITEM}>{RECREATE_MENU_LABEL}</Link>
           <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM}>{MENU_CONNECTOR_LABEL}</Link>
               <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
               <Link href="/login" data-nav-item="login"><UiLabel>Log in</UiLabel></Link>
-              <Link className="kpn-cta" href="/signup?utm_source=nav-mobile"><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>
+              <Link className="kpn-cta" href={publicCreateCtaHref('/signup?utm_source=nav-mobile')}><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>
             </label>
           </div>
         </div>
@@ -76,7 +77,7 @@ export function PaginaClaraTopo() {
 export function PaginaClaraCards() {
   return (
     <div className="klp kpl-cards" data-pagina-clara="cards">
-      <HomeThreeCards signedIn={false} kidsCard={HOME_4TH_CARD_LIVE} />
+      <HomeThreeCards entradaNova signedIn={false} kidsCard={HOME_4TH_CARD_LIVE} />
     </div>
   )
 }

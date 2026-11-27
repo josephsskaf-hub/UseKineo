@@ -1,5 +1,6 @@
 'use client'
 
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import PublicSiteHeader from '@/components/PublicSiteHeader'
 import { useState } from 'react'
 import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
@@ -25,7 +26,9 @@ const Faisca = () => <svg className="ico-faisca" viewBox="0 0 24 24" width="18" 
 export default function CreatorsPage({ freeFilm, initialIdea }: { freeFilm: boolean; initialIdea: string }) {
   const [idea, setIdea] = useState(initialIdea)
   const tooShort = idea.length > 0 && idea.trim().length < 3
-  const redirect = buildAuthenticatedCreationRedirect({ prompt: idea, campaign, createIntent: 'trial_best' })
+  const openEditor = publicCreateCtaHref('/studio').startsWith('/create/film')
+  const redirect = openEditor ? null : buildAuthenticatedCreationRedirect({ prompt: idea, campaign, createIntent: 'trial_best' })
+  const destination = openEditor ? '/create/film' : '/signup'
   return <main className="creators">
     <PublicSiteHeader />
     <section className="hero wrap">
@@ -33,7 +36,7 @@ export default function CreatorsPage({ freeFilm, initialIdea }: { freeFilm: bool
         <div className="eyebrow"><span /> FOR FACELESS CHANNELS</div>
         <h1>Your channel has stories.<br /><em>Make them films.</em></h1>
         <p className="intro">Turn an idea into a narrated film with captions. For faceless creators posting three or more times a week.</p>
-        <form className="idea-form" action="/signup" method="get" onSubmit={e => {
+        <form className="idea-form" action={destination} method="get" onSubmit={e => {
           if (idea.trim().length < 3) {
             e.preventDefault()
             const field = e.currentTarget.elements.namedItem('prompt') as HTMLTextAreaElement
@@ -44,7 +47,7 @@ export default function CreatorsPage({ freeFilm, initialIdea }: { freeFilm: bool
           rememberSignupCampaign(campaign)
           const details = { source: campaign, placement: 'hero_form', topic_length: idea.trim().length, creation_intent: 'trial_best' }
           void trackEvent('organic_topic_submitted', details)
-          void trackEvent('organic_cta_clicked', { ...details, destination: '/signup', mirrors: 'organic_topic_submitted' })
+          void trackEvent('organic_cta_clicked', { ...details, destination, mirrors: 'organic_topic_submitted' })
         }}>
           <label htmlFor="channel-idea">WHAT'S YOUR NEXT FILM ABOUT?</label>
           <textarea id="channel-idea" name="prompt" value={idea} onChange={e => {
@@ -54,9 +57,9 @@ export default function CreatorsPage({ freeFilm, initialIdea }: { freeFilm: bool
           <p id="idea-length" aria-live="polite">{tooShort
             ? 'Add a little more detail — at least 3 characters.'
             : `3–${CREATION_HANDOFF_PROMPT_MAX_CHARS.toLocaleString('en-US')} characters`}</p>
-          <input type="hidden" name="create_intent" value="trial_best" />
-          <input type="hidden" name="intent_campaign" value={campaign} />
+          {!openEditor && <input type="hidden" name="create_intent" value="trial_best" />}
           {redirect && <input type="hidden" name="redirect" value={redirect} />}
+          <input type="hidden" name="intent_campaign" value={campaign} />
           <button type="submit" aria-describedby="idea-next-step">{freeFilm ? 'Start my first film free' : 'Start with my idea'}<span className="btn-ico" aria-hidden="true"><Seta /></span></button>
           <p id="idea-next-step" className="idea-next-step">Create an account or sign in to open your idea in Studio.{freeFilm && ' Eligible new accounts can make their first film free.'}</p>
         </form>

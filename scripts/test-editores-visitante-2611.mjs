@@ -8,6 +8,7 @@ const gen = p => p['data-testid'] === 'studio-simple-generate'
 const field = p => p.id === 'cx-ideia'
 async function mount({ visitor, country, credits, query = {}, saved = [], showFilmStyle = false }) {
   const tab = aba({}, { credits })
+  tab.m('@/lib/analytics').publicEditorSignup = tab.m('lib/analytics').publicEditorSignup
   global.window.location = { search: '?utm_source=travel&utm_source_platform=social&utm_id=campaign-7' }
   for (const [k, v] of saved) tab.log.storage.set(k, v)
   const entry = tab.m('lib/create/publicEditor').filmEntry(query, visitor, country)
@@ -34,11 +35,14 @@ assert.equal(back.searchParams.get('utm_source_platform'), 'social')
 assert.equal(back.searchParams.get('utm_id'), 'campaign-7')
 assert.ok(!back.searchParams.has('prompt') && !back.searchParams.has('ideia'))
 assert.ok(!guest.log.storage.has('kineo:studio:go:v1'))
+const draftKey = 'kineo:guest-film:' + back.searchParams.get('draft')
+assert.ok(shared.has(draftKey), 'o pedido contém uma transferência salva com o UUID da volta')
 const transfer = [...shared]
 for (const [credits, free] of [[first, true], [{ ...first, filmsDelivered: 1 }, false], [null, false]]) {
   for (const [key, value] of transfer) shared.set(key,value)
   const account = await mount({ visitor: false, country: true, credits, query: Object.fromEntries(back.searchParams), saved: [] })
-  assert.equal(shared.size, 0, 'transferência entre abas consumida pela conta')
+  assert.equal(shared.has(draftKey), false, 'transferência entre abas consumida pela conta')
+  assert.equal([...shared.keys()].filter(key => key.startsWith('kineo:guest-film:')).length, 0)
   assert.equal(account.one(field, 'restaurado').props.value, text)
   assert.equal(account.html().includes('First film free'), free)
   assert.ok(account.html().includes('Dialogue set to 15 s'))

@@ -7,6 +7,7 @@
 // texto puro pela fonte única; (6) FAQ curto e honesto. Nada de número inventado:
 // filmes e pagantes não aparecem aqui (o primeiro comentário do maker cita os
 // números do dia, lidos do banco na hora).
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
@@ -127,7 +128,7 @@ export default function PhPage() {
           <div data-testid="ph-hero-copy">
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
               <a
-                href={CTA}
+                href={publicCreateCtaHref(CTA)}
                 rel="nofollow"
                 data-testid="ph-cta-trial"
                 style={{ background: '#2997ff', color: '#000', fontWeight: 900, fontSize: 16, padding: '14px 24px', borderRadius: 999, textDecoration: 'none' }}
@@ -212,7 +213,7 @@ export default function PhPage() {
         </section>
 
         <div style={{ marginTop: 40 }}>
-          <a href={CTA} rel="nofollow" data-testid="ph-cta-trial-bottom" style={{ background: '#2997ff', color: '#000', fontWeight: 900, fontSize: 16, padding: '14px 24px', borderRadius: 999, textDecoration: 'none', display: 'inline-block' }}>
+          <a href={publicCreateCtaHref(CTA)} rel="nofollow" data-testid="ph-cta-trial-bottom" style={{ background: '#2997ff', color: '#000', fontWeight: 900, fontSize: 16, padding: '14px 24px', borderRadius: 999, textDecoration: 'none', display: 'inline-block' }}>
             {CARD_ENTRY_COPY.ctaLong}
           </a>
         </div>

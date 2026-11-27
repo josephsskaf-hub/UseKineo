@@ -63,7 +63,15 @@ check(page.includes('creationIntent="fast"'), 'Kineo 1 starter preserves the exp
 check(page.includes('preserveHandoffForSignedIn'), 'Kineo 1 starter keeps the prompt when an authenticated visitor skips signup')
 check(page.includes('campaign={campaign}'), 'starter keeps the exact engine campaign for cohort measurement')
 check(page.includes('Your remaining trial balance stays available for the next test.'), 'starter explains the residual balance without hardcoded credit amounts')
-check(page.includes('href={studioUrl}'), 'existing member goes directly to the selected engine')
+check(page.includes('href={publicCreateCtaHref(studioUrl)}'), 'member CTA uses the selected engine URL in the public editor')
+const {offlineModules: offline} = await import('./gpt24h-offline-support.mjs')
+const {publicCreateCtaHref} = offline()('lib/create/entry.ts')
+for(const engine of ['hollywood', 'h3', 'h3max', 's25']) {
+  const landed = new URL(publicCreateCtaHref('/studio?engine=' + engine + '&intent_campaign=seo_engine'), 'https://www.usekineo.com')
+  equal(landed.pathname, '/create/film', 'member reaches shared editor')
+  equal(landed.searchParams.get('engine'),engine,'explicit engine promise survives')
+  equal(landed.searchParams.get('intent_campaign'),'seo_engine','engine campaign survives')
+}
 check(!page.includes('&engine=${e.param}'), 'discarded top-level engine query is gone')
 check(!page.includes('const generateUrl ='), 'legacy generate hop is gone')
 

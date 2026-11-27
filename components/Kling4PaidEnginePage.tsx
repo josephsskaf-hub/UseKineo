@@ -1,5 +1,6 @@
 'use client'
 
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import { FREE_FILM_ENGINE_NAME } from '@/lib/freeFilmEngine' // KINEO-K4-NARRACAO-CABE-0111
 import Link from 'next/link'
 import { UiLabel } from '@/components/InterfaceLanguage'
@@ -38,7 +39,7 @@ export default function Kling4PaidEnginePage({ serverPaidLive = false, freeFilmI
           <b style={{ display: 'block', fontSize: 28, marginTop: 8 }}>{kling4PaidCredits(seconds)} cr</b>
         </article>)}
       </div>
-    </> : <p role="status" style={{ margin: '24px 0', padding: 18, border: '1px solid var(--border)', borderRadius: 14 }}><UiLabel>{KLING4_PAID_COPY.paused}</UiLabel> <Link href="/studio?engine=hollywood">Studio →</Link></p>}
+    </> : <p role="status" style={{ margin: '24px 0', padding: 18, border: '1px solid var(--border)', borderRadius: 14 }}><UiLabel>{KLING4_PAID_COPY.paused}</UiLabel> <Link href={publicCreateCtaHref("/studio?engine=hollywood")}>Studio →</Link></p>}
     <p style={{ marginTop: 32 }}><Link href="/ai-video-generator/seedance">Seedance 1.5</Link> · <Link href="/ai-video-generator/minimax-h3">MiniMax H3</Link></p>
   </main>
 }

@@ -3,6 +3,7 @@
 // mostrar quantas palavras cabem em 35, 60 e 90 s. A FAQ e o FAQPage JSON-LD saem das MESMAS funções da ferramenta (nenhum
 // número de régua digitado nesta página); a primeira pergunta é a que o ChatGPT recebe: "How many words is a 60-second
 // YouTube Short?".
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
@@ -197,7 +198,7 @@ export default function YouTubeShortsScriptTimerPage() {
         </section>
 
         <p className="timer-links">
-          Engines: <Link href="/ai-video-generator/seedance">Seedance 1.5</Link> · <Link href="/ai-video-generator/kling-4">Kling 4.0</Link> · <Link href="/seedance-vs-veo-vs-kling">Engine comparison</Link> · <Link href="/pricing">Pricing</Link> · <Link href="/studio">Open the Studio</Link>
+          Engines: <Link href="/ai-video-generator/seedance">Seedance 1.5</Link> · <Link href="/ai-video-generator/kling-4">Kling 4.0</Link> · <Link href="/seedance-vs-veo-vs-kling">Engine comparison</Link> · <Link href="/pricing">Pricing</Link> · <Link href={publicCreateCtaHref("/studio")}>Open the Studio</Link>
         </p>
       </div>
       <Footer showStats={false} />

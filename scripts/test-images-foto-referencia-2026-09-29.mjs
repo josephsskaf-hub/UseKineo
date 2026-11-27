@@ -39,6 +39,7 @@ const OUTRO = '99999999-8888-4777-8666-555555555555'
 const refPath = (uid, n) => `images/${uid}/refs/${String(n).padStart(8, '0')}-aaaa-4bbb-8ccc-dddddddddddd.jpg`
 const SRC = {
   lib: rd('lib/imageReference.ts'),
+  catalog: rd('lib/imageModels.ts'),
   gen: rd('app/api/images/generate/route.ts'),
   up: rd('app/api/images/reference/route.ts'),
   policy: rd('lib/safety/moderationPolicy.ts'),
@@ -52,6 +53,7 @@ function mundo(opts = {}) {
   const supa = { auth: { getUser: async () => ({ data: { user: opts.anon ? null : { id: U } } }) } }
   w.req = (src = SRC) => ({
     'next/server': { NextResponse },
+    '@/lib/imageModels': roda(src.catalog),
     '@/lib/supabase/server': { createClient: () => supa },
     '@fal-ai/client': { fal: { config() {}, subscribe: async (slug, { input }) => {
       log.push('fal'); w.fal.push({ slug, input })
@@ -192,9 +194,9 @@ console.log('B) /api/images/reference')
 console.log('C) a tela e o resto')
 {
   const ui = rd('app/(dashboard)/images/ImagesClient.tsx')
-  checa('C1. bloco da foto só quando o motor é Nano Banana Pro; nos outros, aviso + atalho', /const REF_MODEL: ImgModelKey = 'nanobanana'/.test(ui) && ui.includes('{model === REF_MODEL ? (') && ui.includes('Reference photo · Available on Nano Banana Pro') && ui.includes('onClick={() => setModel(REF_MODEL)}'))
+  checa('C1. bloco da foto só quando o motor é Nano Banana Pro; nos outros, aviso + atalho', /const REF_MODEL: ImgModelKey = 'nanobanana'/.test(ui) && ui.includes('const referencePanel = (model === REF_MODEL ? (') && ui.includes('Reference photo · Available on Nano Banana Pro') && ui.includes('onClick={() => setModel(REF_MODEL)}'))
   checa('C2. caixa de autorização; sem ela não sobe foto nem gera com foto', ui.includes('I have permission from the person in the photo to use their image.') && ui.includes('disabled={!refConsent}') && ui.includes('const needsConsent = sendRefs && !refConsent') && ui.includes('!needsConsent'))
-  checa('C3. upload vai para /api/images/reference com rights=true; geração manda caminhos + consentimento só com Nano Banana Pro', ui.includes("fetch('/api/images/reference', { method: 'POST', body: form })") && ui.includes("form.append('rights', 'true')") && ui.includes('const sendRefs = model === REF_MODEL && readyRefs.length > 0') && ui.includes('...(sendRefs ? { reference_paths: readyRefs.map((r) => r.path), reference_consent: refConsent } : {})'))
+  checa('C3. upload vai para /api/images/reference com rights=true; geração manda caminhos + consentimento só com Nano Banana Pro', ui.includes("fetch('/api/images/reference', { method: 'POST', body: form })") && ui.includes("form.append('rights', 'true')") && ui.includes('const sendRefs = model === REF_MODEL && readyRefs.length > 0') && ui.includes('...(sendRefs ? { reference_paths: referencePaths, reference_consent: refConsent } : {})'))
   checa('C4. até 3 fotos, JPG/PNG/WEBP, 10 MB, miniatura com X', ui.includes('const REF_MAX = 3') && ui.includes("const REF_TYPES = ['image/jpeg', 'image/png', 'image/webp']") && ui.includes('const REF_MAX_BYTES = 10 * 1024 * 1024') && ui.includes("aria-label={ui('Remove photo')}"))
   checa('C5. imagem pronta segue para o Animate pelo id (Turn into video)', ui.includes('href={`/animate?from_image=${encodeURIComponent(it.id)}`}'))
   const copy = JSON.parse(rd('lib/ui/refinementCopy.json'))
@@ -204,8 +206,8 @@ console.log('C) a tela e o resto')
   const ev = rd('app/api/events/route.ts')
   const lista = ev.slice(ev.indexOf('const SERVER_ONLY_EVENTS = new Set(['), ev.indexOf('])', ev.indexOf('const SERVER_ONLY_EVENTS = new Set([')))
   checa('C8. os dois eventos novos são só-de-servidor', lista.includes("'images_reference_uploaded',") && lista.includes("'images_reference_used',"))
-  const eng = rd('lib/imageModels.ts')
-  checa('C9. preço público do Nano Banana Pro intacto (5 cr)', /key: 'nanobanana'[^\n]*credits: '5 cr'/.test(eng) && /nanobanana: \{\n\s*slug: 'fal-ai\/nano-banana-pro',\n\s*cost: 5,/.test(SRC.gen))
+  const eng = roda(SRC.catalog)
+  checa('C9. preço público do Nano Banana Pro intacto (5 cr)', eng.IMG_ENGINES.find(e => e.key === 'nanobanana').credits === '5 cr' && eng.imageCreditCost('nanobanana') === 5)
 }
 
 console.log('D) mutantes')
@@ -213,8 +215,8 @@ const mut = (campo, de, para) => { if (SRC[campo].split(de).length !== 2) throw 
 const MUTANTES = [
   ['sem checagem de dono', 'dono', mut('lib', 'if (!raw.every((p) => isOwnReferencePath(p, userId))) {', 'if (false) {')],
   ['sem consentimento no servidor', 'consentimento', mut('lib', 'if (body.reference_consent !== true) {', 'if (false) {')],
-  ['custo diferente com foto', 'custo', mut('gen', 'cost: model.cost })', 'cost: withReference ? model.cost + 1 : model.cost })')],
-  ['custo do Nano Banana Pro mudado', 'custo', mut('gen', "slug: 'fal-ai/nano-banana-pro',\n    cost: 5,", "slug: 'fal-ai/nano-banana-pro',\n    cost: 6,")],
+  ['custo diferente com foto', 'custo', mut('gen', 'renderId, cost })', 'renderId, cost: withReference ? cost + 1 : cost })')],
+  ['custo do Nano Banana Pro mudado', 'custo', mut('catalog', 'creditCost: 5 }', 'creditCost: 6 }')],
   ['upload sem moderação', 'uploadModerado', mut('up', 'if (!safety.ok) {', 'if (false) {')],
   ['falha sem estorno', 'estorno', mut('gen', "    await refundRenderCredits(renderId).catch(() => {})\n    if (exhausted) await alertFalExhausted(", "    if (exhausted) await alertFalExhausted(")], // reancorado KINEO-ROSTO-QUADRO-CHAVE-2810 — a rota passou a logar o erro REAL da fal (status + detail) antes de estornar; o estorno é a linha seguinte
   ['/edit sempre', 'endpoint', mut('gen', 'const falSlug = withReference ? NANO_BANANA_EDIT_SLUG : model.slug', 'const falSlug = modelKey === \'nanobanana\' ? NANO_BANANA_EDIT_SLUG : model.slug')],

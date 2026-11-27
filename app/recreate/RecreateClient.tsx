@@ -7,9 +7,8 @@ import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'rea
 import { KineoBrandIcon } from '@/components/KineoBolt'
 import { RECREATE_FORMATS, recreateAutumnTemplatesLast, recreateFormat, type RecreateFormat } from '@/lib/recreate/formats'
 import { ownedClipImageUrl } from '@/lib/clips/clipCatalog'
-import { publicRecreatePath } from '@/lib/recreate/entry'
+import { publicRecreatePath, RECREATE_MOLDES_SO_LOGADO } from '@/lib/recreate/entry'
 import { recreatePublicMedia } from '@/lib/recreate/catalogPublic'
-import { cadastroComVolta } from '@/lib/growth/visitanteEscreveAntes'
 import { clearRecreateFlowDraft, expireRecreateFlowDrafts, loadRecreateFlowDraft, saveRecreateFlowDraft } from '@/lib/recreate/flowDraft'
 import { compressPhoto, cropFace, composePairPhoto } from '@/lib/recreate/photos'
 import { KLING_IDENTITY_PHOTO_LIMIT, validRecreatePhotoCount } from '@/lib/recreate/identityPhotos'
@@ -23,7 +22,7 @@ import './showcase2511.css'
 import { downloadVideoFile } from '@/lib/videoDownload' // KINEO-DOWNLOAD-NOSSO-1311
 import { downloadHref } from '@/lib/downloadNosso'
 import { TopupOuRecargaModal, BUY_CREDITS_OPENED_EVENT } from '@/components/billing/BuyCreditsEntry' // KINEO-TELA-RECREATE-1611 — o MESMO pop-up de compra das outras telas
-import { trackEvent } from '@/lib/analytics'
+import { publicEditorSignup, trackEvent } from '@/lib/analytics'
 
 // KINEO-RECREATE-TRAVA-1011 — the provider returned the base video without the customer: the server refunded and failed the clip.
 const NOT_SWAPPED_MESSAGE = "We couldn't put you in this video. Nothing was charged. Try a clearer, front-facing photo or another video."
@@ -123,7 +122,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
   const previewLocked = currentFlow && signedIn && !generationAllowed
   // KINEO-RECREATE-TRAVA-1011 — the server pages pass the formats this account may request (unapproved swaps: house only).
   const permitted = formatos ?? (formatIds ? RECREATE_FORMATS.filter(f => formatIds.includes(f.id)) : RECREATE_FORMATS) // KINEO-RECEITA-FORA-DO-JS-1411 — a vitrine que o servidor mandou (só o que esta pessoa vê)
-  const catalog = currentFlow && !signedIn ? permitted.filter(f => publicRecreatePath(f.id) !== null) : permitted
+  const catalog = currentFlow && !signedIn ? permitted.filter(f => publicRecreatePath(f.id) !== null || (clipSpecs && RECREATE_MOLDES_SO_LOGADO.includes(f.id))) : permitted
   const [selected, setSelected] = useState(() => catalog.find(f => f.id === initialId) ?? null)
   const [photos, setPhotos] = useState<(Photo | null)[]>([])
   const requiredPhotoSlots = selected?.photoSlots ?? 0
@@ -176,7 +175,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
   const flowAlive = useRef(true)
   const handoffApproved = useRef(false)
   const canEdit = !currentFlow || (!restoring && !uncertain)
-  const mediaFor = (f: RecreateFormat) => currentFlow && publicRecreatePath(f.id) ? recreatePublicMedia(f) : { video: f.preview, poster: f.poster }
+  const mediaFor = (f: RecreateFormat) => currentFlow && (publicRecreatePath(f.id) || (!signedIn && clipSpecs && RECREATE_MOLDES_SO_LOGADO.includes(f.id))) ? recreatePublicMedia(f) : { video: f.preview, poster: f.poster }
   const selectedMedia = selected ? mediaFor(selected) : null
   function clearAttempt(model: string) {
     attempt.current = null
@@ -362,7 +361,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
     if (!selected) return
     if (uncertain && attempt.current) {
       handoffApproved.current = true
-      window.location.assign(cadastroComVolta(`${flowBasePath}/${selected.id}`))
+      window.location.assign(publicEditorSignup(`${flowBasePath}/${selected.id}`, new URLSearchParams({ volta: '1' })))
       return
     }
     const files = photos.filter((photo): photo is Photo => photo !== null).map(photo => photo.file)
@@ -372,13 +371,13 @@ export default function RecreateClient({ initialId, internalTools = false, forma
     if (!ref) throw new Error(UNSAVED_MESSAGE)
     activeDraft.current = ref
     handoffApproved.current = true
-    window.location.assign(cadastroComVolta(`${flowBasePath}/${selected.id}?${new URLSearchParams({ draft: ref })}`))
+    window.location.assign(publicEditorSignup(`${flowBasePath}/${selected.id}`, new URLSearchParams({ draft: ref, volta: '1' })))
   }
   /** Explicit choice only: the photos stay on this page until the person leaves; nothing is uploaded or generated. */
   function continueWithoutSaving() {
     if (!selected || flowBusy.current || busy) return
     handoffApproved.current = true
-    window.location.assign(cadastroComVolta(`${flowBasePath}/${selected.id}`))
+    window.location.assign(publicEditorSignup(`${flowBasePath}/${selected.id}`, new URLSearchParams({ volta: '1' })))
   }
   async function generateCurrentFlow() {
     if (!selected || flowBusy.current || photoLock.current || restoring || (clip && ['pending', 'processing'].includes(clip.status))) return

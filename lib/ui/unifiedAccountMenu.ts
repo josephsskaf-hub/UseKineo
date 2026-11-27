@@ -34,6 +34,7 @@ const PAGES = {
   '/library': 'library',
   '/clips': 'clips',
   '/images': 'images',
+  '/create/image': 'images',
   '/audio': 'audio',
   '/animate': 'animate',
   '/kids-cartoon': 'kids_cartoon',

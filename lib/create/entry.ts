@@ -1,56 +1,21 @@
-// KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"]
-// O ÚNICO lugar que decide para onde vai cada ENTRADA de criação do site (menu do topo, menu lateral, menu do celular, cartões
-// da home, caixa de presente): a tela nova (/create/<aba>) ou o destino antigo.
-//
-// Regra: a entrada vai para a tela nova SÓ quando os três interruptores estão em 'public' (CREATE_ENTRY_RELEASE, o da casca
-// CREATE_SHELL_RELEASE e, para Film, CREATE_FILM_INPLACE) E quando a tela nova RECEBE o mesmo dado e faz a mesma coisa:
-//   · Film    — destino antigo /studio com SÓ os parâmetros que a caixa única do /studio lê (ideia, intent_campaign) + atribuição
-//               (utm_*, ref, gclid, msclkid, fbclid, ttclid) e, no máximo, engine=seedance (o motor padrão da caixa). /create/film
-//               lê os mesmos (app/create/[tab]/page.tsx). Sem intent_campaign, leva a MESMA campanha que a caixa do /studio grava
-//               ('studio_simple', campanhaDaCaixa) — a medição fica igual; só o path do evento muda.
-//               Qualquer outro parâmetro (prompt, script_mode, série/continuação, autostart, conector, retomada…) = destino antigo.
-//               KINEO-ENTRADAS-MOTOR-1011 — outro motor (engine=hollywood|h3|h3max|s25|fast…) SAI do link e a entrada vai à aba Film
-//               (CEO 10/11: "logado vai para /create/film sem o motor"); com outro dado não tratado junto, segue o destino antigo.
-//   · Cartoon — só /kids-cartoon SECO (sem query). Personagem, ideia, utm de abertura sem conta… = destino antigo.
-//   · Ads     — só /ads/new SECO. Entrada com estilo, formato, foto, link de produto, rascunho ou origem = destino antigo.
-// KINEO-ENTRADAS-CARTOES-1011 [fundador 10/11, vídeo logado: "Make my ad", "Make my UGC ad" e "Make my cartoon" abriram a tela ANTIGA] — os
-// cartões da home também entram (só logado): /ads/v2?entry=product|ugc&utm_source=home_card → /create/ads?<a mesma query> e
-// /kids-cartoon?utm_source=home_card → /create/cartoon?<a mesma query>. Só passam os parâmetros que a aba GUARDA e REPASSA ao gerador no
-// "Make your ad"/"Continue" (adsArrivalSupported/cartoonArrivalSupported + destinoDaChegada, a MESMA régua na entrada e na página):
-// entry (product|ugc, a lista de lib/ads/sampleEntry.ts) só no Ads, intent_campaign e atribuição (utm_*, ref, gclid, msclkid, fbclid,
-// ttclid). Qualquer outro dado (estilo, pedido, modelo de Black Friday, personagem…) = destino antigo.
-// Com qualquer interruptor fora de 'public' a função devolve o destino antigo byte a byte.
-// KINEO-ENTRADAS-SO-LOGADO-1011 [CEO 10/11: "VISITANTE (deslogado) FICA NO DESTINO ANTIGO… só quem está LOGADO vai para as abas novas"] — o canal
-// que paga chega por visitante (13 de 17 pagantes compram na 1ª hora); a porta dele não muda sem medição. O estado de login é ARGUMENTO
-// obrigatório: só signedIn === true vira tela nova. Visitante, ou superfície que não sabe (render de servidor/SEO), = destino antigo byte a byte
-// (inclusive o embrulho '/signup?redirect=…' que algumas funções da home já fazem para visitante).
-// Módulo PURO (sem rede, sem e-mail, sem env): o guardião scripts/test-entradas-tela-nova-1011.mjs o executa.
 import { CREATE_ENTRY_RELEASE, CREATE_FILM_INPLACE, CREATE_SHELL_RELEASE } from './release'
+import { CREATE_CLIP_INPLACE } from './clipNaMolduraRelease'
 import { publicFilmEditor } from './publicFilmEditorServer'
+import { PUBLIC_CREATE_EDITORS } from './publicEditorRelease'
 import type { InternalRelease } from '@/lib/recreate/release'
 
 export type CreateEntryKind = 'film' | 'cartoon' | 'ads'
-
-/** O destino antigo de cada aba (path exato). */
+type PublicProduct = CreateEntryKind | 'clip' | 'recreate'
 export const LEGACY_ENTRY_PATH: Readonly<Record<CreateEntryKind, string>> = { film: '/studio', cartoon: '/kids-cartoon', ads: '/ads/new' }
-
-/** A campanha que a caixa do /studio grava quando o link não traz nenhuma (lib/growth/studioSimples.ts campanhaDaCaixa). */
 export const STUDIO_BOX_DEFAULT_CAMPAIGN = 'studio_simple'
-
-/** Parâmetros que a aba Film recebe e trata igual ao /studio (a caixa única): o resto da lista SO_CHEGOU, menos o motor. */
-const FILM_KEYS = /^(?:intent_campaign|ideia|utm_[a-z]+|ref|gclid|msclkid|fbclid|ttclid)$/
-/** O único motor aceito: o padrão da caixa (motorDaCaixa(undefined) === 'seedance'); a aba Film não mostra nem troca motor. */
 export const FILM_DEFAULT_ENGINE = 'seedance'
-/** Chegada do cadastro (OAuth: signup=1; e-mail: welcome=1) — a aba Film monta o StudioIdeaArrival como o /studio. */
-const ARRIVAL_KEYS = /^(?:signup|welcome)$/
-/** KINEO-ENTRADAS-CARTOES-1011 — o que as abas Ads/Cartoon guardam da chegada e repassam ao gerador de hoje. */
-const ATTRIBUTION_KEYS = /^(?:intent_campaign|utm_[a-z]+|ref|gclid|msclkid|fbclid|ttclid)$/
-/** As entradas do /ads/v2 que o servidor aceita (lib/ads/sampleEntry.ts adsSampleEntryOf). */
-const ADS_ENTRIES = new Set(['product', 'ugc'])
-/** O montador de anúncio de hoje (os cartões Product/UGC da home apontam para ele com ?entry=). */
 export const ADS_V2_PATH = '/ads/v2'
 
 const BASE = 'https://kineo.local'
+const TRACKING = /^(?:intent_campaign|utm_[a-z_]+|ref|gclid|msclkid|fbclid|ttclid)$/
+const UUID = /^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i
+const FILM_ENGINES = new Set(['seedance', 'hollywood', 'h3', 'h3max', 's25'])
+type Query = URLSearchParams | Record<string, string | string[] | undefined>
 
 export interface CreateEntryOpts {
   entry?: InternalRelease
@@ -59,7 +24,7 @@ export interface CreateEntryOpts {
 }
 
 export function parse(href: string): URL | null {
-  if (typeof href !== 'string' || !href.startsWith('/') || href.startsWith('//')) return null
+  if (typeof href !== 'string' || !href.startsWith('/') || href.startsWith('//') || /[\\\u0000-\u001f]/.test(href)) return null
   try {
     const u = new URL(href, BASE)
     return u.origin === BASE && !u.hash ? u : null
@@ -68,142 +33,196 @@ export function parse(href: string): URL | null {
   }
 }
 
-/** Os parâmetros de um link para a aba Film são os que ela trata igual ao /studio? (página e entrada usam a MESMA régua) */
-export function filmParamsSupported(params: URLSearchParams | Record<string, string | string[] | undefined>, opts: { arrival?: boolean } = {}): boolean {
-  const entries: [string, unknown][] = params instanceof URLSearchParams ? Array.from(params.entries()) : Object.entries(params)
-  const seen = new Set<string>()
-  for (const [k, v] of entries) {
-    if (typeof v !== 'string') return false // repetido / lista = o /studio trataria de outro jeito
-    if (seen.has(k)) return false
-    seen.add(k)
-    if (k === 'engine') { if (v !== FILM_DEFAULT_ENGINE) return false; continue }
-    if (FILM_KEYS.test(k)) continue
-    if (opts.arrival && ARRIVAL_KEYS.test(k)) continue
-    return false
+function singleParams(params: Query): URLSearchParams | null {
+  const result = new URLSearchParams()
+  const entries = params instanceof URLSearchParams ? params.entries() : Object.entries(params)
+  for (const [key, value] of Array.from(entries)) {
+    if (typeof value !== 'string' || result.has(key)) return null
+    result.set(key, value)
   }
-  return true
+  return result
 }
 
-/** KINEO-ENTRADAS-VISITANTE-1111 — a marca que o callback do cadastro põe no destino de conta nova (signup=1 · welcome=1). */
-function signupArrival(k: string, v: string): boolean {
-  return ARRIVAL_KEYS.test(k) && v === '1'
+function arrival(k: string, v: string): boolean {
+  return (k === 'welcome' || k === 'signup') && v === '1'
 }
 
-function paramsOk(params: URLSearchParams | Record<string, string | string[] | undefined>, allow: (k: string, v: string) => boolean): boolean {
-  const entries: [string, unknown][] = params instanceof URLSearchParams ? Array.from(params.entries()) : Object.entries(params)
-  const seen = new Set<string>()
-  for (const [k, v] of entries) {
-    if (typeof v !== 'string' || seen.has(k)) return false
-    seen.add(k)
-    if (!allow(k, v)) return false
+export function filmParamsSupported(params: Query, opts: { arrival?: boolean } = {}): boolean {
+  const q = singleParams(params)
+  if (!q) return false
+  if (q.has('prompt') && q.has('ideia')) return false
+  if (q.has('draft') || q.has('volta')) {
+    if (!opts.arrival || !UUID.test(q.get('draft') ?? '') || q.get('volta') !== '1') return false
   }
-  return true
+  return Array.from(q.entries()).every(([k, v]) => {
+    if (TRACKING.test(k) || k === 'ideia' || k === 'prompt' || k === 'draft' || k === 'volta') return true
+    if (opts.arrival && arrival(k, v)) return true
+    switch (k) {
+      case 'engine': return FILM_ENGINES.has(v)
+      case 'duration': return ['15', '30', '35', '45', '60', '90'].includes(v)
+      case 'aspect': return ['9:16', '16:9', '1:1', '4:5'].includes(v)
+      case 'look': return ['photoreal', 'animated3d', 'anime'].includes(v)
+      case 'language': return /^(?:auto|[a-z]{2,3}(?:-[A-Za-z]{2,4})?)$/.test(v)
+      case 'script_mode': return v === 'ai' || v === 'verbatim'
+      default: return false
+    }
+  })
 }
 
-/** KINEO-ENTRADAS-CARTOES-1011 — a chegada da aba Ads é toda guardável e repassável? (entry válido + atribuição) */
-export function adsArrivalSupported(params: URLSearchParams | Record<string, string | string[] | undefined>): boolean {
-  return paramsOk(params, (k, v) => (k === 'entry' ? ADS_ENTRIES.has(v) : ATTRIBUTION_KEYS.test(k) || signupArrival(k, v)))
-}
-/** KINEO-ENTRADAS-CARTOES-1011 — a chegada da aba Cartoon é toda guardável e repassável? (só atribuição) */
-export function cartoonArrivalSupported(params: URLSearchParams | Record<string, string | string[] | undefined>): boolean {
-  return paramsOk(params, (k, v) => ATTRIBUTION_KEYS.test(k) || signupArrival(k, v))
+export function adsArrivalSupported(params: Query): boolean {
+  const q = singleParams(params)
+  return !!q && Array.from(q.entries()).every(([k, v]) =>
+    TRACKING.test(k) || arrival(k, v) || (k === 'entry' && (v === 'product' || v === 'ugc')) ||
+    ((k === 'style' || k === 'bf_template') && /^[a-z0-9_-]{1,100}$/.test(v)) || (k === 'bf_lang' && ['en', 'pt', 'es'].includes(v)))
 }
 
-/**
- * KINEO-ENTRADAS-CARTOES-1011 — para onde o "Make your ad"/"Continue" da aba leva a chegada (logado): o MESMO destino de hoje com a MESMA
- * query (Ads → /ads/v2?entry=…&utm_source=…, que lê `entry` como sempre; Cartoon → /kids-cartoon?utm_source=…). Sem query = null (o botão de sempre).
- */
+export function cartoonArrivalSupported(params: Query): boolean {
+  const q = singleParams(params)
+  return !!q && Array.from(q.entries()).every(([k,v]) => TRACKING.test(k) || arrival(k,v))
+}
+
 export function destinoDaChegada(tab: CreateEntryKind, query: string): string | null {
   if (!query || tab === 'film') return null
   return `${tab === 'ads' ? ADS_V2_PATH : LEGACY_ENTRY_PATH.cartoon}?${query}`
 }
 
-/** O destino da entrada. `legacyHref` é o destino de HOJE (sem o embrulho do cadastro). */
-export function createEntryHref(kind: CreateEntryKind, legacyHref: string, signedIn: boolean, opts: CreateEntryOpts = {}): string {
-  // The public Films menus use these two links. Other products and advanced Studio entries keep their release policy.
-  const publicFilmMenu = signedIn === false && kind === 'film'
-    && (legacyHref === '/studio' || legacyHref === '/studio?intent_campaign=nav_door')
-    && publicFilmEditor()
-  if (signedIn !== true && !publicFilmMenu) return legacyHref
-  const entry = opts.entry ?? CREATE_ENTRY_RELEASE
-  const shell = opts.shell ?? CREATE_SHELL_RELEASE
-  const film = opts.filmInplace ?? CREATE_FILM_INPLACE
-  if (entry !== 'public' || shell !== 'public' || (kind === 'film' && film !== 'public')) return legacyHref
-  const u = parse(legacyHref)
-  if (!u) return legacyHref
-  // KINEO-ENTRADAS-CARTOES-1011 — os cartões da home: /ads/v2 e /kids-cartoon com a chegada que a aba guarda e repassa.
-  if (kind === 'ads' && u.pathname === ADS_V2_PATH) return u.search && adsArrivalSupported(u.searchParams) ? `/create/ads${u.search}` : legacyHref
-  if (kind === 'cartoon' && u.pathname === LEGACY_ENTRY_PATH.cartoon && u.search) return cartoonArrivalSupported(u.searchParams) ? `/create/cartoon${u.search}` : legacyHref
-  if (u.pathname !== LEGACY_ENTRY_PATH[kind]) return legacyHref
-  let target: string
-  if (kind === 'film') {
-    const q = new URLSearchParams(u.searchParams)
-    // KINEO-ENTRADAS-MOTOR-1011 [CEO 10/11: "Itens que carregam MOTOR (engine=…): logado vai para /create/film sem o motor (a tela nova não
-    // escolhe motor)"] — um único engine= diferente do padrão da caixa sai do link; o resto da régua (filmParamsSupported) segue igual.
-    const motores = q.getAll('engine')
-    if (motores.length === 1 && motores[0] !== FILM_DEFAULT_ENGINE) q.delete('engine')
-    if (!filmParamsSupported(q)) return legacyHref
-    if (!q.has('intent_campaign')) q.append('intent_campaign', STUDIO_BOX_DEFAULT_CAMPAIGN)
-    target = `/create/film?${q.toString()}`
-  } else {
-    if (u.search) return legacyHref
-    target = `/create/${kind}`
-  }
-  return target
+function publicEntry(kind: string, opts: CreateEntryOpts): boolean {
+  if ((opts.entry ?? CREATE_ENTRY_RELEASE) !== 'public' || (opts.shell ?? CREATE_SHELL_RELEASE) !== 'public') return false
+  if (kind === 'clip') return CREATE_CLIP_INPLACE === 'public'
+  return kind !== 'film' || (opts.filmInplace ?? CREATE_FILM_INPLACE) === 'public'
 }
 
-/**
- * KINEO-ENTRADAS-CARTOES-1011 [CEO 10/11: "AI UGC Ads" e "AI Cartoon Videos" do topo: logado vai para a aba; visitante continua na página de
- * conteúdo] — para um link que hoje leva a uma página de CONTEÚDO (`contentHref`) mas cujo sentido, para quem está logado, é "fazer agora":
- * se o destino de criação equivalente (`makeNowHref`, o de hoje) vira uma aba nova, a aba; senão (visitante, interruptor fora, dado que a aba
- * não trata) o link de conteúdo, byte a byte.
- */
+function pathWithQuery(path: string, q: URLSearchParams): string {
+  const search = q.toString()
+  return search ? path + '?' + search : path
+}
+
+/** An effect link changes routes after admission. Retain the attribution attached to that click. */
+export function effectTemplateHref(path: string, searchParams: Record<string, string | string[] | undefined>): string {
+  const tracking = new URLSearchParams()
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (!TRACKING.test(key) || value === undefined) continue
+    for (const v of Array.isArray(value) ? value : [value]) tracking.append(key, v)
+  }
+  return pathWithQuery(path, tracking)
+}
+
+/** A menu chooses a product. A CTA tied to a particular film may also specify a model or supply a script. */
+function productHref(kind: CreateEntryKind, href: string, opts: CreateEntryOpts, explicit: boolean): string {
+  const u = parse(href)
+  if (!publicEntry(kind, opts) || !u) return href
+  if (kind === 'cartoon') {
+    return u.pathname === LEGACY_ENTRY_PATH.cartoon && cartoonArrivalSupported(u.searchParams) ? '/create/cartoon' + u.search : href
+  }
+  if (kind === 'ads') {
+    return [ADS_V2_PATH, LEGACY_ENTRY_PATH.ads].includes(u.pathname) && adsArrivalSupported(u.searchParams) ? '/create/ads' + u.search : href
+  }
+  const scriptEditor = explicit && ['/generate', '/studio/create'].includes(u.pathname) && u.searchParams.has('prompt')
+  if (u.pathname !== LEGACY_ENTRY_PATH.film && !scriptEditor) return href
+  const q = singleParams(u.searchParams)
+  if (!q) return href
+  if (explicit && q.has('prompt') && !q.has('ideia')) {
+    if (q.get('autoanalyze') === '1') q.delete('autoanalyze')
+    if (q.get('create_intent') === 'example_remix') q.delete('create_intent')
+    if (q.get('remix_mode') === 'exact_prompt') q.delete('remix_mode')
+    if (q.get('handoff_kind') === 'free_script') {
+      q.delete('handoff_kind')
+      if (!q.has('script_mode')) q.set('script_mode', 'verbatim')
+    }
+    q.set('ideia', q.get('prompt')!)
+    q.delete('prompt')
+  }
+  if (!explicit && q.has('prompt')) return href
+  if (q.has('engine') && ((!explicit && q.get('engine') !== FILM_DEFAULT_ENGINE) || q.get('engine') === 'fast')) q.delete('engine')
+  if (!filmParamsSupported(q)) return href
+  if (!q.has('intent_campaign')) q.set('intent_campaign', STUDIO_BOX_DEFAULT_CAMPAIGN)
+  return pathWithQuery('/create/film', q)
+}
+
+export function createEntryHref(kind: CreateEntryKind, legacyHref: string, signedIn: boolean, opts: CreateEntryOpts = {}): string {
+  if (typeof signedIn !== 'boolean' || (!signedIn && !PUBLIC_CREATE_EDITORS)) return legacyHref
+  if (!signedIn && kind === 'film' && !publicFilmEditor()) return legacyHref
+  return productHref(kind, legacyHref, opts, false)
+}
+
 export function createEntryForContentHref(kind: CreateEntryKind, contentHref: string, makeNowHref: string, signedIn: boolean, opts: CreateEntryOpts = {}): string {
   const novo = createEntryHref(kind, makeNowHref, signedIn, opts)
   return novo !== makeNowHref && novo.startsWith(`/create/${kind}`) ? novo : contentHref
 }
 
-/**
- * KINEO-ENTRADAS-VISITANTE-1111 [CEO 11/11, dono com print da home deslogada: "nem todos os botões estão entrando no fluxo novo"] — o VISITANTE
- * dos cartões e portas da home hoje vai a `/signup?redirect=<destino antigo>`. Aqui o redirect passa a levar o MESMO destino da tela nova
- * que o logado recebe (createEntryForLegacyHref): depois do cadastro a pessoa já está logada e pousa direto em /create/film|ads|cartoon.
- * Logado: idêntico a createEntryForLegacyHref. Só muda o embrulho EXATO `/signup?redirect=<x>` (um único parâmetro); qualquer outro href —
- * a caixa "What's your film about?" (a ideia antes do cadastro), `/signup?utm_source=…`, /clips, /recreate, páginas de conteúdo — volta intacto,
- * assim como o redirect cujo destino a tela nova não trata (createEntryHref devolve o antigo) e qualquer interruptor fora de 'public'.
- */
-export function createEntryForSignupHref(legacyHref: string, signedIn: boolean, opts: CreateEntryOpts = {}): string {
-  if (signedIn === true) return createEntryForLegacyHref(legacyHref, true, opts)
-  if (signedIn !== false) return legacyHref // login desconhecido (undefined, null, 'true'…): o destino de hoje, como em createEntryHref
-  const u = parse(legacyHref)
-  if (!u || u.pathname !== '/signup') return legacyHref
-  const keys = Array.from(u.searchParams.keys())
-  if (keys.length !== 1 || keys[0] !== 'redirect') return legacyHref
-  const destino = u.searchParams.get('redirect') ?? ''
-  const novo = createEntryForLegacyHref(destino, true, opts)
-  if (novo === destino || !(novo.startsWith('/create/film') || novo.startsWith('/create/ads') || novo.startsWith('/create/cartoon'))) return legacyHref
-  return `/signup?redirect=${encodeURIComponent(novo)}`
+function direct(href: string, opts: CreateEntryOpts, explicit: boolean): string | null {
+  const u = parse(href)
+  if (!u) return null
+  if (explicit && ['/studio/create', '/generate'].includes(u.pathname)) {
+    const film = productHref('film', href, opts, true)
+    return film !== href ? film : null
+  }
+  if (u.pathname === '/clips' && publicEntry('clip', opts)) return '/create/clip' + u.search
+  if (/^\/recreate(?:\/[\w-]+)?$/.test(u.pathname) && publicEntry('recreate', opts)) return href
+  const kind = u.pathname === ADS_V2_PATH ? 'ads' : (Object.keys(LEGACY_ENTRY_PATH) as CreateEntryKind[]).find(k => LEGACY_ENTRY_PATH[k] === u.pathname)
+  if (!kind) {
+    const tab = /^\/create\/(film|cartoon|ads|clip)$/.exec(u.pathname)?.[1]
+    return tab && publicEntry(tab, opts) ? href : null
+  }
+  const target = productHref(kind, href, opts, explicit)
+  return target === href ? null : target
 }
 
-/** A query de chegada de /create/<aba> como string (lista = a chave repetida), para devolvê-la intacta ao /studio ou ao cadastro. */
+export function createEntryForLegacyHref(href: string, signedIn: boolean, opts: CreateEntryOpts = {}): string {
+  if (typeof signedIn !== 'boolean' || (!signedIn && !PUBLIC_CREATE_EDITORS)) return href
+  const target = direct(href, opts, false) ?? href
+  return !signedIn && target.split('?')[0] === '/create/film' && !publicFilmEditor() ? href : target
+}
+
+function destinationFromSignup(u: URL, opts: CreateEntryOpts, explicit: boolean): string | null {
+  const outer = singleParams(u.searchParams)
+  if (!outer || !outer.has('redirect') || !Array.from(outer.keys()).every(k => k === 'redirect' || TRACKING.test(k))) return null
+  const nested = parse(outer.get('redirect')!)
+  if (!nested || nested.searchParams.has('volta') || nested.searchParams.has('draft')) return null
+  for (const [k, v] of Array.from(outer.entries())) {
+    if (k === 'redirect') continue
+    if (nested.searchParams.has(k) && nested.searchParams.get(k) !== v) return null
+    nested.searchParams.set(k, v)
+  }
+  return direct(nested.pathname + nested.search, opts, explicit)
+}
+
+export function createEntryForSignupHref(href: string, signedIn: boolean, opts: CreateEntryOpts = {}): string {
+  if (typeof signedIn !== 'boolean') return href
+  const u = parse(href)
+  if (!u) return href
+  if (!signedIn && !PUBLIC_CREATE_EDITORS) {
+    if (u.pathname !== '/signup' || Array.from(u.searchParams.keys()).join() !== 'redirect') return href
+    const target = destinationFromSignup(u, opts, false)
+    return target && /^\/create\/(film|ads|cartoon)(?:\?|$)/.test(target) ? '/signup?redirect=' + encodeURIComponent(target) : href
+  }
+  const target = u.pathname === '/signup' ? destinationFromSignup(u, opts, false) : direct(href, opts, false)
+  return target && (signedIn || target.split('?')[0] !== '/create/film' || publicFilmEditor()) ? target : href
+}
+
+/** Use only on a creation CTA. Account, subscription, connector and editorial links retain their own destinations. */
+export function publicCreateCtaHref(href: string, kind: PublicProduct = 'film', opts: CreateEntryOpts = {}): string {
+  const u = parse(href)
+  if (!u || !PUBLIC_CREATE_EDITORS || !publicEntry(kind, opts) || (kind === 'film' && !publicFilmEditor())) return href
+  if (u.pathname !== '/signup') {
+    if (kind === 'ads' && u.pathname === '/ads' && adsArrivalSupported(u.searchParams)) return '/create/ads' + u.search
+    return direct(href, opts, true) ?? href
+  }
+  if (u.searchParams.has('redirect')) return destinationFromSignup(u, opts, true) ?? href
+  const q = singleParams(u.searchParams)
+  if (!q) return href
+  if (kind === 'clip' || kind === 'recreate') {
+    if (!Array.from(q.keys()).every(k => TRACKING.test(k))) return href
+    return pathWithQuery(kind === 'clip' ? '/create/clip' : '/recreate', q)
+  }
+  if (q.get('create_intent') === 'fast' || q.get('create_intent') === 'trial_best') q.delete('create_intent')
+  if (q.has('lang') && !q.has('language')) { q.set('language', q.get('lang')!); q.delete('lang') }
+  const target = productHref(kind, pathWithQuery(LEGACY_ENTRY_PATH[kind], q), opts, true)
+  return target.startsWith('/create/') ? target : href
+}
+
 export function queryDaChegada(searchParams: Record<string, string | string[] | undefined>): string {
   const q = new URLSearchParams()
   for (const [k, v] of Object.entries(searchParams)) for (const x of Array.isArray(v) ? v : v === undefined ? [] : [v]) q.append(k, x)
   return q.toString()
 }
-
-/**
- * Para quem já tem o href pronto (menus que guardam o destino antigo como identidade; funções de cartão da home):
- * '/studio…' · '/ads/new' · '/kids-cartoon'. Qualquer outro href (inclusive o '/signup?redirect=…' do visitante) volta intacto.
- */
-export function createEntryForLegacyHref(legacyHref: string, signedIn: boolean, opts: CreateEntryOpts = {}): string {
-  const u = parse(legacyHref)
-  if (!u) return legacyHref
-  const kind = u.pathname === ADS_V2_PATH ? 'ads' : (Object.keys(LEGACY_ENTRY_PATH) as CreateEntryKind[]).find(k => LEGACY_ENTRY_PATH[k] === u.pathname) // KINEO-ENTRADAS-CARTOES-1011 — + /ads/v2
-  return kind ? createEntryHref(kind, legacyHref, signedIn, opts) : legacyHref
-}
-
-// ═══ KINEO-CLIP-NA-MOLDURA-1011 — acrescentado no FIM de propósito (este arquivo tem outro dono); nada acima foi tocado. ═══
-// O destino de um link de /clips para QUEM ESTÁ LOGADO e tem a aba Clip aberta (lib/create/clipNaMoldura.ts, interruptor próprio):
-// /create/clip com a MESMA query (engine, prompt, effect, remix, trend, intent_campaign, utm…), porque a aba É o ClipsClient de hoje e ele
-// lê a query do próprio endereço. Visitante, conta sem a aba, ou qualquer outro href = o href de hoje, byte a byte. Aplicado num lugar só:
-// app/(dashboard)/clips/page.tsx (todo cartão de clipe da home, o menu e qualquer link chegam lá primeiro).

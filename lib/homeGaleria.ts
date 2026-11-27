@@ -214,8 +214,8 @@ export function galeriaClipEffectHref(key: string, signedIn: boolean): string {
   return viaSignup('/clips?' + qs({ effect: key, utm_source: UTM }), signedIn)
 }
 /** Imagem → /images já no motor que fez a foto (?engine= é o que o ImagesClient lê hoje; ver nota do topo sobre ?prompt=). */
-export function galeriaImageHref(signedIn: boolean): string {
-  return viaSignup('/images?' + qs({ engine: 'nanobanana', utm_source: UTM }), signedIn)
+export function galeriaImageHref(_signedIn: boolean): string {
+  return '/create/image?' + qs({ engine: 'nanobanana', utm_source: UTM })
 }
 /** Filme → Studio com a ideia (o título) e o motor que fez o filme, se ainda estiver na oferta; a IA estrutura o roteiro. */
 export function galeriaFilmHref(title: string, studioEngine: string | null): string {

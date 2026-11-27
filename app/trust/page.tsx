@@ -1,4 +1,5 @@
 
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import { KineoBrandIcon } from '@/components/KineoBolt'
 import type { CSSProperties } from 'react'
 import type { Metadata } from 'next'
@@ -238,7 +239,7 @@ export default function TrustPage() {
           <p style={{ color: '#aaaab1', lineHeight: 1.6, margin: '11px auto 20px', maxWidth: 650 }}>
             Watch public examples, create your own watermarked Fast preview without a card, and only then decide whether Kineo belongs in your workflow.
           </p>
-          <Link href="/signup?utm_source=trust&utm_medium=organic&utm_campaign=trust_center_bottom" style={{ display: 'inline-flex', color: '#04110c', background: '#34d399', borderRadius: 999, padding: '13px 21px', fontSize: 14, fontWeight: 900, textDecoration: 'none' }}>Create a free preview →</Link>
+          <Link href={publicCreateCtaHref("/signup?utm_source=trust&utm_medium=organic&utm_campaign=trust_center_bottom")} style={{ display: 'inline-flex', color: '#04110c', background: '#34d399', borderRadius: 999, padding: '13px 21px', fontSize: 14, fontWeight: 900, textDecoration: 'none' }}>Create a free preview →</Link>
         </section>
       </div>
 

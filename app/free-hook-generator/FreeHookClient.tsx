@@ -2,6 +2,7 @@
 
 // #485 — Interactive free hook tool. Calls public /api/demo-hooks (no auth),
 // renders 5 hooks, then pushes the visitor to signup to turn one into a video.
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import { useState } from 'react'
 import Link from 'next/link'
 import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
@@ -89,27 +90,27 @@ export default function FreeHookClient({ entry }: { entry: AnswerEngineHookEntry
                 <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', flexWrap: 'wrap', padding: '10px 0', borderBottom: i < hooks.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
                   <div style={{ minWidth: 24, height: 24, borderRadius: 6, background: 'rgba(41,151,255,0.12)', color: '#2997ff', fontWeight: 900, fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{i + 1}</div>
                   <div style={{ flex: '1 1 280px', fontSize: '1.02rem', lineHeight: 1.45, fontWeight: 600 }}>{h}</div>
-                  <Link href={hookActivationHref(generatedTopic, h, entry)} onClick={() => { void trackEvent('free_hook_to_signup_clicked', { destination: 'generate', variant: 'hook', hook_index: i + 1, autoanalyze: true, entry, version: ANSWER_ENGINE_HOOK_WORKBENCH_VERSION }); void trackEvent('organic_cta_clicked', { source: hookCtaEventSource(entry), placement: 'hook_result', entry, version: ANSWER_ENGINE_HOOK_WORKBENCH_VERSION }) }} style={{ color: '#2997ff', fontWeight: 900, fontSize: '0.82rem', textDecoration: 'none', whiteSpace: 'nowrap', padding: '3px 0' }}>Create this Short →</Link>
+                  <Link href={publicCreateCtaHref(hookActivationHref(generatedTopic, h, entry))} onClick={() => { void trackEvent('free_hook_to_signup_clicked', { destination: '/create/film', variant: 'hook', hook_index: i + 1, autoanalyze: false, entry, version: ANSWER_ENGINE_HOOK_WORKBENCH_VERSION }); void trackEvent('organic_cta_clicked', { source: hookCtaEventSource(entry), placement: 'hook_result', entry, version: ANSWER_ENGINE_HOOK_WORKBENCH_VERSION }) }} style={{ color: '#2997ff', fontWeight: 900, fontSize: '0.82rem', textDecoration: 'none', whiteSpace: 'nowrap', padding: '3px 0' }}>Create this Short →</Link>
                 </div>
               ))}
             </div>
             <div style={{ marginTop: 18, padding: '16px', borderRadius: 12, background: 'rgba(41,151,255,0.08)', border: '1px solid rgba(41,151,255,0.25)', textAlign: 'center' }}>
               <div style={{ fontWeight: 800, marginBottom: 4 }}>Pick a hook above to create the full Short 🎬</div>
               <p style={{ color: '#86868b', fontSize: '0.88rem', margin: '0 0 12px' }}>Your chosen hook and topic come with you after signup. AI writes the rest, then adds voiceover, footage and captions.</p>
-              <Link href={hookActivationHref(generatedTopic, undefined, entry)} onClick={() => { void trackEvent('free_hook_to_signup_clicked', { destination: 'generate', variant: 'topic', autoanalyze: true, entry, version: ANSWER_ENGINE_HOOK_WORKBENCH_VERSION }); void trackEvent('organic_cta_clicked', { source: hookCtaEventSource(entry), placement: 'result', entry, version: ANSWER_ENGINE_HOOK_WORKBENCH_VERSION }) }} style={{ display: 'inline-block', background: '#2997ff', color: '#000', fontWeight: 900, padding: '12px 26px', borderRadius: 10, textDecoration: 'none' }}>Create a Short from this topic →</Link>
+              <Link href={publicCreateCtaHref(hookActivationHref(generatedTopic, undefined, entry))} onClick={() => { void trackEvent('free_hook_to_signup_clicked', { destination: '/create/film', variant: 'topic', autoanalyze: false, entry, version: ANSWER_ENGINE_HOOK_WORKBENCH_VERSION }); void trackEvent('organic_cta_clicked', { source: hookCtaEventSource(entry), placement: 'result', entry, version: ANSWER_ENGINE_HOOK_WORKBENCH_VERSION }) }} style={{ display: 'inline-block', background: '#2997ff', color: '#000', fontWeight: 900, padding: '12px 26px', borderRadius: 10, textDecoration: 'none' }}>Create a Short from this topic →</Link>
             </div>
           </section>
         )}
 
         <section style={{ marginTop: 30, color: '#86868b', fontSize: '0.92rem', lineHeight: 1.65 }}>
           <h2 style={{ color: '#f5f5f7', fontSize: '1.15rem', fontWeight: 900, margin: '0 0 8px' }}>Why the hook decides everything</h2>
-          <p style={{ margin: 0 }}>On YouTube Shorts and TikTok, the first 1-2 seconds decide whether your video gets watched or skipped. This free tool writes 5 pattern-interrupt hooks for any topic — the same hook logic that powers Kineo. Pick one, then <Link href={hookActivationHref('', undefined, entry)} onClick={() => { void trackEvent('organic_cta_clicked', { source: hookCtaEventSource(entry), placement: 'explainer', entry, version: ANSWER_ENGINE_HOOK_WORKBENCH_VERSION }) }} style={{ color: '#2997ff' }}>turn it into a finished faceless Short in a few minutes →</Link></p>
+          <p style={{ margin: 0 }}>On YouTube Shorts and TikTok, the first 1-2 seconds decide whether your video gets watched or skipped. This free tool writes 5 pattern-interrupt hooks for any topic — the same hook logic that powers Kineo. Pick one, then <Link href={publicCreateCtaHref(hookActivationHref('', undefined, entry))} onClick={() => { void trackEvent('organic_cta_clicked', { source: hookCtaEventSource(entry), placement: 'explainer', entry, version: ANSWER_ENGINE_HOOK_WORKBENCH_VERSION }) }} style={{ color: '#2997ff' }}>turn it into a finished faceless Short in a few minutes →</Link></p>
         </section>
       </div>
       <StickyFreeShortCTA
-        href={generatedTopic ? hookActivationHref(generatedTopic, undefined, entry) : undefined}
+        href={generatedTopic ? publicCreateCtaHref(hookActivationHref(generatedTopic, undefined, entry)) : undefined}
         onCtaClick={generatedTopic ? () => {
-          void trackEvent('free_hook_to_signup_clicked', { destination: 'generate', variant: 'topic', placement: 'sticky', autoanalyze: true, entry, version: ANSWER_ENGINE_HOOK_WORKBENCH_VERSION })
+          void trackEvent('free_hook_to_signup_clicked', { destination: '/create/film', variant: 'topic', placement: 'sticky', autoanalyze: false, entry, version: ANSWER_ENGINE_HOOK_WORKBENCH_VERSION })
           void trackEvent('organic_cta_clicked', { source: hookCtaEventSource(entry), placement: 'sticky', entry, version: ANSWER_ENGINE_HOOK_WORKBENCH_VERSION })
         } : undefined}
       />

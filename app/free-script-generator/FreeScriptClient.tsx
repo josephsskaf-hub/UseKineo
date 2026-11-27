@@ -4,6 +4,7 @@
 // /api/demo-script (no auth) and renders the structured result, then pushes the
 // visitor to signup to turn the script into a finished video. A shared idea uses
 // one short-lived same-tab value that is deleted on its first read.
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import TextToVideoIntentForm from '@/app/text-to-video-shorts/TextToVideoIntentForm'
@@ -87,10 +88,10 @@ export default function FreeScriptClient({
   const arrivalSentRef = useRef(false)
   const webShareInputKindRef = useRef<WebShareInputKind>('empty')
   const webShareArrivalSentRef = useRef(false)
-  const createShortHref = buildFreeScriptSignupHref(
+  const createShortHref = publicCreateCtaHref(buildFreeScriptSignupHref(
     lines,
     activationAttribution(fromPublicVideo, webShareAccepted)
-  )
+  ))
 
   useEffect(() => {
     if (!fromPublicVideo || arrivalSentRef.current) return
@@ -227,7 +228,7 @@ export default function FreeScriptClient({
           />
           {scriptMode ? (
             <>
-              <Link href={citationFilmHref(scriptMode) ?? '#free-script-generator-tool'} prefetch={false}
+              <Link href={publicCreateCtaHref(citationFilmHref(scriptMode) ?? '#free-script-generator-tool')} prefetch={false}
                 aria-disabled={!citationFilmHref(scriptMode)}
                 onClick={event => {
                   if (!citationFilmHref(scriptMode)) { event.preventDefault(); return }
@@ -306,7 +307,7 @@ export default function FreeScriptClient({
             <div style={{ marginTop: 18, padding: '16px', borderRadius: 12, background: 'rgba(41,151,255,0.08)', border: '1px solid rgba(41,151,255,0.25)', textAlign: 'center' }}>
               <div style={{ fontWeight: 800, marginBottom: 4 }}>Now turn this into a finished video 🎬</div>
               <p style={{ color: '#86868b', fontSize: '0.88rem', margin: '0 0 12px' }}>AI adds the voiceover, footage and captions — a ready-to-post 9:16 Short in a few minutes. Your script comes with you after signup.</p>
-              <Link href={createShortHref} onClick={() => { void trackEvent('free_script_to_signup_clicked', { destination: 'generate', autoanalyze: true, source: webShareAccepted ? WEB_SHARE_TARGET_CAMPAIGN : fromPublicVideo ? 'public_video_remix' : 'push22_script_generator' }); if (fromPublicVideo) void trackEvent('public_video_remix_signup_clicked', { source_video_id: sourceVideoId || null }); if (webShareAccepted) void trackClosedEvent('web_share_target_signup_clicked', { placement: 'result', surface: 'free_script_generator', version: WEB_SHARE_TARGET_CAMPAIGN }); void trackEvent('organic_cta_clicked', { source: webShareAccepted ? WEB_SHARE_TARGET_CAMPAIGN : fromPublicVideo ? 'public_video_remix' : 'push22_script_generator', placement: 'result' }) }} style={{ display: 'inline-block', background: '#2997ff', color: '#000', fontWeight: 900, padding: '12px 26px', borderRadius: 10, textDecoration: 'none' }}>Create this Short from my script →</Link>
+              <Link href={createShortHref} onClick={() => { void trackEvent('free_script_to_signup_clicked', { destination: '/create/film', autoanalyze: false, source: webShareAccepted ? WEB_SHARE_TARGET_CAMPAIGN : fromPublicVideo ? 'public_video_remix' : 'push22_script_generator' }); if (fromPublicVideo) void trackEvent('public_video_remix_signup_clicked', { source_video_id: sourceVideoId || null }); if (webShareAccepted) void trackClosedEvent('web_share_target_signup_clicked', { placement: 'result', surface: 'free_script_generator', version: WEB_SHARE_TARGET_CAMPAIGN }); void trackEvent('organic_cta_clicked', { source: webShareAccepted ? WEB_SHARE_TARGET_CAMPAIGN : fromPublicVideo ? 'public_video_remix' : 'push22_script_generator', placement: 'result' }) }} style={{ display: 'inline-block', background: '#2997ff', color: '#000', fontWeight: 900, padding: '12px 26px', borderRadius: 10, textDecoration: 'none' }}>Create this Short from my script →</Link>
             </div>
           </section>
         )}
@@ -319,7 +320,7 @@ export default function FreeScriptClient({
         </p>
           <h2 style={{ color: '#f5f5f7', fontSize: '1.15rem', fontWeight: 900, margin: '0 0 8px' }}>From script to finished Short</h2>
           <p style={{ margin: 0 }}>
-            A script is step one. Inside Kineo, the same idea becomes a finished, ready-to-post video — AI voiceover, matched footage and captions, rendered vertical (9:16), usually in 3–7 minutes. <Link href={createShortHref} onClick={() => { void trackEvent('free_script_to_signup_clicked', { destination: 'generate', placement: 'explainer', autoanalyze: lines.length > 0 }); if (webShareAccepted) void trackClosedEvent('web_share_target_signup_clicked', { placement: 'explainer', surface: 'free_script_generator', version: WEB_SHARE_TARGET_CAMPAIGN }); void trackEvent('organic_cta_clicked', { source: webShareAccepted ? WEB_SHARE_TARGET_CAMPAIGN : 'push22_script_generator', placement: 'explainer' }) }} style={{ color: '#2997ff' }}>Create this Short →</Link>
+            A script is step one. Inside Kineo, the same idea becomes a finished, ready-to-post video — AI voiceover, matched footage and captions, rendered vertical (9:16), usually in 3–7 minutes. <Link href={createShortHref} onClick={() => { void trackEvent('free_script_to_signup_clicked', { destination: '/create/film', placement: 'explainer', autoanalyze: lines.length > 0 }); if (webShareAccepted) void trackClosedEvent('web_share_target_signup_clicked', { placement: 'explainer', surface: 'free_script_generator', version: WEB_SHARE_TARGET_CAMPAIGN }); void trackEvent('organic_cta_clicked', { source: webShareAccepted ? WEB_SHARE_TARGET_CAMPAIGN : 'push22_script_generator', placement: 'explainer' }) }} style={{ color: '#2997ff' }}>Create this Short →</Link>
           </p>
         </section>
       </div>

@@ -18,6 +18,7 @@
 // Regra da casa mantida: todo clipe aqui é render REAL, com o selo do motor
 // que o gerou. Zero demo fabricado. Os previews são os mesmos da vitrine
 // (public/previews), então a página não custa banda nova.
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { creditCostFor } from '@/lib/credits/engineCost'
@@ -213,7 +214,7 @@ export default function ArenaPage() {
               <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                 <span style={{ color: '#86868b', fontSize: 11.5, fontWeight: 700 }}>{creditCostFor(f.quality, true)} credits / film</span>
                 <Link
-                  href={`/studio?engine=${f.engineParam}&intent_campaign=arena`}
+                  href={publicCreateCtaHref(`/studio?engine=${f.engineParam}&intent_campaign=arena`)}
                   style={{ background: '#2997ff', color: '#fff', fontWeight: 900, fontSize: 12.5, padding: '8px 14px', borderRadius: 10, textDecoration: 'none' }}
                 >
                   Try this engine →
@@ -231,7 +232,7 @@ export default function ArenaPage() {
           You don&apos;t pick an engine when you subscribe — you pick it per video, from the same text box. Plans from {STARTER_PRICE_LABEL}/month; every new account{GRANT_COUNTRY_CLAUSE} starts free with 10 credits, no card.
         </p>
         <Link
-          href="/studio?intent_campaign=arena&utm_source=seo&utm_medium=arena&utm_campaign=engine_arena"
+          href={publicCreateCtaHref("/studio?intent_campaign=arena&utm_source=seo&utm_medium=arena&utm_campaign=engine_arena")}
           style={{ display: 'inline-block', background: '#2997ff', color: '#fff', fontWeight: 900, fontSize: 15, padding: '12px 28px', borderRadius: 12, textDecoration: 'none' }}
         >
           Render your script free →

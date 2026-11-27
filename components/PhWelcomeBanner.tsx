@@ -10,6 +10,7 @@
 // sem flag, sem manutenção.
 import { useEffect, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
@@ -45,7 +46,7 @@ export default function PhWelcomeBanner() {
       {/* KINEO-GRANT-COPY-UNICA-2026-08-17 — derivado; ver lib/freeTierOffer.ts. */}
       <FreeTierCopy legacy="Welcome, Product Hunters — make 3 free Shorts today. No card, no watermark tricks." on={`Welcome, Product Hunters — your Creator trial starts now: ${TRIAL_GRANT_CREDITS_COPY} free credits. Cancel in one click, no tricks.`} />{' '}
       <a
-        href="/signup?utm_source=producthunt&intent_campaign=ph_launch_banner"
+        href={publicCreateCtaHref('/signup?utm_source=producthunt&intent_campaign=ph_launch_banner')}
         onClick={() => { void trackEvent('ph_welcome_banner_clicked') }}
         style={{ color: '#5cb3ff', textDecoration: 'underline', fontWeight: 800 }}
       >

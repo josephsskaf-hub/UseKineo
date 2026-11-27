@@ -35,6 +35,7 @@ import { cenaEnabled } from '@/lib/ads/cena/catalog' // KINEO-ADS-ESCOLHA-2310 �
 import { ADS_ESCOLHA_SAMPLE_LIVE } from '@/lib/ads/cena/escolhaSamplePolicy'
 import { isEscolhaPersonalOrder } from '@/lib/ads/cena/escolhaPersonalAccess'
 import { isUuid } from '@/lib/ads/v2Contract'
+import { publicEditor } from '@/lib/create/publicEditorServer'
 import { headers } from 'next/headers' // KINEO-ADS-SIMPLES-2810 — o país do pedido (x-vercel-ip-country)
 import { paisDoRequest } from '@/lib/freeFilmPolicy' // KINEO-ADS-SIMPLES-2810
 import { loadAdsEligibility } from '@/lib/ads/eligibility' // KINEO-ADS-SIMPLES-2810 — a régua ÚNICA: paid · free_sample_available · free_sample_used · not_eligible
@@ -71,10 +72,10 @@ export default async function AdsV2Workspace({ searchParams, moldura = false }: 
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  const navigation = { showRecreate: abaRecreateVisivel(user?.email) /* KINEO-CLIP-RECREATE-JUNTOS-1511 — era recreateVisible */, showClip: clipNaMolduraVisivel(user?.email) }
+  const navigation = { showRecreate: abaRecreateVisivel(user?.email) /* KINEO-CLIP-RECREATE-JUNTOS-1511 — era recreateVisible */, showClip: (moldura && publicEditor('clip')) || clipNaMolduraVisivel(user?.email) }
   // KINEO-CARDS-ANTES-DO-LOGIN-0411 — sem conta, vindo do cartão da home ou do botão da porta: a tela de verdade, sem oferta e sem nenhuma chamada de conta; o login vem na primeira ação que precisa dele.
   const rawOrigem = searchParams?.utm_source
-  if (!user && ADS_ESCOLHA_SAMPLE_LIVE && ADS_V2_PUBLIC && !isUuid(resumeOrder) && !bfCampaign && anuncioAbreSemConta(entry, Array.isArray(rawOrigem) ? rawOrigem[0] : rawOrigem)) {
+  if (!user && ADS_ESCOLHA_SAMPLE_LIVE && ADS_V2_PUBLIC && !isUuid(resumeOrder) && (moldura || !bfCampaign) && (moldura || anuncioAbreSemConta(entry, Array.isArray(rawOrigem) ? rawOrigem[0] : rawOrigem))) {
     return <AdsPresenterAllProvider all={false}><AdsV2Client {...navigation} moldura={moldura} guest initialBalance={null} workspace={null} classicCredits={null} variations={false} producao={false} sample business={null} sampleProbe={false} entry={entry} escolhaInternal={false} escolhaSample escolhaSampleAvailable advancedModes={false} escolhaTestControls={false} escolhaOwnerKey="visitante" /></AdsPresenterAllProvider>
   }
   if (!user) redirect(`/login?redirect=${encodeURIComponent(loginTarget)}`) // KINEO-AMOSTRA-ANUNCIO-2410 — preserve the owned result and explicit upgrade intent through login.
@@ -96,7 +97,7 @@ export default async function AdsV2Workspace({ searchParams, moldura = false }: 
   const elegibilidade = await loadAdsEligibility(admin, { id: user.id }, reason, { requestCountry: paisDoRequest(headers()) }) // KINEO-ADS-SIMPLES-2810
   const sampleAvailable = gate !== 'ok' && elegibilidade.state === 'free_sample_available' // KINEO-ADS-SIMPLES-2810 — a amostra ainda aberta para ESTA pessoa
   const sample = gate !== 'ok' // KINEO-ADS-SIMPLES-2810 — era: gate !== 'ok' && (ADS_ESCOLHA_SAMPLE_LIVE || personalResume || gate === 'no_access' && await adsSampleOpen(admin, uid, reason)) — a tela da conta sem plano é sempre a da amostra (sem variações/Produção/lote)
-  if (gate !== 'ok' && !personalResume && !bfCampaign && elegibilidade.state === 'free_sample_used' && elegibilidade.sampleOrderId && await isEscolhaPersonalOrder(admin, user.id, elegibilidade.sampleOrderId)) { // KINEO-BF-CAMPAIGN-2810 — explicit template keeps its draft and eligibility notice; an old sample remains linked, never granted again.
+  if (gate !== 'ok' && !personalResume && !bfCampaign && !searchParams?.draft && elegibilidade.state === 'free_sample_used' && elegibilidade.sampleOrderId && await isEscolhaPersonalOrder(admin, user.id, elegibilidade.sampleOrderId)) { // KINEO-BF-CAMPAIGN-2810 — explicit template keeps its draft and eligibility notice; an old sample remains linked, never granted again.
     await writeServerEvent({ name: 'ads_door_state', userId: user.id, path: '/ads/v2', metadata: { state: elegibilidade.state, reason: elegibilidade.reason, redirect: 'own_sample', ...(entry ? { entry } : {}) } }) // KINEO-ADS-SIMPLES-2810
     redirect(`${moldura ? '/create/ads' : '/ads/v2'}?order=${elegibilidade.sampleOrderId}${entryDaTela ? `&entry=${entryDaTela}` : ''}`) // KINEO-ADS-SIMPLES-2810
   }

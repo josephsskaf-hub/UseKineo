@@ -1,3 +1,4 @@
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { CITATION_FILM_RELEASE } from '@/lib/growth/citationFilmRelease'
@@ -31,7 +32,13 @@ export async function GET(request: Request) {
     if (value && /^[A-Za-z0-9._~-]{1,100}$/.test(value)) target.searchParams.set(key, value)
    }
   }
-  const response = NextResponse.redirect(target, 303)
+  const editorParams = new URLSearchParams({ prompt, intent_campaign: campaign, script_mode: scriptMode })
+  for (const key of ['utm_source','utm_medium','utm_campaign']) {
+    const value = params.get(key)
+    if (value && /^[A-Za-z0-9._~-]{1,100}$/.test(value)) editorParams.set(key, value)
+  }
+  const editor = publicCreateCtaHref('/studio?' + editorParams)
+  const response = NextResponse.redirect(editor.startsWith('/create/film?') ? new URL(editor, request.url) : target, 303)
   for (const [key,value] of Object.entries(HEADERS)) response.headers.set(key,value)
   return response
  } catch { return fail(503) }

@@ -14,6 +14,7 @@
 // KINEO-DESENHO-SOM-2110 — sem a pílula do motor no topo (fundador 21/10: nome de motor na porta de entrada "perde a vontade de comprar"); o botão
 // "Captions on the video" (ligado por padrão) viaja no corpo do filme como kids_captions:false quando desligado.
 // KINEO-CARTOON-TELA-0411 [fundador 05/11] — o layout da tela nova de anúncios: cabeçalho igual, formulário à esquerda, personagem à direita (celular: formulário primeiro), um botão principal, opcionais em "More options", preço só na linha do botão final. Pedidos, endpoints e retomada do filme não mudaram.
+import { readMediaDraft, saveMediaDraft } from '@/lib/create/visitorMediaDraft'
 import { cadastroComVolta } from '@/lib/growth/visitanteEscreveAntes' // KINEO-CARDS-ANTES-DO-LOGIN-0411
 import FilmVoicePicker from '@/components/studio/FilmVoicePicker'
 import { filmVoiceEnabled, voiceModeFields, type FilmVoiceMode } from '@/lib/cinematic/filmVoice2511'
@@ -195,21 +196,28 @@ export default function KidsCartoonTemplate({ visitante = false, episodios = nul
     alive.current = true
     readBalance()
     if (!visitante) { // KINEO-CARDS-ANTES-DO-LOGIN-0411 — as escolhas de antes do login
-      const r = lerRascunhoDoDesenho()
-      if (r) {
+      function applyDraft(r: NonNullable<ReturnType<typeof lerRascunhoDoDesenho>>) {
         if (KIDS_CHARACTERS.some((c) => c.id === r.character)) setCharacter(r.character as KidsCharacterId)
+        if (typeof r.captions === 'boolean') setCaptions(r.captions)
         if (typeof r.idea === 'string') setIdea(r.idea)
         if (isKidsCartoonLanguage(r.language)) setLanguage(r.language)
         if (KIDS_IDEAS.some((i) => i.id === r.ideaId)) setIdeaId(r.ideaId as KidsIdeaId) // KINEO-CARTOON-SO-PLANO-0411
         if ((KIDS_CARTOON_DURATIONS as readonly unknown[]).includes(r.duration)) setDuration(r.duration as KidsCartoonDuration) // KINEO-CARTOON-SO-PLANO-0411
       }
+      if (window.location?.pathname === '/create/cartoon' && new URLSearchParams(window.location.search).has('draft')) {
+        void readMediaDraft('cartoon').then(saved => {
+          if (!alive.current) return
+          if (saved) applyDraft({ ...saved.fields, duration: Number(saved.fields.duration), captions: saved.fields.captions === 'true' })
+          else setError('This draft is unavailable or has expired.')
+        }).catch(() => { if (alive.current) setError('Could not restore your cartoon draft.') })
+      } else { const r = lerRascunhoDoDesenho(); if (r) applyDraft(r) }
     }
     if (!visitante) fetch('/api/kids-venda/status', { cache: 'no-store', credentials: 'same-origin' }).then((x) => (x.ok ? x.json() : null)).then((d: { cartoon_plan?: unknown; free_film?: unknown } | null) => { if (alive.current && d?.cartoon_plan === false) setSemPlano(true); if (alive.current && d?.free_film === true) setFilmeGratis(true) /* KINEO-CELULAR-FLUXO-0611 */ }).catch(() => { /* sem leitura: a rota decide no clique */ }) // KINEO-CARTOON-SO-PLANO-0411
     const onCredits = () => readBalance()
     window.addEventListener('creditsChanged', onCredits)
     // Retomada: o filme que estava saindo nesta conta, nesta aba ou noutra, continua na mesma tela depois de recarregar.
     try {
-      const raw = localStorage.getItem(RENDER_KEY)
+      const raw = visitante || new URLSearchParams(window.location?.search).get('volta') === '1' ? null : localStorage.getItem(RENDER_KEY)
       const r = raw ? (JSON.parse(raw) as KidsRender) : null
       if (r && typeof r.generationId === 'string' && Date.now() - r.startedAt < CLIPS_DEADLINE_MS + COMPOSE_DEADLINE_MS) {
         setCharacter(r.character); setLanguage(r.language); setDuration(r.duration); setScript(r.script); setCaption(r.caption)
@@ -248,7 +256,12 @@ export default function KidsCartoonTemplate({ visitante = false, episodios = nul
 
   async function write(dur: KidsCartoonDuration = duration) {
     if (visitante) { // KINEO-CARDS-ANTES-DO-LOGIN-0411 — a primeira ação que precisa de conta: guarda as escolhas e volta à mesma tela depois do login
-      guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration: dur, ...voiceModeFields('narrator') })
+      if (window.location?.pathname === '/create/cartoon') {
+        try { window.location.assign(await saveMediaDraft('cartoon', { character, idea, ideaId: ideaId ?? '', language, duration: String(dur), captions: String(captions) }, [])) }
+        catch { setError('Could not keep your draft. Allow browser storage and try again.') }
+        return
+      }
+      guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration: dur, captions, ...voiceModeFields('narrator') })
       void trackEvent('visitor_login_asked', { surface: 'kids_cartoon', action: 'write' })
       window.location.assign(cadastroComVolta(`${window.location.pathname}${window.location.search}`))
       return

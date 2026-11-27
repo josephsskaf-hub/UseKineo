@@ -2,10 +2,14 @@
 // /create/film · /create/cartoon · /create/ads — a moldura do Recreate como porta dos geradores que já existem.
 // Porta: lib/create/access.ts createShellDecision (interruptor CREATE_SHELL_RELEASE em lib/create/release.ts). Nunca indexada.
 import { headers } from 'next/headers'
-import { publicFilmEditor } from '@/lib/create/publicFilmEditorServer'
-import { filmEntry, validFilmDraftId } from '@/lib/create/publicEditor'
+import { publicEditor } from '@/lib/create/publicEditorServer'
 import { motoresCandidatos } from '@/lib/create/motorOpcional'
+import { filmEntry, validFilmDraftId } from '@/lib/create/publicEditor'
 import { paisDaListaConfirmado, paisDoRequest } from '@/lib/freeFilmPolicy'
+import CreateMolduraTopo from '@/components/create/CreateMolduraTopo'
+import KidsCartoonTemplate from '@/components/kidsCartoon/KidsCartoonTemplate'
+import KidsVendaPanel from '@/components/kidsCartoon/KidsVendaPanel'
+import { watchExampleIdea } from '@/lib/home/watchEntry'
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -20,7 +24,7 @@ import { isAdsInternalEmail } from '@/lib/ads/access' // KINEO-PF-COBRA-NAS-FOTO
 import StudioNaMoldura from '@/components/create/StudioNaMoldura' // KINEO-STUDIO-NA-MOLDURA-1011
 import { campanhaDaCaixa, motorDaCaixa } from '@/lib/growth/studioSimples' // KINEO-STUDIO-NA-MOLDURA-1011 · KINEO-ENTRADAS-TELA-NOVA-1011: campanhaDaCaixa
 import { ideiaDoLink } from '@/lib/growth/ideiaDaPagina' // KINEO-ENTRADAS-TELA-NOVA-1011
-import { cartoonArrivalSupported, destinoDaChegada, filmParamsSupported, queryDaChegada } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 · KINEO-ENTRADAS-CARTOES-1011: ads/cartoon
+import { effectTemplateHref, cartoonArrivalSupported, destinoDaChegada, filmParamsSupported, queryDaChegada } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 · KINEO-ENTRADAS-CARTOES-1011: ads/cartoon
 import AbaComChegada from './AbaComChegada' // KINEO-ENTRADAS-CARTOES-1011
 import StudioIdeaArrival from '@/components/StudioIdeaArrival' // KINEO-ENTRADAS-TELA-NOVA-1011
 import ClipNaMoldura from '@/components/create/ClipNaMoldura' // KINEO-CLIP-NA-MOLDURA-1011
@@ -41,34 +45,46 @@ export default async function Page({ params, searchParams = {} }: { params: { ta
   // Mesma porta do /clips: efeito que o Recreate faz vai ao Recreate; quem não tem a aba (ou visitante) volta ao /clips com a query intacta.
   if (params.tab === 'clip') {
     const { data: { user: u } } = await createClient().auth.getUser()
+    if (!u && publicEditor('clip')) {
+      if (typeof searchParams.effect === 'string') {
+        const { publicRecreatePath } = await import('@/lib/recreate/entry')
+        const path = publicRecreatePath('effect-' + searchParams.effect.replaceAll('_', '-'))
+        if (path) redirect(effectTemplateHref(path, searchParams))
+      }
+      const { default: RecreateFlowPage } = await import('@/app/recreate/RecreateFlowPage')
+      return RecreateFlowPage({ basePath: '/recreate', searchParams })
+    }
     if (!clipNaMolduraVisivel(u?.email)) redirect('/clips' + (query ? '?' + query : ''))
     if (recreateVisible(u?.email) && typeof searchParams.effect === 'string') {
       const id = `effect-${searchParams.effect.replaceAll('_', '-')}`
-      if (recreateFormat(id)) redirect(`/recreate/${id}`)
+      if (recreateFormat(id)) redirect(effectTemplateHref(`/recreate/${id}`, searchParams))
     }
     // KINEO-CLIP-RECREATE-JUNTOS-1511 [dono 15/11: "juntar a aba de Clips com a aba de Recreate"] — no interruptor (hoje só a casa): a tela única, montada
     // pela MESMA porta do /recreate (mesmas props do RecreateClient, mesmo catálogo filtrado por conta). Fora dele, a aba Clip de sempre (linha de baixo).
     if (clipRecreateJuntosVisivel(u?.email)) {
       const { default: RecreateFlowPage } = await import('@/app/recreate/RecreateFlowPage')
-      return RecreateFlowPage({ basePath: '/recreate' })
+      return RecreateFlowPage({ basePath: '/recreate', searchParams })
     }
     return <ClipNaMoldura measurementActor={u?.id ?? null} showRecreate={recreateVisible(u?.email)} />
   }
   const arrival = { ...searchParams }
-  if (params.tab === 'film' && publicFilmEditor()) {
-    if (arrival.volta === '1' && validFilmDraftId(arrival.draft)) {
+  if (publicEditor(params.tab)) {
+    if (arrival.volta === '1' && (params.tab !== 'film' || validFilmDraftId(arrival.draft))) {
       delete arrival.volta
-      delete arrival.draft
+      if (params.tab === 'film') delete arrival.draft
     }
-    const entry = filmEntry(searchParams, false, false)
-    for (const [key,value] of Object.entries(arrival)) if (/^utm_[a-z_]+$/.test(key) && typeof value === 'string') delete arrival[key]
-    if (typeof arrival.engine === 'string' && motoresCandidatos().includes(arrival.engine)) delete arrival.engine
-    if (typeof arrival.prompt === 'string' && arrival.ideia === undefined && entry.text === arrival.prompt) delete arrival.prompt
-    if (entry.duration) delete arrival.duration
-    if (arrival.language === entry.language) delete arrival.language
-    if (arrival.aspect === entry.aspect) delete arrival.aspect
-    if (arrival.script_mode === 'ai' || entry.verbatim) delete arrival.script_mode
-    if (entry.look) delete arrival.look
+    if (params.tab === 'film') {
+      const entry = filmEntry(searchParams, false, false)
+      if (typeof arrival.engine === 'string' && motoresCandidatos().includes(arrival.engine)) delete arrival.engine
+      if (typeof arrival.prompt === 'string' && arrival.ideia === undefined && entry.text === arrival.prompt) delete arrival.prompt
+      if (entry.duration) delete arrival.duration
+      if (arrival.language === entry.language) delete arrival.language
+      if (arrival.aspect === entry.aspect) delete arrival.aspect
+      if (arrival.script_mode === 'ai' || entry.verbatim) delete arrival.script_mode
+      if (entry.look) delete arrival.look
+    }
+    if (params.tab === 'cartoon' && searchParams.volta === '1' && validFilmDraftId(arrival.draft)) delete arrival.draft
+    if (params.tab === 'cartoon' && typeof arrival.example === 'string') delete arrival.example
   }
   if (params.tab === 'film' && !filmParamsSupported(arrival, { arrival: true })) redirect(`/studio?${query}`)
   // KINEO-ENTRADAS-CARTOES-1011 [fundador 10/11: "Make my ad", "Make my UGC ad" e "Make my cartoon" abriram a tela ANTIGA] — Ads e Cartoon
@@ -81,16 +97,20 @@ export default async function Page({ params, searchParams = {} }: { params: { ta
     if (quem && pessoaFalandoLigado(KINEO_ADS_PESSOA_FALANDO, isAdsInternalEmail(quem.email))) return <CreateShell tab="ads" signedIn showRecreate={abaRecreateVisivel(quem.email) /* KINEO-CLIP-RECREATE-JUNTOS-1511 — era recreateVisible */} showClip={clipNaMolduraVisivel(quem.email)} painel={<PessoaFalandoPainel />} />
   }
 
-  if (query && params.tab === 'cartoon' && !cartoonArrivalSupported(searchParams)) redirect(`/kids-cartoon?${query}`)
+  if (query && params.tab === 'cartoon' && !cartoonArrivalSupported(arrival)) redirect(`/kids-cartoon?${query}`)
   const supabase = createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   const decision = createShellDecision(params.tab, user, undefined, query) // KINEO-ENTRADAS-TELA-NOVA-1011 — o visitante volta para a aba COM a query
-  if (publicFilmEditor() && params.tab === 'film') {
+  if (publicEditor(params.tab)) {
     const loggedIn = Boolean(user && !authError)
-    const trusted = !authError || authError.name === 'AuthSessionMissingError'
-    const entry = filmEntry(searchParams, !loggedIn, trusted && paisDaListaConfirmado(paisDoRequest(headers())) !== null)
-    const campaign = searchParams.intent_campaign === undefined ? CREATE_FILM_CAMPAIGN : campanhaDaCaixa(searchParams.intent_campaign)
-    return <><StudioIdeaArrival /><StudioNaMoldura caixaNova entry={entry} showFilmStyle={trusted} showRecreate={abaRecreateVisivel(user?.email)} showClip={clipNaMolduraVisivel(user?.email)} motor={motorDaCaixa(searchParams.engine)} campanha={campaign} ideiaInicial={entry.text} /></>
+    if (params.tab === 'film') {
+      const trusted = !authError || authError.name === 'AuthSessionMissingError'
+      const entry = filmEntry(searchParams, !loggedIn, trusted && paisDaListaConfirmado(paisDoRequest(headers())) !== null)
+      const campaign = searchParams.intent_campaign === undefined ? CREATE_FILM_CAMPAIGN : campanhaDaCaixa(searchParams.intent_campaign)
+      return <><StudioIdeaArrival /><StudioNaMoldura caixaNova entry={entry} showFilmStyle={trusted} showRecreate={abaRecreateVisivel(user?.email)} showClip={publicEditor('clip') || clipNaMolduraVisivel(user?.email)} motor={motorDaCaixa(searchParams.engine)} campanha={campaign} ideiaInicial={entry.text} /></>
+    }
+    if (params.tab === 'cartoon') return <><StudioIdeaArrival /><CreateMolduraTopo active="cartoon" signedIn={loggedIn} showRecreate={abaRecreateVisivel(user?.email)} showClip={publicEditor('clip') || clipNaMolduraVisivel(user?.email)} /><KidsCartoonTemplate visitante={!loggedIn} ideiaInicial={watchExampleIdea(searchParams.example, 'cartoon')} episodios={loggedIn ? <KidsVendaPanel /> : null} /></>
+    if (params.tab === 'ads' && !user && !searchParams.formato) return <><StudioIdeaArrival /><AdsV2Workspace searchParams={searchParams} moldura /></>
   }
   if (decision.kind === 'signup') redirect(decision.href)
   if (decision.kind !== 'show') notFound()

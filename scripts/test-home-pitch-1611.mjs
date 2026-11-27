@@ -3,7 +3,7 @@
 // Executa a vitrine DE VERDADE (components/home/HomeMosaic.tsx, a mesma da home e do /made-with-kineo) e prova:
 //   T · o "Pitch invader" ABRE a home: 1º cartão do topo (em cima à esquerda, no computador e no celular), do MESMO tamanho dos vizinhos (2×2 foi medido e
 //       recusado: 1236×1481 a 1920 px, mais alto que a tela), e não se repete na grade.
-//   L · o link: logado → /recreate/invasor-de-campo; visitante → cadastro e volta para lá (a semântica de recreateEntryHref), nunca 404 nem arquivo privado.
+//   L · o link: logado → /recreate/invasor-de-campo; visitante → mesmo editor quando público, ou cadastro com retorno quando a chave fecha, nunca 404 nem arquivo privado.
 //   R · o selo "Recreate" (o desenho de KINEO-ETIQUETA-UNICA-1111) e o nome "Pitch invader"; nenhum número de views (não há post real deste vídeo).
 //   M · a prévia é NOSSA, muda, 540×960, ≤600 KB, com pôster e linha no registro de enquadramento com o mesmo foco.
 //   V · está também no /made-with-kineo; o molde existe no catálogo do SERVIDOR e um cliente comum o vê; nada da receita entra nos módulos do cartão.
@@ -76,6 +76,7 @@ const cartaoDe = (html, id) => {
   return html.slice(html.lastIndexOf('<a ', i), html.indexOf('</a>', i) + 4)
 }
 const hrefDe = (cartao) => (/href="([^"]+)"/.exec(cartao ?? '')?.[1] ?? '').replace(/&amp;/g, '&')
+const FLOW = 'app/recreate/RecreateFlowPage.tsx', RELEASE = 'lib/create/publicEditorRelease.ts'
 const VISITANTE = '/signup?' + new URLSearchParams({ redirect: `/recreate/${ID}` }).toString()
 
 /** Todas as provas; devolve [nome, ok][]. */
@@ -100,13 +101,35 @@ function checa(novasTrocas = {}, fontes = {}) {
   c('T5 CSS do topo intacto: 3 por linha no computador, 2 abaixo de 1100 px, todos em pé 5:6', cssAtual.includes('.klp .kmz-topo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:12px}\n.klp .kmz-topo-grid>.kmz-t{grid-column:auto;grid-row:auto;aspect-ratio:5/6}\n@media(max-width:1099px){.klp .kmz-topo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}\n') && !/kmz-topo-grid>[^{]*\{[^}]*span/.test(cssAtual))
   // L · o link
   const cv = cartaoDe(home, ID), cl = cartaoDe(homeLogado, ID)
-  c('L1 visitante: cadastro e volta para /recreate/invasor-de-campo', hrefDe(cv) === VISITANTE && entry.recreateMoldeLogadoHref(ID, false) === VISITANTE)
-  c('L2 logado: direto em /recreate/invasor-de-campo', hrefDe(cl) === `/recreate/${ID}` && entry.recreateMoldeLogadoHref(ID, true) === `/recreate/${ID}`)
+  const editorPublico = require(path.join(ROOT, 'lib/create/publicEditorServer.ts')).publicEditor
+  c('L1 visitante: abre o editor público e, com a chave fechada, conserva cadastro com retorno', hrefDe(cv) === (editorPublico('clip') ? `/recreate/${ID}` : VISITANTE))
+  c('L2 logado: abre direto o mesmo molde na home', hrefDe(cl) === `/recreate/${ID}`)
   c('L3 nenhum link do cartão aponta para arquivo do molde (/api/recreate/assets) nem para fora', ![cv, cl].some((x) => /\/api\/recreate|quarantine|recreate-guias|https?:/.test(hrefDe(x))))
   const ar = require(path.join(ROOT, 'lib/authRedirect.ts'))
   c('L4 o cadastro aceita a volta (normalizeInternalRedirect mantém o caminho)', ar.normalizeInternalRedirect(new URLSearchParams(VISITANTE.split('?')[1]).get('redirect')) === `/recreate/${ID}`)
-  const fluxo = rd('app/recreate/RecreateFlowPage.tsx')
-  c('L5 a página do molde continua só para quem está logado (visitante = 404, nunca a página do molde)', fluxo.includes('if (!format || (user ? !recreateFormatVisible(format, user.email) : !publicRecreatePath(id))) notFound()') && !formats.RECREATE_FORMATS.some((f) => f.id === ID))
+  const fluxo = novasTrocas[FLOW] ? novasTrocas[FLOW](rd(FLOW)) : rd(FLOW)
+  // Executa o bloco da rota com o catálogo e a política reais; a assinatura 404 é local e nunca abre sessão.
+  const arquivo = ts.createSourceFile(FLOW, fluxo, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+  const componente = arquivo.statements.find(n => ts.isFunctionDeclaration(n) && n.name?.text === 'RecreateFlowPage')
+  const verificacao = componente?.body?.statements.find(n => ts.isIfStatement(n) && n.expression.getText(arquivo) === 'id')
+  if (!verificacao) throw new Error('Bloco de autorização por id da rota não encontrado')
+  const controla = new Function('id', 'user', 'recreateFormat', 'recreateFormatVisible', 'publicRecreatePath', 'publicEditor', 'RECREATE_MOLDES_SO_LOGADO', 'notFound', verificacao.getText(arquivo))
+  const ausente = Symbol('404')
+  const abre = (id, user, editor, formatOverride) => {
+    try {
+      controla(id, user, formatOverride ?? cat.recreateFormatServidor, access.recreateFormatVisible,
+        entry.publicRecreatePath, tab => editor && tab === 'clip', entry.RECREATE_MOLDES_SO_LOGADO, () => { throw ausente })
+      return true
+    } catch (e) { if (e === ausente) return false; throw e }
+  }
+  const conta = { email: 'customer@example.org' }
+  c('L5a visitante abre o Pitch público com a chave ligada; OFF requer login; logado abre nos dois casos',
+    abre(ID, null, true) && !abre(ID, null, false) && abre(ID, conta, true) && abre(ID, conta, false))
+  const molde = cat.recreateFormatServidor(ID)
+  const privado = { ...molde, swapApproved: false, swapInTest: true }
+  c('L5b receita reservada ou retirada e id desconhecido são inacessíveis mesmo com a chave ligada',
+    [null, conta].every(user => !abre(ID, user, true, () => privado) && !abre(ID, user, true, () => ({ ...molde, retirado: true })) &&
+      !abre('id-inexistente-de-teste', user, true)) && !formats.RECREATE_FORMATS.some(f => f.id === ID))
   c('L6 só um molde de verdade entra na lista "só logado": a lista é a combinada', JSON.stringify(entry.RECREATE_MOLDES_SO_LOGADO) === JSON.stringify([ID]) && entry.recreateMoldeLogadoHref('selfie-confete', false) === null)
   // R · selo, nome, sem número
   c('R1 o nome na tela é "Pitch invader" e o tipo vive só no aria-label', clip?.title === 'Pitch invader' && cv?.includes('<b>Pitch invader</b>') && cv?.includes('aria-label="Pitch invader — Recreate template"') && !/>\s*Recreate template\s*</.test(cv ?? ''))
@@ -125,7 +148,7 @@ function checa(novasTrocas = {}, fontes = {}) {
   // V · Made with Kineo e o catálogo do servidor
   const mwk = lf(renderToStaticMarkup(React.createElement(mosaico.default, { signedIn: false, full: true, styles: [] })))
   const cm = cartaoDe(mwk, ID)
-  c('V1 está no /made-with-kineo, com o mesmo link e o selo Recreate', !!cm && hrefDe(cm) === VISITANTE && /class="kmz-chip kmz-re"/.test(cm))
+  c('V1 está no /made-with-kineo, com o mesmo link e o selo Recreate', !!cm && hrefDe(cm) === hrefDe(cv) && /class="kmz-chip kmz-re"/.test(cm))
   const f = cat.recreateFormatServidor(ID)
   c('V2 o molde existe no catálogo do servidor e um cliente comum o vê', !!f && access.recreateFormatVisible(f, 'customer@example.org') === true && cat.formatosParaOCliente('customer@example.org').some((x) => x.id === ID))
   const modulos = [LIB, MOSAICO, ENTRY].map((r) => (novasTrocas[r] ? novasTrocas[r](rd(r)) : rd(r)))
@@ -138,14 +161,21 @@ const casos = checa()
 for (const [n, ok] of casos) { console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${n}`); if (!ok) falhas++ }
 
 const troca = (a, b) => (s) => { if (!s.includes(a)) throw new Error('âncora do mutante sumiu: ' + a.slice(0, 70)); return s.replace(a, b) }
+const fechada = checa({ [RELEASE]: troca('PUBLIC_CREATE_EDITORS = true', 'PUBLIC_CREATE_EDITORS = false') })
+for (const [nome, ok] of fechada.filter(([n]) => /^(?:L[12]|V1) /.test(n))) {
+  console.log(`  ${ok ? 'ok  ' : 'FAIL'} OFF ${nome}`)
+  if (!ok) falhas++
+}
 const MUT = [
   ['o Pitch invader sai da frente do topo', { [LIB]: troca('  return [...moldes, ...base.filter((id) => !moldes.includes(id))].slice(0, 6)', '  return [...base.filter((id) => !moldes.includes(id)).slice(0, 1), ...moldes, ...base.filter((id) => !moldes.includes(id)).slice(1)].slice(0, 6)') }, 'T2'], // reancorado KINEO-NOVIDADE-EM-EVIDENCIA-1611: o topo é a regra topoComNovidades
   ['o Pitch invader sai do topo (só na grade)', { [LIB]: troca("prompt: null, desde: '2026-11-15' },", 'prompt: null },') }, 'T1'], // reancorado KINEO-NOVIDADE-EM-EVIDENCIA-1611: sem a data de abertura o cartão não entra na frente
   ['o 1º cartão do topo fica 2×2 (mais alto que a tela)', { [MOSAICO]: troca('.klp .kmz-topo-grid>.kmz-t{grid-column:auto;grid-row:auto;aspect-ratio:5/6}\n', '.klp .kmz-topo-grid>.kmz-t{grid-column:auto;grid-row:auto;aspect-ratio:5/6}\n.klp .kmz-topo-grid>.kmz-t:first-child{grid-column:span 2;grid-row:span 2}\n') }, 'T5'],
   ['o Pitch invader aparece duas vezes na home', { [MOSAICO]: troca('if (!topo && !full && NO_TOPO.has(c.id)) return null', 'if (!topo && !full && NO_TOPO.has(c.id) && c.id !== \'invasor-de-campo\') return null') }, 'T4'],
-  ['o visitante vai direto à página (404)', { [ENTRY]: troca("return signedIn ? path : '/signup?' + new URLSearchParams({ redirect: path }).toString()", 'return path') }, 'L1'],
-  ['o logado passa pelo cadastro', { [ENTRY]: troca("return signedIn ? path : '/signup?'", "return false ? path : '/signup?'") }, 'L2'],
-  ['o cartão perde o caminho do molde (cai no /clips)', { [MOSAICO]: troca('(recreateMoldeLogadoHref(c.id, signedIn) /*', '(null /*') }, 'L1'],
+  ['visitante encaminhado ao cadastro apesar da abertura do molde', { [MOSAICO]: troca('createEntryForSignupHref(templateHref ?? viaSignup(clipeNovoDestino(c), signedIn), signedIn)', '(templateHref ?? viaSignup(clipeNovoDestino(c), signedIn))') }, 'L1'],
+  ['conta logada encaminhada ao cadastro ao escolher o molde', { [MOSAICO]: troca('createEntryForSignupHref(templateHref ?? viaSignup(clipeNovoDestino(c), signedIn), signedIn)', "(templateHref && signedIn ? '/signup?redirect=' + encodeURIComponent(templateHref) : createEntryForSignupHref(templateHref ?? viaSignup(clipeNovoDestino(c), signedIn), signedIn))") }, 'L2'],
+  ['o cartão perde o caminho do molde', { [MOSAICO]: troca('const templateHref = recreateMoldeLogadoHref(c.id, signedIn) ??', 'const templateHref =') }, 'L1'],
+  ['visitante autorizado no Pitch mesmo com a chave fechada', { [FLOW]: troca("publicEditor('clip') && RECREATE_MOLDES_SO_LOGADO.includes(id)", "RECREATE_MOLDES_SO_LOGADO.includes(id)") }, 'L5a'],
+  ['molde privado permitido pelo id do Pitch', { [FLOW]: troca('!recreateFormatVisible(format, user?.email) ||', '') }, 'L5b'],
   ['o selo Recreate some', { [MOSAICO]: troca("  if (t.kind === 'novo' && recreateMoldeLogadoHref(t.clip.id, true)) return true", '') }, 'R2'],
   ['número de views inventado', { 'lib/home/cardSocialStats.ts': troca("export const CARD_SOCIAL_STATS: Readonly<Record<string, CardSocialStat>> = {", "export const CARD_SOCIAL_STATS: Readonly<Record<string, CardSocialStat>> = {\n  'invasor-de-campo': { views: 12_000, source: 'Instagram', url: 'https://www.instagram.com/usekineo/reel/x/', checked: '2026-11-16' },") }, 'R3'],
   ['o foco do cartão muda sem conferir', { [LIB]: troca("clipId: 'clip:a3b76cb7', focus: '50% 33%'", "clipId: 'clip:a3b76cb7', focus: '50% 50%'") }, 'M3'],
@@ -169,5 +199,5 @@ for (const [nome, t, alvo] of MUT) {
   pegoPeso = !checa({}, { tamanho: 601 * 1024 }).find(([n]) => n.startsWith('M1'))[1]
   for (const [nome, ok] of [['X prévia com som é pega por M1', pegoSom], ['X prévia acima de 600 KB é pega por M1', pegoPeso]]) { console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${nome}`); if (!ok) falhas++ }
 }
-console.log(`${falhas ? 'FALHA' : 'PASS'} home-pitch-1611: ${casos.length + MUT.length + 2 - falhas} ok, ${falhas} falha(s)`)
+console.log(`${falhas ? 'FALHA' : 'PASS'} home-pitch-1611: ${casos.length + MUT.length + 5 - falhas} ok, ${falhas} falha(s)`)
 process.exit(falhas ? 1 : 0)

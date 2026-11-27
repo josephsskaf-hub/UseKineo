@@ -1,3 +1,4 @@
+import { publicCreateCtaHref } from '@/lib/create/entry'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { CITATION_TOOLS_RELEASE } from '@/lib/growth/citationPagesRelease'
@@ -24,7 +25,8 @@ export async function GET(request: Request) {
   if(!canonical)return fail(400)
   const target=new URL(user?destinoDaIdeia(canonical):'/signup',request.url)
   if(!user)target.search=new URLSearchParams({prompt,create_intent:'trial_best',intent_campaign:campaign,script_mode:scriptMode,language:tool.language,redirect:canonical}).toString()
-  const response=NextResponse.redirect(target,303)
+  const editor=publicCreateCtaHref('/studio?'+new URLSearchParams({prompt,intent_campaign:campaign,script_mode:scriptMode,language:tool.language}))
+  const response=NextResponse.redirect(editor.startsWith('/create/film?')?new URL(editor,request.url):target,303)
   for(const [key,value] of Object.entries(HEADERS))response.headers.set(key,value)
   return response
  }catch{return fail(503)}
